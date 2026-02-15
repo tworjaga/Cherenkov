@@ -2,23 +2,27 @@ import { onMount, createSignal } from 'solid-js';
 import init, { RadiationGlobe } from '../../wasm/pkg';
 
 function GlobeView() {
-  let canvasRef: HTMLCanvasElement;
-  const [globe, setGlobe] = createSignal<RadiationGlobe | null>(null);
+  let canvasRef: HTMLCanvasElement | undefined;
   const [loading, setLoading] = createSignal(true);
 
   onMount(async () => {
     await init();
-    const g = new RadiationGlobe(canvasRef);
-    setGlobe(g);
-    setLoading(false);
+    
+    if (canvasRef) {
+      const g = new RadiationGlobe(canvasRef);
+      setLoading(false);
 
-    // Connect to WebSocket for real-time updates
-    const ws = new WebSocket('ws://localhost:8080/ws');
-    ws.onmessage = (event) => {
-      const update = JSON.parse(event.data);
-      g.updateSensor(update.id, update.lat, update.lon, update.value);
-    };
+      // Connect to WebSocket for real-time updates
+      const ws = new WebSocket('ws://localhost:8080/ws');
+      ws.onmessage = (event) => {
+        const update = JSON.parse(event.data);
+        g.updateSensor(update.id, update.lat, update.lon, update.value);
+      };
+    }
   });
+
+  const normalLabel = 'Normal (<0.5 μSv/h)';
+  const criticalLabel = 'Critical (>2 μSv/h)';
 
   return (
     <div class="h-full flex flex-col">
@@ -30,7 +34,7 @@ function GlobeView() {
         <div class="flex items-center gap-4">
           <div class="flex items-center gap-2">
             <span class="w-3 h-3 rounded-full bg-green-500"></span>
-            <span class="text-sm text-gray-400">Normal (<0.5 μSv/h)</span>
+            <span class="text-sm text-gray-400">{normalLabel}</span>
           </div>
           <div class="flex items-center gap-2">
             <span class="w-3 h-3 rounded-full bg-yellow-500"></span>
@@ -38,7 +42,7 @@ function GlobeView() {
           </div>
           <div class="flex items-center gap-2">
             <span class="w-3 h-3 rounded-full bg-red-500"></span>
-            <span class="text-sm text-gray-400">Critical (>2 μSv/h)</span>
+            <span class="text-sm text-gray-400">{criticalLabel}</span>
           </div>
         </div>
       </div>

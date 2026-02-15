@@ -1,4 +1,4 @@
-import { Routes, Route } from '@solidjs/router';
+import { Route, Router } from '@solidjs/router';
 import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
 import GlobeView from './pages/GlobeView';
@@ -9,7 +9,7 @@ import Settings from './pages/Settings';
 
 function App() {
   return (
-    <Routes>
+    <Router>
       <Route path="/" component={Layout}>
         <Route path="/" component={Dashboard} />
         <Route path="/globe" component={GlobeView} />
@@ -18,7 +18,7 @@ function App() {
         <Route path="/plume" component={PlumeSimulator} />
         <Route path="/settings" component={Settings} />
       </Route>
-    </Routes>
+    </Router>
   );
 }
 

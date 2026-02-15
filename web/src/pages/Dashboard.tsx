@@ -1,10 +1,12 @@
-import { createSignal, onMount } from 'solid-js';
+import { createSignal } from 'solid-js';
+
 import StatCard from '../components/StatCard';
 import AlertPanel from '../components/AlertPanel';
 import SensorChart from '../components/SensorChart';
 
 function Dashboard() {
-  const [stats, setStats] = createSignal({
+  const [stats, _setStats] = createSignal({
+
     sensors: 50247,
     readings: 104729,
     anomalies: 3,

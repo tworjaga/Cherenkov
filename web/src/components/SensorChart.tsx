@@ -1,15 +1,15 @@
-import { onMount, createSignal } from 'solid-js';
+import { onMount } from 'solid-js';
 import Chart from 'chart.js/auto';
 
 function SensorChart() {
-  let canvasRef: HTMLCanvasElement;
-  const [chart, setChart] = createSignal<Chart | null>(null);
+  let canvasRef: HTMLCanvasElement | undefined;
 
   onMount(() => {
+    if (!canvasRef) return;
     const ctx = canvasRef.getContext('2d');
     if (!ctx) return;
 
-    const newChart = new Chart(ctx, {
+    const chart = new Chart(ctx, {
       type: 'line',
       data: {
         labels: ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00'],
@@ -55,7 +55,10 @@ function SensorChart() {
       },
     });
 
-    setChart(newChart);
+    // Cleanup on unmount
+    return () => {
+      chart.destroy();
+    };
   });
 
   return (
