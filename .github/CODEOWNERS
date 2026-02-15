@@ -1,0 +1,18 @@
+# Global code owners
+* @tworjaga
+
+# Crate-specific owners
+/crates/cherenkov-ingest/ @tworjaga
+/crates/cherenkov-stream/ @tworjaga
+/crates/cherenkov-db/ @tworjaga
+/crates/cherenkov-ml/ @tworjaga
+/crates/cherenkov-plume/ @tworjaga
+/crates/cherenkov-api/ @tworjaga
+/crates/cherenkov-observability/ @tworjaga
+
+# Web frontend
+/web/ @tworjaga
+
+# Infrastructure
+/k8s/ @tworjaga
+/.github/ @tworjaga
