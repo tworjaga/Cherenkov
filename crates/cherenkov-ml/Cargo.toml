@@ -1,0 +1,24 @@
+[package]
+name = "cherenkov-ml"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[dependencies]
+candle = { workspace = true }
+candle-nn = { workspace = true }
+candle-onnx = { workspace = true }
+tokio = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tonic = { workspace = true }
+tracing = { workspace = true }
+thiserror = { workspace = true }
+anyhow = { workspace = true }
+uuid = { version = "1.6", features = ["v4", "serde"] }
+
+[dev-dependencies]
+tokio-test = { workspace = true }
