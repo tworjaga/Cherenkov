@@ -1,0 +1,76 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/cherenkov-ingest",
+    "crates/cherenkov-stream",
+    "crates/cherenkov-db",
+    "crates/cherenkov-ml",
+    "crates/cherenkov-plume",
+    "crates/cherenkov-api",
+    "crates/cherenkov-observability",
+    "web/wasm",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.75"
+license = "AGPL-3.0"
+repository = "https://github.com/tworjaga/cherenkov"
+authors = ["tworjaga"]
+
+[workspace.dependencies]
+# Async runtime
+tokio = { version = "1.35", features = ["full"] }
+tokio-util = "0.7"
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+bincode = "1.3"
+
+# Time
+chrono = { version = "0.4", features = ["serde"] }
+time = { version = "0.3", features = ["serde"] }
+
+# Database
+scylla = { version = "0.11", features = ["full-serialization"] }
+redis = { version = "0.24", features = ["tokio-comp"] }
+
+# HTTP
+reqwest = { version = "0.11", features = ["json", "rustls"] }
+axum = "0.7"
+tonic = "0.10"
+
+# GraphQL
+async-graphql = "6.0"
+async-graphql-axum = "6.0"
+
+# ML
+candle = { git = "https://github.com/huggingface/candle" }
+candle-nn = { git = "https://github.com/huggingface/candle" }
+candle-onnx = { git = "https://github.com/huggingface/candle" }
+
+# Stream processing
+timely = "0.12"
+differential-dataflow = "0.12"
+
+# Observability
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+metrics = "0.22"
+metrics-exporter-prometheus = "0.13"
+
+# Error handling
+thiserror = "1.0"
+anyhow = "1.0"
+
+# Testing
+tokio-test = "0.4"
+criterion = { version = "0.5", features = ["async_tokio"] }
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+panic = "abort"

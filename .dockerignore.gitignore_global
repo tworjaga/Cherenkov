@@ -1,0 +1,47 @@
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Documentation
+*.md
+!README.md
+!LICENSE
+docs/
+
+# Build artifacts
+target/
+**/target/
+dist/
+build/
+node_modules/
+
+# Secrets
+.env*
+secrets/
+credentials/
+
+# Local data
+data/
+datasets/
+*.db
+*.sqlite
+
+# IDE
+.vscode/
+.idea/
+
+# Tests
+tests/
+benches/
+fuzz/
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+
+# Temporary
+tmp/
+temp/
+.cache/
+*.log
