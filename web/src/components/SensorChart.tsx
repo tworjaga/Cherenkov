@@ -1,13 +1,22 @@
-import { onMount } from 'solid-js';
+import { createEffect, createSignal } from 'solid-js';
 import Chart from 'chart.js/auto';
 
 function SensorChart() {
-  let canvasRef: HTMLCanvasElement | undefined;
+  const [canvasRef, setCanvasRef] = createSignal<HTMLCanvasElement | null>(null);
+  const [chartInstance, setChartInstance] = createSignal<Chart | null>(null);
 
-  onMount(() => {
-    if (!canvasRef) return;
-    const ctx = canvasRef.getContext('2d');
+  createEffect(() => {
+    const canvas = canvasRef();
+    if (!canvas) return;
+    
+    const ctx = canvas.getContext('2d');
     if (!ctx) return;
+
+    // Destroy existing chart if any
+    const existing = chartInstance();
+    if (existing) {
+      existing.destroy();
+    }
 
     const chart = new Chart(ctx, {
       type: 'line',
@@ -55,15 +64,12 @@ function SensorChart() {
       },
     });
 
-    // Cleanup on unmount
-    return () => {
-      chart.destroy();
-    };
+    setChartInstance(chart);
   });
 
   return (
     <div class="h-64">
-      <canvas ref={canvasRef} class="w-full h-full"></canvas>
+      <canvas ref={setCanvasRef} class="w-full h-full"></canvas>
     </div>
   );
 }
