@@ -7,7 +7,7 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 use tower_http::cors::CorsLayer;
 use tower_http::compression::CompressionLayer;
-use tracing::info;
+use tracing::{info, warn};
 
 mod graphql;
 mod rest;
