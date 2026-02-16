@@ -2,13 +2,21 @@ import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import wasm from 'vite-plugin-wasm';
 
-export default defineConfig({
-  plugins: [react(), wasm()],
+export default defineConfig(({ mode }) => ({
+  plugins: mode === 'test' ? [react()] : [react(), wasm()],
+
   test: {
     environment: 'jsdom',
     globals: true,
     setupFiles: ['./src/test/setup.ts'],
+    pool: 'vmThreads',
+    poolOptions: {
+      threads: {
+        singleThread: true,
+      },
+    },
   },
+
 
 
 
