@@ -1,23 +1,33 @@
-import { Route } from '@solidjs/router';
-import Layout from './components/Layout';
-import Dashboard from './pages/Dashboard';
-import GlobeView from './pages/GlobeView';
-import Sensors from './pages/Sensors';
-import Anomalies from './pages/Anomalies';
-import PlumeSimulator from './pages/PlumeSimulator';
-import Settings from './pages/Settings';
+import React from 'react';
+import { Header } from './components/layout/Header';
+import { Sidebar } from './components/layout/Sidebar';
+import { RightPanel } from './components/layout/RightPanel';
+import { BottomPanel } from './components/layout/BottomPanel';
+import { GlobeContainer } from './components/globe/GlobeContainer';
+import { useAppStore } from './stores/useAppStore';
 
-function App() {
+const App: React.FC = () => {
+  const view = useAppStore((state) => state.view);
+
   return (
-    <Route path="/" component={Layout}>
-      <Route path="/" component={Dashboard} />
-      <Route path="/globe" component={GlobeView} />
-      <Route path="/sensors" component={Sensors} />
-      <Route path="/anomalies" component={Anomalies} />
-      <Route path="/plume" component={PlumeSimulator} />
-      <Route path="/settings" component={Settings} />
-    </Route>
+    <div className="h-screen w-screen bg-bg-primary text-text-primary overflow-hidden flex flex-col">
+      <Header />
+      
+      <div className="flex-1 flex overflow-hidden">
+        <Sidebar />
+        
+        <main className="flex-1 flex flex-col relative">
+          <div className="flex-1 relative">
+            <GlobeContainer />
+          </div>
+          
+          <BottomPanel />
+        </main>
+        
+        <RightPanel />
+      </div>
+    </div>
   );
-}
+};
 
 export default App;
