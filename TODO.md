@@ -88,7 +88,8 @@
 
 
 ### Next Steps (User to Complete)
-- [ ] Add OpenAQ data source integration
+- [x] Add OpenAQ data source integration
+
 
 - [ ] Add Open-Meteo weather integration
 - [ ] Implement EPA RadNet CSV parsing
