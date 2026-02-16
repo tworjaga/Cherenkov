@@ -23,4 +23,24 @@ All bug fixes have been implemented and pushed to GitHub:
 2. Fixed cherenkov-db/src/sqlite.rs - Moved AggregatedRow struct definition
 3. Added .cargo/config.toml for Windows build configuration
 
+## Verification: EventBus Integration Status
+
+After thorough code review, the EventBus integration in cherenkov-ingest IS implemented:
+
+**pipeline.rs:**
+- `event_bus: Arc<EventBus>` field in `IngestionPipeline` struct
+- Constructor accepts `event_bus: Arc<EventBus>` parameter
+- `write_batch()` publishes `CherenkovEvent::NewReading` after successful DB writes
+- Metric `cherenkov_ingest_events_published_total` tracked
+
+**main.rs:**
+- EventBus initialized: `Arc::new(EventBus::new(10000))`
+- Passed to pipeline constructor
+- EventBus metrics reporter task spawned
+
+**Data Flow:**
+```
+ingest (fetch) → SQLite (store) → EventBus.publish() → stream/api (consume)
+```
+
 Note: Full compilation testing requires MinGW GCC toolchain installation.
