@@ -97,7 +97,8 @@
 
 - [x] Add EURDEP XML SOAP parsing
 
-- [ ] Complete GraphQL subscription resolvers
+- [x] Complete GraphQL subscription resolvers
+
 - [ ] Add WebSocket real-time streaming
 - [ ] Implement ML training pipeline
 - [ ] Add GPU acceleration for plume simulation
