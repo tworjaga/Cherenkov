@@ -21,6 +21,25 @@ thiserror = { workspace = true }
 anyhow = { workspace = true }
 metrics = { workspace = true }
 
+# Internal crates
+cherenkov-db = { path = "../cherenkov-db" }
+cherenkov-observability = { path = "../cherenkov-observability" }
+
+
+# Circuit breaker and resilience
+backoff = { version = "0.4", features = ["tokio"] }
+futures = "0.3"
+tokio-stream = "0.1"
+async-trait = "0.1"
+
+
+# Deduplication
+dashmap = "5.5"
+
+# Serialization for DLQ
+bincode = { workspace = true }
+
+
 [dev-dependencies]
 tokio-test = { workspace = true }
 criterion = { workspace = true }

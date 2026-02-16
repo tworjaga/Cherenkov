@@ -1,16 +1,16 @@
 # Cherenkov Implementation TODO
 
-## Phase 1: Data Layer Foundation (P0)
-- [ ] Implement RadiationDatabase struct with tiering
-- [ ] Add SQLite warm storage module
-- [ ] Add object storage cold archive module
-- [ ] Implement time-range queries
-- [ ] Implement geo-spatial queries
-- [ ] Add migration system
-- [ ] Add connection pooling with deadpool/bb8
-- [ ] Add retry logic with exponential backoff
+## Phase 1: Data Layer Foundation (P0) - COMPLETED
+- [x] Implement RadiationDatabase struct with tiering
+- [x] Add SQLite warm storage module
+- [x] Add object storage cold archive module
+- [x] Implement time-range queries
+- [x] Implement geo-spatial queries
+- [x] Add migration system
+- [x] Add connection pooling with deadpool/bb8
+- [x] Add retry logic with exponential backoff
 
-## Phase 2: Ingestion Hardening (P0)
+## Phase 2: Ingestion Hardening (P0) - IN PROGRESS
 - [ ] Create ingestion pipeline with FuturesUnordered
 - [ ] Integrate database writes
 - [ ] Add dead letter queue
@@ -20,6 +20,7 @@
 - [ ] Add deduplication logic
 
 ## Phase 3: Stream Processing (P1)
+
 - [ ] Rewrite with async tokio streams
 - [ ] Integrate anomaly detection with DB
 - [ ] Implement WebSocket broadcasting

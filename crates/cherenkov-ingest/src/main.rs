@@ -1,47 +1,111 @@
 use std::sync::Arc;
-use tokio::sync::mpsc;
+use std::time::Duration;
 use tracing::{info, warn, error};
 
 mod sources;
 mod normalizer;
 mod metrics;
+mod pipeline;
 
-use sources::{DataSource, SourceConfig};
-use normalizer::Normalizer;
+use pipeline::{IngestionPipeline, PipelineConfig};
+use cherenkov_db::{RadiationDatabase, DatabaseConfig, scylla::ScyllaConfig};
+use cherenkov_observability::init_observability;
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    tracing_subscriber::fmt::init();
+async fn main() -> anyhow::Result<()> {
+    init_observability();
     
-    info!("Starting Cherenkov Ingest Daemon");
+    info!("Starting Cherenkov Ingest Daemon v{}", env!("CARGO_PKG_VERSION"));
     
-    let (tx, mut rx) = mpsc::channel(10000);
+    // Initialize database
+    let scylla_config = ScyllaConfig::default();
+    let db = Arc::new(
+        RadiationDatabase::new(
+            scylla_config,
+            "./data/cherenkov_warm.db",
+            "redis://127.0.0.1:6379",
+            DatabaseConfig::default(),
+        ).await?
+    );
     
-    let sources = vec![
-        DataSource::safecast(),
-        DataSource::uradmonitor(),
-        DataSource::epa_radnet(),
-    ];
+    // Run migrations
+    db.run_migrations().await?;
     
-    for source in sources {
-        let tx = tx.clone();
-        tokio::spawn(async move {
-            source.run(tx).await;
-        });
+    // Create ingestion pipeline
+    let config = PipelineConfig {
+        max_concurrent_sources: 10,
+        channel_buffer_size: 10000,
+        batch_size: 100,
+        batch_timeout_ms: 1000,
+        circuit_breaker_threshold: 5,
+        circuit_breaker_reset_secs: 30,
+        dlq_max_size: 10000,
+        dedup_window_secs: 60,
+    };
+    
+    let pipeline = IngestionPipeline::new(config, db.clone());
+    
+    // Create data sources
+    let sources = create_sources();
+    
+    // Start pipeline
+    let pipeline_handle = tokio::spawn(async move {
+        if let Err(e) = pipeline.run(sources).await {
+            error!("Pipeline error: {}", e);
+        }
+    });
+    
+    // Start health check server
+    let health_handle = tokio::spawn(health_check_server(db.clone()));
+    
+    // Start DLQ replayer
+    let dlq_handle = tokio::spawn(dlq_replayer(pipeline));
+    
+    // Wait for all tasks
+    tokio::select! {
+        _ = pipeline_handle => warn!("Pipeline exited"),
+        _ = health_handle => warn!("Health server exited"),
+        _ = dlq_handle => warn!("DLQ replayer exited"),
+        _ = tokio::signal::ctrl_c() => info!("Shutdown signal received"),
     }
     
-    let normalizer = Normalizer::new();
+    info!("Cherenkov Ingest Daemon shutting down");
+    Ok(())
+}
+
+fn create_sources() -> Vec<Box<dyn pipeline::DataSource>> {
+    vec![
+        Box::new(sources::SafecastSource::new()),
+        Box::new(sources::UradmonitorSource::new()),
+        Box::new(sources::EpaRadnetSource::new()),
+        Box::new(sources::OpenAqSource::new()),
+        Box::new(sources::OpenMeteoSource::new()),
+    ]
+}
+
+async fn health_check_server(db: Arc<RadiationDatabase>) {
+    let mut interval = tokio::time::interval(Duration::from_secs(30));
     
-    while let Some(reading) = rx.recv().await {
-        match normalizer.normalize(reading).await {
-            Ok(normalized) => {
-                metrics::record_ingest(&normalized.source);
-            }
-            Err(e) => {
-                warn!("Normalization failed: {}", e);
-            }
+    loop {
+        interval.tick().await;
+        
+        let health = db.health_check().await;
+        if !health.is_healthy() {
+            warn!("Database health check failed: hot={}, warm={}, cache={}", 
+                health.hot, health.warm, health.cache);
         }
     }
+}
+
+async fn dlq_replayer(pipeline: IngestionPipeline) {
+    let mut interval = tokio::time::interval(Duration::from_secs(300)); // 5 minutes
     
-    Ok(())
+    loop {
+        interval.tick().await;
+        
+        let replayed = pipeline.replay_dlq().await;
+        if replayed > 0 {
+            info!("Replayed {} entries from DLQ", replayed);
+        }
+    }
 }
