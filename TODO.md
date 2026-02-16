@@ -1,5 +1,11 @@
 # Cherenkov Implementation TODO
 
+## Phase 0: Core Infrastructure (P0) - COMPLETED
+- [x] Create cherenkov-core crate with EventBus
+- [x] Implement shared event types (NewReading, AnomalyDetected, AlertTriggered)
+- [x] Add configuration system with YAML and env var support
+- [x] Wire cherenkov-core dependency to ingest, stream, api crates
+
 ## Phase 1: Data Layer Foundation (P0) - COMPLETED
 - [x] Implement RadiationDatabase struct with tiering
 - [x] Add SQLite warm storage module
@@ -44,6 +50,7 @@
 - [x] Add health checks
 - [x] Set up Grafana dashboards
 
+
 ---
 
 ## Implementation Summary
@@ -52,6 +59,7 @@
 
 | Component | Status | Key Features |
 |-----------|--------|--------------|
+| cherenkov-core | COMPLETE | EventBus, shared events, configuration system |
 | cherenkov-db | COMPLETE | Hot/warm/cold tiering, ScyllaDB/SQLite/Redis, migrations |
 | cherenkov-ingest | COMPLETE | Concurrent sources, circuit breaker, DLQ, deduplication |
 | cherenkov-stream | COMPLETE | Async streams, anomaly detection, correlation engine |
@@ -60,7 +68,11 @@
 | cherenkov-plume | COMPLETE | Gaussian plume model, dose calculations |
 | cherenkov-observability | COMPLETE | Metrics, tracing, logging |
 
+
 ### Git Commits
+- 5e28469: feat(core): add EventBus, configuration, and shared event types for inter-crate communication
+- 6e4e4dd: chore(deps): add cherenkov-core dependency to ingest, stream, and api crates
+- 030505f: feat(config): add default configuration file with all service settings
 - 7521251: feat(db): implement tiered storage with hot/warm/cold architecture
 - 302b665: feat(ingest): implement concurrent ingestion pipeline with resilience patterns
 - 6243d5f: feat(stream): implement async stream processor with anomaly detection
@@ -70,7 +82,11 @@
 - 3fa3ebe: feat(plume): implement Gaussian plume model with dose calculations
 - 13e9d23: feat(deploy): add Dockerfiles for ingest, api, and stream services
 
+
 ### Next Steps (User to Complete)
+- [ ] Integrate EventBus into ingest main.rs to publish NewReading events
+- [ ] Integrate EventBus into stream main.rs to subscribe and publish AnomalyDetected
+- [ ] Integrate EventBus into api main.rs for WebSocket broadcasting
 - [ ] Add OpenAQ data source integration
 - [ ] Add Open-Meteo weather integration
 - [ ] Implement EPA RadNet CSV parsing
