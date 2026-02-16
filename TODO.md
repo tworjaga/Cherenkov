@@ -51,10 +51,11 @@
 
 
 ### Documentation
-- [ ] Add API documentation
-- [ ] Create deployment guide
-- [ ] Write contribution guidelines
-- [ ] Add security documentation
+- [x] Add API documentation
+- [x] Create deployment guide
+- [x] Write contribution guidelines
+- [x] Add security documentation
+
 
 ## Notes
 
