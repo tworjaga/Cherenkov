@@ -62,8 +62,10 @@ interface AppState {
   sidebarCollapsed: boolean;
   rightPanelOpen: boolean;
   bottomPanelOpen: boolean;
+  theme: 'DARK' | 'LIGHT';
   connection: 'CONNECTED' | 'CONNECTING' | 'DISCONNECTED' | 'ERROR';
   lastPing: Date | null;
+
 
   setView: (view: View) => void;
   setGlobeViewport: (viewport: Partial<GlobeViewport>) => void;
@@ -78,8 +80,10 @@ interface AppState {
   toggleSidebar: () => void;
   toggleRightPanel: () => void;
   toggleBottomPanel: () => void;
+  setTheme: (theme: 'DARK' | 'LIGHT') => void;
   setConnection: (connection: AppState['connection']) => void;
   setLastPing: (date: Date) => void;
+
 }
 
 const initialTimeControl: TimeControl = {
@@ -120,7 +124,9 @@ export const useAppStore = create<AppState>((set) => ({
   sidebarCollapsed: false,
   rightPanelOpen: true,
   bottomPanelOpen: true,
+  theme: 'DARK',
   connection: 'DISCONNECTED',
+
   lastPing: null,
 
   setView: (view) => set({ view }),
@@ -191,7 +197,10 @@ export const useAppStore = create<AppState>((set) => ({
     bottomPanelOpen: !state.bottomPanelOpen,
   })),
   
+  setTheme: (theme) => set({ theme }),
+  
   setConnection: (connection) => set({ connection }),
+
   
   setLastPing: (date) => set({ lastPing: date }),
 }));

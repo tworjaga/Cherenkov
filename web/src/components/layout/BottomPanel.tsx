@@ -10,8 +10,9 @@ export const BottomPanel: React.FC = () => {
   const unacknowledgedAlerts = alerts.filter((a) => !a.acknowledged);
 
   return (
-    <div className={`${open ? 'h-[240px]' : 'h-[40px]'} bg-bg-secondary border-t border-border-subtle shrink-0 transition-all duration-300`}>
-      <div className="flex items-center justify-between px-4 h-[40px] border-b border-border-subtle">
+    <div className={`${open ? 'h-[200px] sm:h-[240px]' : 'h-[40px]'} bg-bg-secondary border-t border-border-subtle shrink-0 transition-all duration-300`}>
+      <div className="flex items-center justify-between px-3 sm:px-4 h-[40px] border-b border-border-subtle">
+
         <div className="flex items-center gap-4">
           <button
             onClick={toggle}
@@ -37,16 +38,17 @@ export const BottomPanel: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-2 text-xs text-text-tertiary">
-          <span>Live</span>
+          <span className="hidden sm:inline">Live</span>
           <span className="w-2 h-2 rounded-full bg-alert-normal animate-pulse" />
         </div>
       </div>
 
       {open && (
-        <div className="h-[200px]">
+        <div className="h-[160px] sm:h-[200px]">
           <AlertFeed />
         </div>
       )}
     </div>
   );
+
 };

@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 :root {
-  /* Cherenkov Blue Design System */
+  /* Cherenkov Blue Design System - Dark (default) */
   --bg-primary: #050508;
   --bg-secondary: #0a0a10;
   --bg-tertiary: #12121a;
@@ -24,6 +24,25 @@
   --data-line: #00d4ff;
   --data-area: rgba(0, 212, 255, 0.1);
 }
+
+[data-theme="light"] {
+  /* Cherenkov Light Theme */
+  --bg-primary: #f8f9fa;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #e9ecef;
+  --bg-hover: #dee2e6;
+  --border-subtle: #ced4da;
+  --border-active: #adb5bd;
+  --accent-primary: #0066cc;
+  --accent-secondary: #0052a3;
+  --accent-glow: rgba(0, 102, 204, 0.15);
+  --text-primary: #212529;
+  --text-secondary: #495057;
+  --text-tertiary: #6c757d;
+  --data-line: #0066cc;
+  --data-area: rgba(0, 102, 204, 0.1);
+}
+
 
 * {
   margin: 0;

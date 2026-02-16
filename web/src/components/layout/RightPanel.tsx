@@ -11,7 +11,7 @@ export const RightPanel: React.FC = () => {
     return (
       <button
         onClick={toggle}
-        className="absolute right-4 top-20 z-40 p-2 bg-bg-secondary border border-border-subtle rounded-lg hover:bg-bg-hover transition-colors"
+        className="absolute right-4 top-20 z-40 p-2 bg-bg-secondary border border-border-subtle rounded-lg hover:bg-bg-hover transition-colors hidden lg:block"
         title="Open panel"
       >
         <svg className="w-5 h-5 text-text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -22,7 +22,21 @@ export const RightPanel: React.FC = () => {
   }
 
   return (
-    <aside className="w-[320px] bg-bg-secondary border-l border-border-subtle flex flex-col shrink-0">
+    <>
+      {/* Mobile backdrop */}
+      <div 
+        className="lg:hidden fixed inset-0 bg-black/50 z-40"
+        onClick={toggle}
+      />
+      <aside className={`
+        fixed lg:static inset-y-0 right-0 z-50
+        w-[280px] sm:w-[320px] 
+        bg-bg-secondary border-l border-border-subtle 
+        flex flex-col shrink-0
+        transform transition-transform duration-300 ease-out
+        ${open ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'}
+      `}>
+
       <div className="flex items-center justify-between p-4 border-b border-border-subtle">
         <h2 className="text-text-primary font-semibold">Details</h2>
         <button
@@ -60,5 +74,6 @@ export const RightPanel: React.FC = () => {
         )}
       </div>
     </aside>
+    </>
   );
 };
