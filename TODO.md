@@ -5,6 +5,10 @@
 - [x] Implement shared event types (NewReading, AnomalyDetected, AlertTriggered)
 - [x] Add configuration system with YAML and env var support
 - [x] Wire cherenkov-core dependency to ingest, stream, api crates
+- [x] Integrate EventBus into ingest main.rs to publish NewReading events
+- [x] Integrate EventBus into stream main.rs to subscribe and publish AnomalyDetected
+- [x] Integrate EventBus into api main.rs for WebSocket broadcasting
+
 
 ## Phase 1: Data Layer Foundation (P0) - COMPLETED
 - [x] Implement RadiationDatabase struct with tiering
@@ -84,10 +88,8 @@
 
 
 ### Next Steps (User to Complete)
-- [ ] Integrate EventBus into ingest main.rs to publish NewReading events
-- [ ] Integrate EventBus into stream main.rs to subscribe and publish AnomalyDetected
-- [ ] Integrate EventBus into api main.rs for WebSocket broadcasting
 - [ ] Add OpenAQ data source integration
+
 - [ ] Add Open-Meteo weather integration
 - [ ] Implement EPA RadNet CSV parsing
 - [ ] Add EURDEP XML SOAP parsing
