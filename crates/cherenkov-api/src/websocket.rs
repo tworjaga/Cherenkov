@@ -6,6 +6,8 @@ use axum::{
     Router,
 };
 use std::sync::Arc;
+use cherenkov_db::RadiationDatabase;
+use crate::auth::AuthState;
 use std::time::{Duration, Instant};
 use tokio::sync::{broadcast, RwLock, mpsc};
 use serde::{Serialize, Deserialize};
@@ -225,9 +227,9 @@ impl WebSocketState {
 
 pub async fn ws_handler(
     ws: WebSocketUpgrade,
-    State(state): State<Arc<WebSocketState>>,
+    State((ws_state, _db, _auth)): State<(Arc<WebSocketState>, Arc<RadiationDatabase>, Arc<AuthState>)>,
 ) -> Response {
-    ws.on_upgrade(|socket| handle_socket(socket, state))
+    ws.on_upgrade(|socket| handle_socket(socket, ws_state))
 }
 
 async fn handle_socket(mut socket: WebSocket, state: Arc<WebSocketState>) {
@@ -499,7 +501,7 @@ async fn handle_client_command(
 }
 
 
-pub fn create_websocket_router(state: Arc<WebSocketState>) -> Router {
+pub fn create_websocket_router(state: (Arc<WebSocketState>, Arc<RadiationDatabase>, Arc<AuthState>)) -> Router<(Arc<WebSocketState>, Arc<RadiationDatabase>, Arc<AuthState>)> {
     Router::new()
         .route("/ws", get(ws_handler))
         .with_state(state)
