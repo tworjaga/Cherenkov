@@ -15,20 +15,26 @@
 - [x] Add Docker Compose for local development
 - [x] Set up CI/CD with GitHub Actions
 - [x] Create architecture documentation
+- [x] Implement data source crawlers (Safecast, uRADMonitor, EPA RadNet)
+- [x] Add WebSocket server for real-time updates
+- [x] Implement anomaly detection algorithms (Welford, Isolation Forest)
+- [x] Set up ScyllaDB cluster configuration with connection pooling
+- [x] Add ML inference service with candle and batch processing
+- [x] Implement plume dispersion modeling with physics simulation
+- [x] Add JWT authentication and ABAC authorization
+- [x] Set up observability metrics collection
 
 ## In Progress
 
 ## Pending
 
 ### Backend
-- [ ] Implement actual data source crawlers (Safecast, uRADMonitor, EPA RadNet)
-- [ ] Add WebSocket server for real-time updates
-- [ ] Implement anomaly detection algorithms (Welford, Isolation Forest)
-- [ ] Set up ScyllaDB cluster configuration
-- [ ] Add ML inference service with candle
-- [ ] Implement plume dispersion modeling
-- [ ] Add authentication and authorization
-- [ ] Set up observability (tracing, metrics, logging)
+- [ ] Add distributed tracing (OpenTelemetry/Jaeger)
+- [ ] Implement structured logging (JSON format)
+- [ ] Add ML model training pipeline
+- [ ] Implement weather data ingestion for plume modeling
+- [ ] Add facility status inference
+- [ ] Implement seismic-radiation correlation
 
 ### Frontend
 - [ ] Connect to real GraphQL API
