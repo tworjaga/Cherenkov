@@ -227,6 +227,10 @@ impl DataSource for UradmonitorSource {
 }
 
 /// EPA RadNet radiation monitoring source
+/// 
+/// Fetches radiation monitoring data from EPA RadNet via CSV data files.
+/// RadNet provides near real-time environmental radiation monitoring data
+/// from stations across the United States.
 pub struct EpaRadnetSource {
     client: Client,
     config: SourceConfig,
@@ -243,6 +247,166 @@ impl EpaRadnetSource {
             },
         }
     }
+
+    /// Parse RadNet CSV data
+    /// 
+    /// Expected CSV format:
+    /// Location, City, State, Date, Time, Gamma (CPM), Beta (CPM), etc.
+    fn parse_radnet_csv(&self, csv_data: &str) -> anyhow::Result<Vec<RadiationReading>> {
+        let mut readings = Vec::new();
+        let mut lines = csv_data.lines();
+        
+        // Skip header line
+        let header = lines.next().ok_or_else(|| anyhow::anyhow!("Empty CSV data"))?;
+        let headers: Vec<&str> = header.split(',').map(|h| h.trim()).collect();
+        
+        // Find column indices
+        let location_idx = headers.iter().position(|&h| h.eq_ignore_ascii_case("Location"));
+        let city_idx = headers.iter().position(|&h| h.eq_ignore_ascii_case("City"));
+        let state_idx = headers.iter().position(|&h| h.eq_ignore_ascii_case("State"));
+        let date_idx = headers.iter().position(|&h| h.eq_ignore_ascii_case("Date"));
+        let time_idx = headers.iter().position(|&h| h.eq_ignore_ascii_case("Time"));
+        let gamma_idx = headers.iter().position(|&h| h.contains("Gamma") || h.contains("CPM"));
+        
+        for (line_num, line) in lines.enumerate() {
+            if line.trim().is_empty() {
+                continue;
+            }
+            
+            let fields: Vec<&str> = line.split(',').map(|f| f.trim()).collect();
+            if fields.len() < 3 {
+                warn!("Skipping malformed CSV line {}: insufficient fields", line_num + 2);
+                continue;
+            }
+            
+            // Extract location
+            let location = location_idx.and_then(|i| fields.get(i)).unwrap_or(&"Unknown");
+            let city = city_idx.and_then(|i| fields.get(i)).unwrap_or(&"");
+            let state = state_idx.and_then(|i| fields.get(i)).unwrap_or(&"");
+            
+            // Parse date and time
+            let date_str = date_idx.and_then(|i| fields.get(i)).unwrap_or(&"");
+            let time_str = time_idx.and_then(|i| fields.get(i)).unwrap_or(&"");
+            
+            let timestamp = if !date_str.is_empty() {
+                let datetime_str = format!("{} {}", date_str, time_str);
+                chrono::NaiveDateTime::parse_from_str(&datetime_str, "%Y-%m-%d %H:%M")
+                    .or_else(|_| chrono::NaiveDateTime::parse_from_str(&datetime_str, "%m/%d/%Y %H:%M"))
+                    .or_else(|_| chrono::NaiveDateTime::parse_from_str(&datetime_str, "%Y-%m-%d %H:%M:%S"))
+                    .ok()
+                    .map(|dt| dt.and_local_timezone(chrono::Utc).single())
+                    .flatten()
+            } else {
+                None
+            };
+            
+            let timestamp = timestamp.unwrap_or_else(chrono::Utc::now);
+            
+            // Parse gamma radiation (CPM to μSv/h conversion)
+            let dose_rate = if let Some(idx) = gamma_idx {
+                fields.get(idx)
+                    .and_then(|f| f.parse::<f64>().ok())
+                    .map(|cpm| cpm * 0.0057) // Convert CPM to μSv/h
+                    .unwrap_or(0.0)
+            } else {
+                0.0
+            };
+            
+            if dose_rate <= 0.0 {
+                continue; // Skip readings with no valid dose rate
+            }
+            
+            // Generate sensor ID from location
+            let sensor_id = format!("epa-radnet-{}-{}-{}", location, city, state)
+                .to_lowercase()
+                .replace(" ", "-");
+            
+            // Approximate coordinates (would need geocoding in production)
+            // Using placeholder coordinates - real implementation would use a geocoding service
+            let (latitude, longitude) = self.approximate_coordinates(city, state);
+            
+            readings.push(RadiationReading {
+                sensor_id: Uuid::new_v5(&Uuid::NAMESPACE_DNS, sensor_id.as_bytes()),
+                bucket: timestamp.timestamp() / 3600,
+                timestamp: timestamp.timestamp(),
+                latitude,
+                longitude,
+                dose_rate_microsieverts: dose_rate,
+                uncertainty: 0.2, // EPA instruments typically have 10-20% uncertainty
+                quality_flag: cherenkov_db::QualityFlag::Valid,
+                source: "epa_radnet".to_string(),
+                cell_id: format!("{:.2},{:.2}", latitude, longitude),
+            });
+        }
+        
+        Ok(readings)
+    }
+    
+    /// Approximate coordinates for US cities
+    /// In production, this should use a proper geocoding service
+    fn approximate_coordinates(&self, city: &str, state: &str) -> (f64, f64) {
+        // Major US cities with approximate coordinates
+        let coords = match (city.to_lowercase().as_str(), state.to_lowercase().as_str()) {
+            ("new york", "ny") => (40.7128, -74.0060),
+            ("los angeles", "ca") => (34.0522, -118.2437),
+            ("chicago", "il") => (41.8781, -87.6298),
+            ("houston", "tx") => (29.7604, -95.3698),
+            ("phoenix", "az") => (33.4484, -112.0740),
+            ("philadelphia", "pa") => (39.9526, -75.1652),
+            ("san antonio", "tx") => (29.4241, -98.4936),
+            ("san diego", "ca") => (32.7157, -117.1611),
+            ("dallas", "tx") => (32.7767, -96.7970),
+            ("san jose", "ca") => (37.3382, -121.8863),
+            ("austin", "tx") => (30.2672, -97.7431),
+            ("jacksonville", "fl") => (30.3322, -81.6557),
+            ("san francisco", "ca") => (37.7749, -122.4194),
+            ("columbus", "oh") => (39.9612, -82.9988),
+            ("charlotte", "nc") => (35.2271, -80.8431),
+            ("fort worth", "tx") => (32.7555, -97.3308),
+            ("indianapolis", "in") => (39.7684, -86.1581),
+            ("seattle", "wa") => (47.6062, -122.3321),
+            ("denver", "co") => (39.7392, -104.9903),
+            ("washington", "dc") => (38.9072, -77.0369),
+            ("boston", "ma") => (42.3601, -71.0589),
+            ("el paso", "tx") => (31.7619, -106.4850),
+            ("nashville", "tn") => (36.1627, -86.7816),
+            ("detroit", "mi") => (42.3314, -83.0458),
+            ("oklahoma city", "ok") => (35.4676, -97.5164),
+            ("portland", "or") => (45.5152, -122.6784),
+            ("las vegas", "nv") => (36.1699, -115.1398),
+            ("louisville", "ky") => (38.2527, -85.7585),
+            ("baltimore", "md") => (39.2904, -76.6122),
+            ("milwaukee", "wi") => (43.0389, -87.9065),
+            ("albuquerque", "nm") => (35.0844, -106.6504),
+            ("tucson", "az") => (32.2226, -110.9747),
+            ("fresno", "ca") => (36.7378, -119.7871),
+            ("sacramento", "ca") => (38.5816, -121.4944),
+            ("kansas city", "mo") => (39.0997, -94.5786),
+            ("mesa", "az") => (33.4152, -111.8315),
+            ("atlanta", "ga") => (33.7490, -84.3880),
+            ("omaha", "ne") => (41.2565, -95.9345),
+            ("colorado springs", "co") => (38.8339, -104.8214),
+            ("raleigh", "nc") => (35.7796, -78.6382),
+            ("miami", "fl") => (25.7617, -80.1918),
+            ("virginia beach", "va") => (36.8529, -75.9780),
+            ("oakland", "ca") => (37.8044, -122.2712),
+            ("minneapolis", "mn") => (44.9778, -93.2650),
+            ("tulsa", "ok") => (36.1540, -95.9928),
+            ("arlington", "tx") => (32.7357, -97.1081),
+            ("wichita", "ks") => (37.6872, -97.3301),
+            ("bakersfield", "ca") => (35.3733, -119.0187),
+            ("tampa", "fl") => (27.9506, -82.4572),
+            ("anaheim", "ca") => (33.8366, -117.9143),
+            ("honolulu", "hi") => (21.3069, -157.8583),
+            ("anchorage", "ak") => (61.2181, -149.9003),
+            _ => {
+                // Default to continental US center for unknown locations
+                (39.8283, -98.5795)
+            }
+        };
+        
+        coords
+    }
 }
 
 #[async_trait]
@@ -257,12 +421,52 @@ impl DataSource for EpaRadnetSource {
 
     #[instrument(skip(self))]
     async fn fetch(&mut self) -> anyhow::Result<Vec<RadiationReading>> {
-        // EPA RadNet requires parsing HTML or using their data files
-        // This is a stub implementation
-        warn!("EPA RadNet source not fully implemented - requires HTML parsing");
-        Ok(vec![])
+        // EPA RadNet provides CSV data files
+        // The actual URL pattern may vary - this is a representative implementation
+        
+        // Try to fetch the latest CSV data
+        // In production, this would need to handle:
+        // 1. Dynamic CSV file URLs from EPA website
+        // 2. Authentication if required
+        // 3. Multiple CSV files for different time periods
+        
+        let csv_url = "https://www.epa.gov/sites/default/files/2023-06/radnet-near-real-time-data.csv";
+        
+        let response = self.client
+            .get(csv_url)
+            .send()
+            .await;
+
+        let csv_data = match response {
+            Ok(resp) if resp.status().is_success() => resp.text().await?,
+            Ok(resp) => {
+                warn!("EPA RadNet CSV endpoint returned {} - using fallback", resp.status());
+                // Return empty for now - EPA data access may require different approach
+                return Ok(vec![]);
+            }
+            Err(e) => {
+                warn!("Failed to fetch EPA RadNet data: {} - using fallback", e);
+                return Ok(vec![]);
+            }
+        };
+
+        if csv_data.trim().is_empty() {
+            warn!("EPA RadNet CSV data is empty");
+            return Ok(vec![]);
+        }
+
+        // Parse the CSV data
+        let readings = self.parse_radnet_csv(&csv_data)?;
+        
+        info!("Parsed {} radiation readings from EPA RadNet", readings.len());
+        
+        metrics::counter!("cherenkov_ingest_fetched_total", "source" => "epa_radnet")
+            .increment(readings.len() as u64);
+
+        Ok(readings)
     }
 }
+
 
 /// OpenAQ air quality correlation source
 /// 
