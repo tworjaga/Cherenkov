@@ -12,11 +12,12 @@ function Layout(props: LayoutProps) {
       <Sidebar />
       <div class="flex-1 flex flex-col overflow-hidden">
         <Header />
-        <main class="flex-1 overflow-auto p-6">
+        <main aria-label="Main content" class="flex-1 overflow-auto p-6">
           {props.children}
         </main>
       </div>
     </div>
+
   );
 }
 

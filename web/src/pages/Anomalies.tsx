@@ -58,8 +58,9 @@ function Anomalies() {
           <p class="text-gray-400 mt-1">Statistical outliers and radiation events</p>
         </div>
         <div class="flex items-center gap-4">
-          <select class="bg-[#0a0a0f] border border-[#2a2a3a] rounded-lg px-4 py-2 focus:outline-none focus:border-[#00d4ff]">
+          <select title="Filter by severity level" class="bg-[#0a0a0f] border border-[#2a2a3a] rounded-lg px-4 py-2 focus:outline-none focus:border-[#00d4ff]">
             <option>All Severities</option>
+
             <option>Critical</option>
             <option>Warning</option>
             <option>Info</option>
