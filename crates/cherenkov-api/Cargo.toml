@@ -34,6 +34,11 @@ rand = "0.8"
 governor = "0.6"
 dashmap = "5.5"
 
+# Streaming and async utilities
+futures-util = "0.3"
+tokio-stream = "0.1"
+metrics = "0.22"
+
 # Internal crates
 cherenkov-core = { path = "../cherenkov-core" }
 cherenkov-db = { path = "../cherenkov-db" }

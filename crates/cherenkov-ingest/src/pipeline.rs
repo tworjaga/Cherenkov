@@ -300,7 +300,7 @@ impl IngestionPipeline {
 
     /// Run the ingestion pipeline with multiple sources
     #[instrument(skip(self, sources))]
-    pub async fn run(&self, sources: Vec<Box<dyn DataSource>>) -> anyhow::Result<()> {
+    pub async fn run(self: Arc<Self>, sources: Vec<Box<dyn DataSource + Send>>) -> anyhow::Result<()> {
         info!("Starting ingestion pipeline with {} sources", sources.len());
 
         let (tx, mut rx) = mpsc::channel::<RadiationReading>(self.config.channel_buffer_size);
@@ -323,13 +323,13 @@ impl IngestionPipeline {
         // Spawn batch writer task
         let db = self.db.clone();
         let event_bus = self.event_bus.clone();
-        let circuit_breaker = &self.circuit_breaker;
-        let dlq = &self.dlq;
+        let circuit_breaker = self.circuit_breaker.clone();
+        let dlq = self.dlq.clone();
+        let deduplicator = self.deduplicator.clone();
         let batch_size = self.config.batch_size;
         let batch_timeout = Duration::from_millis(self.config.batch_timeout_ms);
 
         let writer_handle = tokio::spawn(async move {
-
             let mut batch = Vec::with_capacity(batch_size);
             let mut last_write = Instant::now();
 
@@ -339,7 +339,7 @@ impl IngestionPipeline {
                 match timeout_result {
                     Ok(Some(reading)) => {
                         // Check deduplication
-                        if self.deduplicator.is_duplicate(
+                        if deduplicator.is_duplicate(
                             &reading.sensor_id.to_string(),
                             reading.timestamp
                         ) {
@@ -347,7 +347,7 @@ impl IngestionPipeline {
                             continue;
                         }
                         
-                        self.deduplicator.record(
+                        deduplicator.record(
                             reading.sensor_id.to_string(),
                             reading.timestamp
                         );
@@ -355,7 +355,7 @@ impl IngestionPipeline {
                         batch.push(reading);
 
                         if batch.len() >= batch_size {
-                            Self::write_batch(&db, &event_bus, circuit_breaker, dlq, &mut batch).await;
+                            Self::write_batch(&db, &event_bus, &circuit_breaker, &dlq, &mut batch).await;
                             last_write = Instant::now();
                         }
 
@@ -363,14 +363,14 @@ impl IngestionPipeline {
                     Ok(None) => {
                         // Channel closed
                         if !batch.is_empty() {
-                            Self::write_batch(&db, &event_bus, circuit_breaker, dlq, &mut batch).await;
+                            Self::write_batch(&db, &event_bus, &circuit_breaker, &dlq, &mut batch).await;
                         }
                         break;
                     }
                     Err(_) => {
                         // Timeout - flush batch
                         if !batch.is_empty() {
-                            Self::write_batch(&db, &event_bus, circuit_breaker, dlq, &mut batch).await;
+                            Self::write_batch(&db, &event_bus, &circuit_breaker, &dlq, &mut batch).await;
                             last_write = Instant::now();
                         }
                     }
@@ -378,7 +378,7 @@ impl IngestionPipeline {
 
                 // Periodic flush if batch has been sitting too long
                 if !batch.is_empty() && last_write.elapsed() >= batch_timeout {
-                    Self::write_batch(&db, &event_bus, circuit_breaker, dlq, &mut batch).await;
+                    Self::write_batch(&db, &event_bus, &circuit_breaker, &dlq, &mut batch).await;
                     last_write = Instant::now();
                 }
 
@@ -412,12 +412,13 @@ impl IngestionPipeline {
         loop {
             match source.fetch().await {
                 Ok(readings) => {
+                    let count = readings.len();
                     for reading in readings {
                         if tx.send(reading).await.is_err() {
                             return Ok(()); // Channel closed
                         }
                     }
-                    metrics::counter!("cherenkov_ingest_readings_total", "source" => source.name()).increment(readings.len() as u64);
+                    metrics::counter!("cherenkov_ingest_readings_total", "source" => source.name()).increment(count as u64);
                 }
                 Err(e) => {
                     warn!("Source {} fetch failed: {}", source.name(), e);
@@ -524,12 +525,15 @@ impl IngestionPipeline {
     pub async fn replay_dlq(&self) -> usize {
         let db = self.db.clone();
         
-        self.dlq.replay(|entry| async move {
-            match db.write_reading(&entry.reading).await {
-                Ok(()) => Ok(()),
-                Err(e) => {
-                    warn!("DLQ replay failed: {}", e);
-                    Err(())
+        self.dlq.replay(|entry| {
+            let db = db.clone();
+            async move {
+                match db.write_reading(&entry.reading).await {
+                    Ok(()) => Ok(()),
+                    Err(e) => {
+                        warn!("DLQ replay failed: {}", e);
+                        Err(())
+                    }
                 }
             }
         }).await
@@ -545,7 +549,7 @@ pub struct PipelineStats {
 
 /// Trait for data sources
 #[async_trait::async_trait]
-pub trait DataSource: Send {
+pub trait DataSource: Send + Sync {
     async fn fetch(&mut self) -> anyhow::Result<Vec<RadiationReading>>;
     fn name(&self) -> String;
     fn poll_interval(&self) -> Duration;
