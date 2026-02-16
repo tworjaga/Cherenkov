@@ -739,3 +739,189 @@ impl DataSource for OpenMeteoSource {
         Ok(vec![])
     }
 }
+
+/// EURDEP (European Radiological Data Exchange Platform) source
+/// 
+/// Fetches radiation monitoring data from European countries via SOAP/XML API.
+/// EURDEP provides near real-time environmental radiation data from monitoring
+/// stations across Europe.
+pub struct EurdepSource {
+    client: Client,
+    config: SourceConfig,
+}
+
+impl EurdepSource {
+    pub fn new() -> Self {
+        Self {
+            client: Client::new(),
+            config: SourceConfig {
+                name: "eurdep",
+                url: "https://eurdep.jrc.ec.europa.eu/eurdep/services/getLastMeasurements",
+                poll_interval_secs: 600,
+            },
+        }
+    }
+
+    /// Build SOAP request body for EURDEP getLastMeasurements service
+    fn build_soap_request(&self) -> String {
+        format!(
+            r#"<?xml version="1.0" encoding="UTF-8"?>
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"
+                  xmlns:eur="http://eurdep.jrc.ec.europa.eu/">
+    <soapenv:Header/>
+    <soapenv:Body>
+        <eur:getLastMeasurements>
+            <eur:countryCode>ALL</eur:countryCode>
+            <eur:period>1</eur:period>
+        </eur:getLastMeasurements>
+    </soapenv:Body>
+</soapenv:Envelope>"#
+        )
+    }
+
+    /// Parse EURDEP XML SOAP response
+    /// 
+    /// Expected XML structure:
+    /// <getLastMeasurementsResponse>
+    ///   <return>
+    ///     <measurement>
+    ///       <stationCode>STATION_ID</stationCode>
+    ///       <stationName>Station Name</stationName>
+    ///       <countryCode>CC</countryCode>
+    ///       <latitude>XX.XXXX</latitude>
+    ///       <longitude>YY.YYYY</longitude>
+    ///       <value>ZZZ.ZZ</value>
+    ///       <unit>nSv/h</unit>
+    ///       <timestamp>YYYY-MM-DD HH:MM:SS</timestamp>
+    ///     </measurement>
+    ///   </return>
+    /// </getLastMeasurementsResponse>
+    fn parse_eurdep_xml(&self, xml_data: &str) -> anyhow::Result<Vec<RadiationReading>> {
+        let mut readings = Vec::new();
+        
+        // Simple XML parsing using regex-like string extraction
+        // In production, use a proper XML library like quick-xml or xml-rs
+        
+        let measurement_regex = regex::Regex::new(
+            r#"<measurement>.*?<stationCode>([^<]+)</stationCode>.*?<stationName>([^<]+)</stationName>.*?<countryCode>([^<]+)</countryCode>.*?<latitude>([^<]+)</latitude>.*?<longitude>([^<]+)</longitude>.*?<value>([^<]+)</value>.*?<unit>([^<]+)</unit>.*?<timestamp>([^<]+)</timestamp>.*?</measurement>"#
+        ).ok();
+
+        if let Some(re) = measurement_regex {
+            for cap in re.captures_iter(xml_data) {
+                let station_code = cap.get(1).map(|m| m.as_str()).unwrap_or("unknown");
+                let station_name = cap.get(2).map(|m| m.as_str()).unwrap_or("Unknown");
+                let country_code = cap.get(3).map(|m| m.as_str()).unwrap_or("XX");
+                
+                let latitude = cap.get(4)
+                    .and_then(|m| m.as_str().parse::<f64>().ok())
+                    .unwrap_or(0.0);
+                
+                let longitude = cap.get(5)
+                    .and_then(|m| m.as_str().parse::<f64>().ok())
+                    .unwrap_or(0.0);
+                
+                let value = cap.get(6)
+                    .and_then(|m| m.as_str().parse::<f64>().ok())
+                    .unwrap_or(0.0);
+                
+                let unit = cap.get(7).map(|m| m.as_str()).unwrap_or("nSv/h");
+                
+                let timestamp_str = cap.get(8).map(|m| m.as_str()).unwrap_or("");
+                
+                // Parse timestamp
+                let timestamp = chrono::NaiveDateTime::parse_from_str(
+                    timestamp_str,
+                    "%Y-%m-%d %H:%M:%S"
+                ).ok()
+                .map(|dt| dt.and_local_timezone(chrono::Utc).single())
+                .flatten()
+                .unwrap_or_else(chrono::Utc::now);
+
+                // Convert to μSv/h
+                let dose_rate_microsieverts = match unit.to_lowercase().as_str() {
+                    "nsv/h" | "nSv/h" => value / 1000.0, // nSv/h to μSv/h
+                    "usv/h" | "μsv/h" | "microsieverts/hour" => value,
+                    "msv/h" => value * 1000.0, // mSv/h to μSv/h
+                    _ => value / 1000.0, // Assume nSv/h by default
+                };
+
+                if dose_rate_microsieverts <= 0.0 {
+                    continue;
+                }
+
+                let sensor_id = format!("eurdep-{}-{}", country_code, station_code)
+                    .to_lowercase()
+                    .replace(" ", "-");
+
+                readings.push(RadiationReading {
+                    sensor_id: Uuid::new_v5(&Uuid::NAMESPACE_DNS, sensor_id.as_bytes()),
+                    bucket: timestamp.timestamp() / 3600,
+                    timestamp: timestamp.timestamp(),
+                    latitude,
+                    longitude,
+                    dose_rate_microsieverts,
+                    uncertainty: 0.15, // EURDEP instruments typically have 10-15% uncertainty
+                    quality_flag: cherenkov_db::QualityFlag::Valid,
+                    source: "eurdep".to_string(),
+                    cell_id: format!("{:.2},{:.2}", latitude, longitude),
+                });
+            }
+        }
+
+        Ok(readings)
+    }
+}
+
+#[async_trait]
+impl DataSource for EurdepSource {
+    fn name(&self) -> String {
+        self.config.name.to_string()
+    }
+
+    fn poll_interval(&self) -> Duration {
+        Duration::from_secs(self.config.poll_interval_secs)
+    }
+
+    #[instrument(skip(self))]
+    async fn fetch(&mut self) -> anyhow::Result<Vec<RadiationReading>> {
+        // EURDEP provides a SOAP/XML web service
+        // This implementation sends a SOAP request and parses the XML response
+        
+        let soap_body = self.build_soap_request();
+        
+        let response = self.client
+            .post(self.config.url)
+            .header("Content-Type", "text/xml; charset=utf-8")
+            .header("SOAPAction", "getLastMeasurements")
+            .body(soap_body)
+            .send()
+            .await;
+
+        let xml_data = match response {
+            Ok(resp) if resp.status().is_success() => resp.text().await?,
+            Ok(resp) => {
+                warn!("EURDEP SOAP endpoint returned {} - using fallback", resp.status());
+                return Ok(vec![]);
+            }
+            Err(e) => {
+                warn!("Failed to fetch EURDEP data: {} - using fallback", e);
+                return Ok(vec![]);
+            }
+        };
+
+        if xml_data.trim().is_empty() {
+            warn!("EURDEP XML response is empty");
+            return Ok(vec![]);
+        }
+
+        // Parse the XML response
+        let readings = self.parse_eurdep_xml(&xml_data)?;
+        
+        info!("Parsed {} radiation readings from EURDEP", readings.len());
+        
+        metrics::counter!("cherenkov_ingest_fetched_total", "source" => "eurdep")
+            .increment(readings.len() as u64);
+
+        Ok(readings)
+    }
+}
