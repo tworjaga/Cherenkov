@@ -72,6 +72,8 @@ pub struct TimeSeriesPoint {
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub enum AggregationLevel {
     Raw,
+    OneMinute,
+    FiveMinutes,
     Minute,
     Hour,
     Day,

@@ -106,4 +106,8 @@ pub enum Algorithm {
     Autoencoder,
     Statistical,
     Ensemble,
+    Welford,
+    ZScore,
+    IQR,
+    Grubbs,
 }
