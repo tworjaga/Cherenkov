@@ -87,10 +87,47 @@ async fn main() -> anyhow::Result<()> {
     Ok(())
 }
 
-async fn health_check() -> &'static str {
-    "OK"
+use axum::extract::State;
+use serde_json::json;
+
+async fn health_check(State((_, db, _)): State<(Arc<websocket::WebSocketState>, Arc<RadiationDatabase>, Arc<AuthState>)>) -> impl axum::response::IntoResponse {
+    let health = db.health_check().await;
+    
+    let status = if health.is_healthy() {
+        axum::http::StatusCode::OK
+    } else {
+        axum::http::StatusCode::SERVICE_UNAVAILABLE
+    };
+    
+    let body = json!({
+        "status": if health.is_healthy() { "healthy" } else { "unhealthy" },
+        "database": {
+            "hot": health.hot,
+            "warm": health.warm,
+            "cache": health.cache
+        }
+    });
+    
+    (status, axum::Json(body))
 }
 
-async fn readiness_check() -> &'static str {
-    "READY"
+async fn readiness_check(State((_, db, _)): State<(Arc<websocket::WebSocketState>, Arc<RadiationDatabase>, Arc<AuthState>)>) -> impl axum::response::IntoResponse {
+    let health = db.health_check().await;
+    
+    let status = if health.is_healthy() {
+        axum::http::StatusCode::OK
+    } else {
+        axum::http::StatusCode::SERVICE_UNAVAILABLE
+    };
+    
+    let body = json!({
+        "ready": health.is_healthy(),
+        "checks": {
+            "scylladb": health.hot,
+            "sqlite": health.warm,
+            "redis": health.cache
+        }
+    });
+    
+    (status, axum::Json(body))
 }
