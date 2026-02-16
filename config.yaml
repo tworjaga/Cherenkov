@@ -1,0 +1,72 @@
+# Cherenkov Configuration
+# Copy to config.local.yaml and customize for your environment
+
+# Database configuration
+database:
+  scylla_uri: "scylla:9042"
+  sqlite_path: "/data/cherenkov.db"
+  redis_uri: "redis://redis:6379"
+  cold_storage_bucket: "cherenkov-archive"
+  pool_size: 10
+
+# Data source configuration
+sources:
+  safecast:
+    enabled: true
+    interval_sec: 60
+    api_key: null
+    params: {}
+  
+  uradmonitor:
+    enabled: true
+    interval_sec: 30
+    api_key: null  # Set URAD_API_KEY env var
+    params: {}
+  
+  epa_radnet:
+    enabled: false
+    interval_sec: 300
+    api_key: null
+    params: {}
+  
+  openaq:
+    enabled: false
+    interval_sec: 300
+    api_key: null
+    params: {}
+  
+  openmeteo:
+    enabled: false
+    interval_sec: 3600
+    api_key: null
+    params: {}
+
+# API server configuration
+api:
+  bind_addr: "0.0.0.0"
+  port: 8080
+  jwt_secret: "cherenkov-dev-secret-change-in-production"
+  rate_limit_per_minute: 60
+  enable_playground: true
+
+# Stream processing configuration
+stream:
+  anomaly_threshold: 3.0
+  window_size_sec: 300
+  enable_correlation: true
+  correlation_radius_km: 50.0
+
+# Ingestion configuration
+ingest:
+  batch_size: 100
+  batch_timeout_ms: 5000
+  circuit_breaker_threshold: 5
+  dlq_retry_interval_sec: 60
+  max_concurrent_fetches: 10
+
+# Observability configuration
+observability:
+  log_level: "info"
+  json_logs: true
+  metrics_port: 9090
+  tracing_endpoint: null
