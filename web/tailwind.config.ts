@@ -1,12 +1,31 @@
 import type { Config } from 'tailwindcss';
 
 const config: Config = {
+  darkMode: 'class',
   content: [
     './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
     './src/components/**/*.{js,ts,jsx,tsx,mdx}',
     './src/app/**/*.{js,ts,jsx,tsx,mdx}',
   ],
+  safelist: [
+    'bg-alert-normal',
+    'bg-alert-low',
+    'bg-alert-medium',
+    'bg-alert-high',
+    'bg-alert-critical',
+    'text-alert-normal',
+    'text-alert-low',
+    'text-alert-medium',
+    'text-alert-high',
+    'text-alert-critical',
+    'border-alert-normal',
+    'border-alert-low',
+    'border-alert-medium',
+    'border-alert-high',
+    'border-alert-critical',
+  ],
   theme: {
+
     extend: {
       colors: {
         bg: {
