@@ -105,16 +105,16 @@ impl SqliteStorage {
             AggregationLevel::Raw => {
                 self.query_raw(sensor_ids, start_naive, end_naive).await?
             }
-            AggregationLevel::OneMinute | AggregationLevel::Minute => {
+            AggregationLevel::OneMinute => {
                 self.query_aggregated(sensor_ids, start_naive, end_naive, "minute").await?
             }
             AggregationLevel::FiveMinutes => {
                 self.query_aggregated(sensor_ids, start_naive, end_naive, "5 minute").await?
             }
-            AggregationLevel::Hour => {
+            AggregationLevel::OneHour => {
                 self.query_aggregated(sensor_ids, start_naive, end_naive, "hour").await?
             }
-            AggregationLevel::Day => {
+            AggregationLevel::OneDay => {
                 self.query_aggregated(sensor_ids, start_naive, end_naive, "day").await?
             }
         };

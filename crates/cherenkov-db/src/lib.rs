@@ -74,9 +74,8 @@ pub enum AggregationLevel {
     Raw,
     OneMinute,
     FiveMinutes,
-    Minute,
-    Hour,
-    Day,
+    OneHour,
+    OneDay,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
