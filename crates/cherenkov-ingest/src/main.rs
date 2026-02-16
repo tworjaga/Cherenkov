@@ -10,6 +10,8 @@ mod pipeline;
 use pipeline::{IngestionPipeline, PipelineConfig};
 use cherenkov_db::{RadiationDatabase, DatabaseConfig, scylla::ScyllaConfig};
 use cherenkov_observability::init_observability;
+use cherenkov_core::{EventBus, CherenkovEvent, NormalizedReading};
+
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -31,6 +33,10 @@ async fn main() -> anyhow::Result<()> {
     // Run migrations
     db.run_migrations().await?;
     
+    // Initialize EventBus for inter-crate communication
+    let event_bus = Arc::new(EventBus::new(10000));
+    info!("EventBus initialized for publishing NewReading events");
+    
     // Create ingestion pipeline
     let config = PipelineConfig {
         max_concurrent_sources: 10,
@@ -43,7 +49,8 @@ async fn main() -> anyhow::Result<()> {
         dedup_window_secs: 60,
     };
     
-    let pipeline = IngestionPipeline::new(config, db.clone());
+    let pipeline = IngestionPipeline::new(config, db.clone(), event_bus.clone());
+
     
     // Create data sources
     let sources = create_sources();
@@ -61,16 +68,21 @@ async fn main() -> anyhow::Result<()> {
     // Start DLQ replayer
     let dlq_handle = tokio::spawn(dlq_replayer(pipeline));
     
+    // Start EventBus metrics reporter
+    let metrics_handle = tokio::spawn(eventbus_metrics_reporter(event_bus.clone()));
+    
     // Wait for all tasks
     tokio::select! {
         _ = pipeline_handle => warn!("Pipeline exited"),
         _ = health_handle => warn!("Health server exited"),
         _ = dlq_handle => warn!("DLQ replayer exited"),
+        _ = metrics_handle => warn!("EventBus metrics exited"),
         _ = tokio::signal::ctrl_c() => info!("Shutdown signal received"),
     }
     
     info!("Cherenkov Ingest Daemon shutting down");
     Ok(())
+
 }
 
 fn create_sources() -> Vec<Box<dyn pipeline::DataSource>> {
@@ -107,5 +119,16 @@ async fn dlq_replayer(pipeline: IngestionPipeline) {
         if replayed > 0 {
             info!("Replayed {} entries from DLQ", replayed);
         }
+    }
+}
+
+async fn eventbus_metrics_reporter(event_bus: Arc<EventBus>) {
+    let mut interval = tokio::time::interval(Duration::from_secs(60));
+    
+    loop {
+        interval.tick().await;
+        
+        let subscriber_count = event_bus.subscriber_count();
+        info!("EventBus metrics: {} active subscribers", subscriber_count);
     }
 }
