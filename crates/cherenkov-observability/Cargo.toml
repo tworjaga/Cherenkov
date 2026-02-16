@@ -18,6 +18,10 @@ serde_json = { workspace = true }
 chrono = { workspace = true }
 opentelemetry = "0.21"
 opentelemetry-jaeger = "0.20"
+opentelemetry_sdk = "0.21"
+tracing-opentelemetry = "0.22"
+anyhow = { workspace = true }
+uuid = { version = "1.6", features = ["v4"] }
 
 [dev-dependencies]
 tokio-test = { workspace = true }

@@ -2,7 +2,7 @@ use crate::{ReleaseParameters, PlumeSimulation, ConcentrationGrid, ArrivalTime};
 use nalgebra::{Vector3, DVector};
 use tracing::{info, debug, warn};
 use std::time::Instant;
-use candle::{Device, Tensor, DType};
+use candle_core::{Device, Tensor, DType};
 use std::sync::Arc;
 
 
