@@ -1,5 +1,5 @@
-use candle::{Device, Tensor};
-use candle_onnx::OnnxModel;
+use candle_core::{Device, Tensor};
+use candle_onnx::onnx::OnnxModel;
 use std::sync::Arc;
 use std::collections::HashMap;
 use tokio::sync::RwLock;

@@ -1,7 +1,7 @@
 use std::path::{Path, PathBuf};
 use std::collections::HashMap;
 use tracing::{info, error, debug, warn};
-use candle::{Device, Tensor, DType};
+use candle_core::{Device, Tensor, DType};
 use candle_nn::{VarMap, Optimizer, AdamW, ParamsAdamW};
 use serde::{Serialize, Deserialize};
 use tokio::sync::mpsc;

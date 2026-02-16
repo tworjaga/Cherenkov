@@ -10,6 +10,7 @@ authors.workspace = true
 [dependencies]
 candle-core = { workspace = true }
 candle-nn = { workspace = true }
+candle-onnx = { git = "https://github.com/huggingface/candle" }
 
 tokio = { workspace = true }
 serde = { workspace = true }
@@ -19,6 +20,8 @@ tracing = { workspace = true }
 thiserror = { workspace = true }
 anyhow = { workspace = true }
 uuid = { version = "1.6", features = ["v4", "serde"] }
+chrono = { workspace = true }
+rand = "0.8"
 
 [dev-dependencies]
 tokio-test = { workspace = true }
