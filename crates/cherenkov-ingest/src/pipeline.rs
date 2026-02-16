@@ -472,14 +472,13 @@ impl IngestionPipeline {
                             latitude: reading.latitude,
                             longitude: reading.longitude,
                             dose_rate_microsieverts: reading.dose_rate_microsieverts,
-                            uncertainty: reading.uncertainty,
+                            uncertainty: reading.uncertainty as f64,
                             quality_flag: match reading.quality_flag {
                                 QualityFlag::Valid => cherenkov_core::QualityFlag::Valid,
                                 QualityFlag::Suspect => cherenkov_core::QualityFlag::Suspect,
                                 QualityFlag::Invalid => cherenkov_core::QualityFlag::Invalid,
                             },
                             source: reading.source.clone(),
-                            cell_id: reading.cell_id.clone(),
                         });
                         
                         if let Err(e) = event_bus.publish(event).await {
