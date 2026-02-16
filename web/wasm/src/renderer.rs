@@ -116,6 +116,95 @@ impl WebGLRenderer {
         self.context.draw_arrays(WebGl2RenderingContext::POINTS, 0, 1);
     }
     
+    pub fn draw_facility(
+        &self,
+        position: &nalgebra::Vector3<f32>,
+        color: &[f32; 4],
+        view: &Matrix4<f32>,
+        projection: &Matrix4<f32>,
+    ) {
+        self.context.use_program(Some(&self.sensor_program));
+        
+        let view_loc = self.context.get_uniform_location(&self.sensor_program, "u_view");
+        let proj_loc = self.context.get_uniform_location(&self.sensor_program, "u_projection");
+        let pos_loc = self.context.get_uniform_location(&self.sensor_program, "u_position");
+        let color_loc = self.context.get_uniform_location(&self.sensor_program, "u_color");
+        let size_loc = self.context.get_uniform_location(&self.sensor_program, "u_size");
+        
+        self.context.uniform_matrix4fv_with_f32_array(
+            view_loc.as_ref(),
+            false,
+            view.as_slice(),
+        );
+        self.context.uniform_matrix4fv_with_f32_array(
+            proj_loc.as_ref(),
+            false,
+            projection.as_slice(),
+        );
+        self.context.uniform3f(
+            pos_loc.as_ref(),
+            position.x,
+            position.y,
+            position.z,
+        );
+        self.context.uniform4f(
+            color_loc.as_ref(),
+            color[0],
+            color[1],
+            color[2],
+            color[3],
+        );
+        // Facilities are larger than sensors
+        self.context.uniform1f(size_loc.as_ref(), 0.04);
+        
+        self.context.draw_arrays(WebGl2RenderingContext::POINTS, 0, 1);
+    }
+    
+    pub fn draw_plume_particle(
+        &self,
+        position: &nalgebra::Vector3<f32>,
+        intensity: f32,
+        view: &Matrix4<f32>,
+        projection: &Matrix4<f32>,
+    ) {
+        self.context.use_program(Some(&self.sensor_program));
+        
+        let view_loc = self.context.get_uniform_location(&self.sensor_program, "u_view");
+        let proj_loc = self.context.get_uniform_location(&self.sensor_program, "u_projection");
+        let pos_loc = self.context.get_uniform_location(&self.sensor_program, "u_position");
+        let color_loc = self.context.get_uniform_location(&self.sensor_program, "u_color");
+        let size_loc = self.context.get_uniform_location(&self.sensor_program, "u_size");
+        
+        self.context.uniform_matrix4fv_with_f32_array(
+            view_loc.as_ref(),
+            false,
+            view.as_slice(),
+        );
+        self.context.uniform_matrix4fv_with_f32_array(
+            proj_loc.as_ref(),
+            false,
+            projection.as_slice(),
+        );
+        self.context.uniform3f(
+            pos_loc.as_ref(),
+            position.x,
+            position.y,
+            position.z,
+        );
+        // Plume particles are orange/red with varying alpha
+        self.context.uniform4f(
+            color_loc.as_ref(),
+            1.0,
+            0.4,
+            0.0,
+            intensity * 0.5,
+        );
+        self.context.uniform1f(size_loc.as_ref(), 0.015);
+        
+        self.context.draw_arrays(WebGl2RenderingContext::POINTS, 0, 1);
+    }
+
+    
     fn create_program(
         context: &WebGl2RenderingContext,
         vert_source: &str,

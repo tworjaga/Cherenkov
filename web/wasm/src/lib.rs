@@ -15,33 +15,52 @@ pub fn start() {
 }
 
 #[wasm_bindgen]
-pub struct GlobeHandle {
-    globe: RadiationGlobe,
+pub struct RadiationGlobe {
+    inner: globe::RadiationGlobe,
 }
 
 #[wasm_bindgen]
-impl GlobeHandle {
+impl RadiationGlobe {
     #[wasm_bindgen(constructor)]
-    pub fn new(canvas: HtmlCanvasElement) -> Result<GlobeHandle, JsValue> {
-        let globe = RadiationGlobe::new(canvas)?;
-        Ok(Self { globe })
+    pub fn new(canvas: HtmlCanvasElement) -> Result<RadiationGlobe, JsValue> {
+        let inner = globe::RadiationGlobe::new(canvas)?;
+        Ok(Self { inner })
     }
     
     pub fn render(&mut self) {
-        self.globe.render();
+        self.inner.render();
     }
     
-    pub fn update_sensor(&mut self, id: &str, value: f64) {
-        self.globe.update_sensor(id, value);
+    pub fn update_sensor(&mut self, id: &str, lat: f64, lon: f64, value: f64) {
+        self.inner.update_sensor_with_location(id, lat, lon, value);
     }
     
     pub fn set_view(&mut self, lat: f64, lon: f64, zoom: f64) {
-        self.globe.set_view(lat, lon, zoom);
+        self.inner.set_view(lat, lon, zoom);
     }
     
     pub fn resize(&mut self, width: u32, height: u32) {
-        self.globe.resize(width, height);
+        self.inner.resize(width, height);
     }
+    
+    pub fn add_facility(&mut self, id: &str, lat: f64, lon: f64, status: &str) {
+        self.inner.add_facility(id, lat, lon, status);
+    }
+    
+    pub fn update_plume(&mut self, lat: f64, lon: f64, particles: &[f64]) {
+        self.inner.update_plume(lat, lon, particles);
+    }
+    
+    pub fn set_layer_visibility(&mut self, layer: &str, visible: bool) {
+        self.inner.set_layer_visibility(layer, visible);
+    }
+}
+
+#[wasm_bindgen]
+pub async fn init() -> Result<(), JsValue> {
+    utils::set_panic_hook();
+    console_log!("Cherenkov WASM module initialized");
+    Ok(())
 }
 
 #[wasm_bindgen]
