@@ -1,0 +1,63 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cherenkov-stream
+  namespace: cherenkov
+  labels:
+    app: cherenkov-stream
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: cherenkov-stream
+  template:
+    metadata:
+      labels:
+        app: cherenkov-stream
+    spec:
+      containers:
+      - name: stream
+        image: ghcr.io/tworjaga/cherenkov-stream:latest
+        ports:
+        - containerPort: 9090
+          name: metrics
+        envFrom:
+        - configMapRef:
+            name: cherenkov-config
+        env:
+        - name: SCYLLA_HOSTS
+          valueFrom:
+            secretKeyRef:
+              name: cherenkov-secrets
+              key: scylla-hosts
+        - name: REDIS_URL
+          valueFrom:
+            secretKeyRef:
+              name: cherenkov-secrets
+              key: redis-url
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "1000m"
+          limits:
+            memory: "2Gi"
+            cpu: "2000m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 9090
+          initialDelaySeconds: 30
+          periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cherenkov-stream
+  namespace: cherenkov
+spec:
+  selector:
+    app: cherenkov-stream
+  ports:
+  - name: metrics
+    port: 9090
+    targetPort: 9090

@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cherenkov-config
+  namespace: cherenkov
+data:
+  RUST_LOG: "info"
+  RUST_BACKTRACE: "1"
+  SCYLLA_KEYSPACE: "cherenkov"
+  SCYLLA_REPLICATION_FACTOR: "3"
+  REDIS_POOL_SIZE: "16"
+  API_PORT: "8080"
+  WEBSOCKET_PORT: "8081"
+  GRPC_PORT: "50051"
+  METRICS_PORT: "9090"
+  JAEGER_ENDPOINT: "http://jaeger-collector:14268/api/traces"
+  GITHUB_REPO: "https://github.com/tworjaga/cherenkov"

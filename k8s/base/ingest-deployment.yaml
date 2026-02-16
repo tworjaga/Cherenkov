@@ -1,0 +1,63 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cherenkov-ingest
+  namespace: cherenkov
+  labels:
+    app: cherenkov-ingest
+spec:
+  replicas: 5
+  selector:
+    matchLabels:
+      app: cherenkov-ingest
+  template:
+    metadata:
+      labels:
+        app: cherenkov-ingest
+    spec:
+      containers:
+      - name: ingest
+        image: ghcr.io/tworjaga/cherenkov-ingest:latest
+        ports:
+        - containerPort: 9090
+          name: metrics
+        envFrom:
+        - configMapRef:
+            name: cherenkov-config
+        env:
+        - name: SCYLLA_HOSTS
+          valueFrom:
+            secretKeyRef:
+              name: cherenkov-secrets
+              key: scylla-hosts
+        - name: REDIS_URL
+          valueFrom:
+            secretKeyRef:
+              name: cherenkov-secrets
+              key: redis-url
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 9090
+          initialDelaySeconds: 30
+          periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cherenkov-ingest
+  namespace: cherenkov
+spec:
+  selector:
+    app: cherenkov-ingest
+  ports:
+  - name: metrics
+    port: 9090
+    targetPort: 9090
