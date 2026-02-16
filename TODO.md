@@ -89,22 +89,14 @@
 
 ### Next Steps (User to Complete)
 - [x] Add OpenAQ data source integration
-
-
 - [x] Add Open-Meteo weather integration
-
 - [x] Implement EPA RadNet CSV parsing
-
 - [x] Add EURDEP XML SOAP parsing
-
+- [x] Add NASA FIRMS CSV parsing for thermal anomalies
+- [x] Add IAEA PRIS HTML scraping for reactor locations
 - [x] Complete GraphQL subscription resolvers
-
 - [x] Add WebSocket real-time streaming
-
 - [x] Implement ML training pipeline
-
 - [x] Add GPU acceleration for plume simulation
-
 - [x] Set up CI/CD with GitHub Actions
-
 - [x] Deploy to production environment
