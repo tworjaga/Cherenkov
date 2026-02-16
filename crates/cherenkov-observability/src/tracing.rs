@@ -1,3 +1,4 @@
+use anyhow::{Result, anyhow};
 use opentelemetry::trace::{TracerProvider, SpanKind, TraceContextExt};
 use opentelemetry::KeyValue;
 use opentelemetry_jaeger::Config;
@@ -53,7 +54,7 @@ impl Default for TraceConfig {
 }
 
 impl TracingService {
-    pub fn new(config: TraceConfig) -> anyhow::Result<Self> {
+    pub fn new(config: TraceConfig) -> Result<Self> {
         let provider = Config::new()
             .with_service_name(&config.service_name)
             .with_endpoint(&config.jaeger_endpoint)
@@ -62,7 +63,7 @@ impl TracingService {
                     .with_sampler(Sampler::TraceIdRatioBased(config.sample_rate))
             )
             .init_tracer()
-            .map_err(|e| anyhow::anyhow!("Failed to initialize Jaeger: {}", e))?;
+            .map_err(|e| anyhow!("Failed to initialize Jaeger: {}", e))?;
         
         let tracer = provider.tracer(&config.service_name);
         

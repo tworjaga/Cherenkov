@@ -255,10 +255,14 @@ impl Timer {
 impl Drop for Timer {
     fn drop(&mut self) {
         let elapsed = self.elapsed_ms() as f64;
-        let mut counter = metrics::histogram!(self.name.clone());
-        for (k, v) in &self.labels {
-            counter = counter.with_label(k.clone(), v.clone());
+        if self.labels.is_empty() {
+            metrics::histogram!(self.name.clone()).record(elapsed);
+        } else {
+            let labels: Vec<(&str, &str)> = self.labels
+                .iter()
+                .map(|(k, v)| (k.as_str(), v.as_str()))
+                .collect();
+            metrics::histogram!(self.name.clone(), labels).record(elapsed);
         }
-        counter.record(elapsed);
     }
 }
