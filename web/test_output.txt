@@ -1,0 +1,105 @@
+
+> cherenkov-web@0.1.0 test
+> vitest --run
+
+
+[7m[1m[36m RUN [39m[22m[27m [36mv1.6.1[39m [90mD:/pythonprojects/Cherenkov/web[39m
+
+ [32mÔ£ô[39m src/components/ui/ThemeToggle.test.tsx [2m ([22m[2m5 tests[22m[2m)[22m[33m 495[2mms[22m[39m
+ [33mÔØ»[39m src/lib/clustering.test.ts [2m ([22m[2m10 tests[22m [2m|[22m [31m1 failed[39m[2m)[22m[90m 186[2mms[22m[39m
+[31m   [33mÔØ»[31m src/lib/clustering.test.ts[2m > [22mgridCluster[2m > [22mreduces clusters for large datasets[39m
+[31m     ÔåÆ expected 1000 to be less than 1000[39m
+ [33mÔØ»[39m src/hooks/useRafThrottle.test.ts [2m ([22m[2m8 tests[22m [2m|[22m [31m4 failed[39m[2m)[22m[90m 129[2mms[22m[39m
+[31m   [33mÔØ»[31m src/hooks/useRafThrottle.test.ts[2m > [22museRafThrottle[2m > [22mexecutes function immediately on first call[39m
+[31m     ÔåÆ expected "spy" to be called with arguments: [ 'test' ][90m
+
+Received: 
+
+[31m[90m
+
+Number of calls: [1m0[22m
+[31m[39m
+[31m   [33mÔØ»[31m src/hooks/useRafThrottle.test.ts[2m > [22museRafThrottle[2m > [22mthrottles calls within frame interval[39m
+[31m     ÔåÆ expected "spy" to be called 1 times, but got 0 times[39m
+[31m   [33mÔØ»[31m src/hooks/useRafThrottle.test.ts[2m > [22museRafThrottle[2m > [22mallows new calls after frame interval[39m
+[31m     ÔåÆ expected "spy" to be called 1 times, but got 0 times[39m
+[31m   [33mÔØ»[31m src/hooks/useRafThrottle.test.ts[2m > [22museRafDebounce[2m > [22mcancels previous RAF on new call[39m
+[31m     ÔåÆ expected "spy" to be called 1 times, but got 3 times[39m
+ [32mÔ£ô[39m src/components/ui/LoadingSpinner.test.tsx [2m ([22m[2m8 tests[22m[2m)[22m[90m 201[2mms[22m[39m
+ [32mÔ£ô[39m src/components/ui/Toast.test.tsx [2m ([22m[2m12 tests[22m[2m)[22m[33m 384[2mms[22m[39m
+ [32mÔ£ô[39m src/components/dashboard/AlertCard.test.tsx [2m ([22m[2m13 tests[22m[2m)[22m[90m 291[2mms[22m[39m
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ» Failed Tests 5 ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»
+
+ FAIL  src/hooks/useRafThrottle.test.ts > useRafThrottle > executes function immediately on first call
+AssertionError: expected "spy" to be called with arguments: [ 'test' ]
+
+Received: 
+
+
+
+Number of calls: 0
+
+ ÔØ» src/hooks/useRafThrottle.test.ts:38:20
+     36|     await new Promise(resolve => setTimeout(resolve, 10));
+     37|     
+     38|     expect(mockFn).toHaveBeenCalledWith('test');
+       |                    ^
+     39|   });
+     40| 
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[1/5]ÔÄ»
+
+ FAIL  src/hooks/useRafThrottle.test.ts > useRafThrottle > throttles calls within frame interval
+AssertionError: expected "spy" to be called 1 times, but got 0 times
+ ÔØ» src/hooks/useRafThrottle.test.ts:48:20
+     46|     result.current('first');
+     47|     await new Promise(resolve => setTimeout(resolve, 10));
+     48|     expect(mockFn).toHaveBeenCalledTimes(1);
+       |                    ^
+     49|     
+     50|     // Reset mock
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[2/5]ÔÄ»
+
+ FAIL  src/hooks/useRafThrottle.test.ts > useRafThrottle > allows new calls after frame interval
+AssertionError: expected "spy" to be called 1 times, but got 0 times
+ ÔØ» src/hooks/useRafThrottle.test.ts:68:20
+     66|     result.current('first');
+     67|     await new Promise(resolve => setTimeout(resolve, 10));
+     68|     expect(mockFn).toHaveBeenCalledTimes(1);
+       |                    ^
+     69|     
+     70|     // Advance time past frame interval (16.67ms)
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[3/5]ÔÄ»
+
+ FAIL  src/hooks/useRafThrottle.test.ts > useRafDebounce > cancels previous RAF on new call
+AssertionError: expected "spy" to be called 1 times, but got 3 times
+ ÔØ» src/hooks/useRafThrottle.test.ts:136:20
+    134|     
+    135|     // Should only execute last call
+    136|     expect(mockFn).toHaveBeenCalledTimes(1);
+       |                    ^
+    137|     expect(mockFn).toHaveBeenCalledWith('third');
+    138|   });
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[4/5]ÔÄ»
+
+ FAIL  src/lib/clustering.test.ts > gridCluster > reduces clusters for large datasets
+AssertionError: expected 1000 to be less than 1000
+ ÔØ» src/lib/clustering.test.ts:105:27
+    103|     const result = gridCluster(sensors, 3, 50);
+    104|     // Grid clustering should group points, creating fewer clusters thÔÇª
+    105|     expect(result.length).toBeLessThan(sensors.length);
+       |                           ^
+    106|   });
+    107| 
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[5/5]ÔÄ»
+
+[2m Test Files [22m [1m[31m2 failed[39m[22m[2m | [22m[1m[32m4 passed[39m[22m[90m (6)[39m
+[2m      Tests [22m [1m[31m5 failed[39m[22m[2m | [22m[1m[32m51 passed[39m[22m[90m (56)[39m
+[2m   Start at [22m 07:40:48
+[2m   Duration [22m 7.37s[2m (transform 327ms, setup 1.97s, collect 3.34s, tests 1.69s, environment 21.44s, prepare 24.09s)[22m
+
