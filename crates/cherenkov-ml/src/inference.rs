@@ -38,7 +38,7 @@ struct ModelCache {
 }
 
 struct ModelVersion {
-    model: OnnxModel,
+    model: Arc<OnnxModel>,
     version: String,
     loaded_at: Instant,
 }
@@ -78,17 +78,23 @@ impl InferenceService {
         let model = OnnxModel::load(path)
             .map_err(|e| anyhow::anyhow!("Failed to load model: {}", e))?;
         
-        let model_version = ModelVersion {
-            model,
-            version: version.to_string(),
-            loaded_at: Instant::now(),
-        };
+        let model_arc = Arc::new(model);
+        let version_string = version.to_string();
+        let loaded_at = Instant::now();
         
         if name == "isotope_classifier" {
-            cache.isotope_classifier = Some(model_version);
+            cache.isotope_classifier = Some(ModelVersion {
+                model: Arc::clone(&model_arc),
+                version: version_string.clone(),
+                loaded_at,
+            });
         }
         
-        cache.models.insert(name.to_string(), model_version);
+        cache.models.insert(name.to_string(), ModelVersion {
+            model: model_arc,
+            version: version_string,
+            loaded_at,
+        });
         
         info!("Loaded model '{}' version {} from {}", name, version, path);
         
