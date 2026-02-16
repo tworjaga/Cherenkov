@@ -91,7 +91,8 @@
 - [x] Add OpenAQ data source integration
 
 
-- [ ] Add Open-Meteo weather integration
+- [x] Add Open-Meteo weather integration
+
 - [ ] Implement EPA RadNet CSV parsing
 - [ ] Add EURDEP XML SOAP parsing
 - [ ] Complete GraphQL subscription resolvers
