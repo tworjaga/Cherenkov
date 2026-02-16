@@ -1,46 +1,53 @@
 # Cherenkov Bug Fix TODO
 
-## Phase 1: Fix Core Compilation Issues
+## Current Status: 119 Compilation Errors Remaining
+
+### Phase 1: Core Fixes (COMPLETED)
 - [x] Fix cherenkov-core/src/bus.rs - Make publish method async
-- [x] Fix cherenkov-core/src/bus.rs - Add proper async handling
-
-## Phase 2: Fix Database Code Issues
 - [x] Fix cherenkov-db/src/sqlite.rs - Move AggregatedRow struct definition
-- [x] Fix cherenkov-db/src/sqlite.rs - Resolve visibility issues
+- [x] Fix cherenkov-db/src/scylla.rs - Consistency enum variants
+- [x] Add .cargo/config.toml for Windows builds
+- [x] Switch to GNU toolchain (stable-x86_64-pc-windows-gnu)
 
-## Phase 3: Toolchain Configuration
-- [x] Add cargo configuration for Windows builds
-- [x] Configure to mitigate stack overflow issues
+### Phase 2: Type System Fixes (COMPLETED)
+- [x] Add Algorithm enum variants (Welford, ZScore, IQR, Grubbs)
+- [x] Add AggregationLevel variants (OneMinute, FiveMinutes)
+- [x] Fix AggregationLevel match arms in sqlite.rs
+- [x] Add CorrelatedEventDetected event variant
 
-## Phase 4: Testing and Validation
-- [x] Run cargo check
-- [x] Run cargo test --test integration_test
-- [x] Push changes to GitHub
+### Phase 3: Dependency Injection & Clone Fixes (COMPLETED)
+- [x] Add Clone impls for CircuitBreaker, DeadLetterQueue, Deduplicator
+- [x] Fix pipeline lifetime issues with Arc<Self>
+- [x] Add missing dependencies (uuid, regex, rand, futures-util, tokio-stream, metrics)
 
-## Summary
-All bug fixes have been implemented and pushed to GitHub:
-1. Fixed cherenkov-core/src/bus.rs - Made publish method async
-2. Fixed cherenkov-db/src/sqlite.rs - Moved AggregatedRow struct definition
-3. Added .cargo/config.toml for Windows build configuration
+### Phase 4: Remaining 119 Errors (IN PROGRESS)
 
-## Verification: EventBus Integration Status
+#### cherenkov-ml (candle_nn API issues)
+- [ ] Fix candle_onnx::onnx::OnnxModel import
+- [ ] Fix VarMap::get signature (Shape trait bound errors)
+- [ ] Fix Init::Zeros -> Init::Const(0.0) migration
+- [ ] Fix type mismatches in training.rs
 
-After thorough code review, the EventBus integration in cherenkov-ingest IS implemented:
+#### cherenkov-api (WebSocket/GraphQL issues)
+- [ ] Fix tokio_stream::wrappers::BroadcastStream import
+- [ ] Fix axum::extract::ws import
+- [ ] Fix async-graphql InputObject derive macro
+- [ ] Add missing warn! macro imports
 
-**pipeline.rs:**
-- `event_bus: Arc<EventBus>` field in `IngestionPipeline` struct
-- Constructor accepts `event_bus: Arc<EventBus>` parameter
-- `write_batch()` publishes `CherenkovEvent::NewReading` after successful DB writes
-- Metric `cherenkov_ingest_events_published_total` tracked
+#### cherenkov-stream (Import issues)
+- [ ] Fix crate::window::Reading struct
+- [ ] Fix SlidingWindow::is_stale method
+- [ ] Fix cherenkov_plume integration
 
-**main.rs:**
-- EventBus initialized: `Arc::new(EventBus::new(10000))`
-- Passed to pipeline constructor
-- EventBus metrics reporter task spawned
+#### cherenkov-ingest (Field issues)
+- [ ] Add cell_id field to NormalizedReading
+- [ ] Fix borrow checker issues in pipeline
 
-**Data Flow:**
-```
-ingest (fetch) → SQLite (store) → EventBus.publish() → stream/api (consume)
-```
+### Commits Pushed (17 total)
+All fixes committed and pushed to: https://github.com/tworjaga/Cherenkov.git
 
-Note: Full compilation testing requires MinGW GCC toolchain installation.
+### Next Actions Required
+1. Fix candle_nn API breaking changes (major effort)
+2. Add missing WebSocket/GraphQL dependencies
+3. Resolve cherenkov_plume module imports
+4. Fix remaining borrow checker issues
