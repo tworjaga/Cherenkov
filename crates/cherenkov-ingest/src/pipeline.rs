@@ -9,6 +9,8 @@ use chrono::Utc;
 use serde::{Serialize, Deserialize};
 
 use cherenkov_db::{RadiationDatabase, RadiationReading, QualityFlag};
+use cherenkov_core::{EventBus, CherenkovEvent, NormalizedReading};
+
 
 /// Configuration for the ingestion pipeline
 #[derive(Debug, Clone)]
@@ -261,16 +263,19 @@ impl Deduplicator {
 pub struct IngestionPipeline {
     config: PipelineConfig,
     db: Arc<RadiationDatabase>,
+    event_bus: Arc<EventBus>,
     circuit_breaker: CircuitBreaker,
     dlq: DeadLetterQueue,
     deduplicator: Deduplicator,
     backpressure: Arc<Semaphore>,
 }
 
+
 impl IngestionPipeline {
     pub fn new(
         config: PipelineConfig,
         db: Arc<RadiationDatabase>,
+        event_bus: Arc<EventBus>,
     ) -> Self {
         let circuit_breaker = CircuitBreaker::new(
             config.circuit_breaker_threshold,
@@ -284,12 +289,14 @@ impl IngestionPipeline {
         Self {
             config,
             db,
+            event_bus,
             circuit_breaker,
             dlq,
             deduplicator,
             backpressure,
         }
     }
+
 
     /// Run the ingestion pipeline with multiple sources
     #[instrument(skip(self, sources))]
@@ -318,12 +325,14 @@ impl IngestionPipeline {
 
         // Spawn batch writer task
         let db = self.db.clone();
+        let event_bus = self.event_bus.clone();
         let circuit_breaker = &self.circuit_breaker;
         let dlq = &self.dlq;
         let batch_size = self.config.batch_size;
         let batch_timeout = Duration::from_millis(self.config.batch_timeout_ms);
 
         let writer_handle = tokio::spawn(async move {
+
             let mut batch = Vec::with_capacity(batch_size);
             let mut last_write = Instant::now();
 
@@ -349,21 +358,22 @@ impl IngestionPipeline {
                         batch.push(reading);
 
                         if batch.len() >= batch_size {
-                            Self::write_batch(&db, circuit_breaker, dlq, &mut batch).await;
+                            Self::write_batch(&db, &event_bus, circuit_breaker, dlq, &mut batch).await;
                             last_write = Instant::now();
                         }
+
                     }
                     Ok(None) => {
                         // Channel closed
                         if !batch.is_empty() {
-                            Self::write_batch(&db, circuit_breaker, dlq, &mut batch).await;
+                            Self::write_batch(&db, &event_bus, circuit_breaker, dlq, &mut batch).await;
                         }
                         break;
                     }
                     Err(_) => {
                         // Timeout - flush batch
                         if !batch.is_empty() {
-                            Self::write_batch(&db, circuit_breaker, dlq, &mut batch).await;
+                            Self::write_batch(&db, &event_bus, circuit_breaker, dlq, &mut batch).await;
                             last_write = Instant::now();
                         }
                     }
@@ -371,9 +381,10 @@ impl IngestionPipeline {
 
                 // Periodic flush if batch has been sitting too long
                 if !batch.is_empty() && last_write.elapsed() >= batch_timeout {
-                    Self::write_batch(&db, circuit_breaker, dlq, &mut batch).await;
+                    Self::write_batch(&db, &event_bus, circuit_breaker, dlq, &mut batch).await;
                     last_write = Instant::now();
                 }
+
             }
         });
 
@@ -426,10 +437,12 @@ impl IngestionPipeline {
 
     async fn write_batch(
         db: &Arc<RadiationDatabase>,
+        event_bus: &Arc<EventBus>,
         circuit_breaker: &CircuitBreaker,
         dlq: &DeadLetterQueue,
         batch: &mut Vec<RadiationReading>,
     ) {
+
         if batch.is_empty() {
             return;
         }
@@ -456,6 +469,30 @@ impl IngestionPipeline {
                     Ok(()) => {
                         success = true;
                         circuit_breaker.record_success().await;
+                        
+                        // Publish event to EventBus for downstream consumers
+                        let event = CherenkovEvent::NewReading(NormalizedReading {
+                            sensor_id: reading.sensor_id,
+                            timestamp: chrono::DateTime::from_timestamp(reading.timestamp, 0)
+                                .unwrap_or_else(|| chrono::Utc::now()),
+                            latitude: reading.latitude,
+                            longitude: reading.longitude,
+                            dose_rate_microsieverts: reading.dose_rate_microsieverts,
+                            uncertainty: reading.uncertainty,
+                            quality_flag: match reading.quality_flag {
+                                QualityFlag::Valid => cherenkov_core::QualityFlag::Valid,
+                                QualityFlag::Suspect => cherenkov_core::QualityFlag::Suspect,
+                                QualityFlag::Invalid => cherenkov_core::QualityFlag::Invalid,
+                            },
+                            source: reading.source.clone(),
+                            cell_id: reading.cell_id.clone(),
+                        });
+                        
+                        if let Err(e) = event_bus.publish(event).await {
+                            warn!("Failed to publish event to EventBus: {}", e);
+                        } else {
+                            metrics::counter!("cherenkov_ingest_events_published_total").increment(1);
+                        }
                     }
                     Err(e) => {
                         attempts += 1;
@@ -471,6 +508,7 @@ impl IngestionPipeline {
             
             attempts = 0; // Reset for next reading
         }
+
 
         // Store failures to DLQ
         for (reading, error) in failed_readings {
