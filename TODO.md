@@ -29,19 +29,18 @@
 - [x] Implement weather data ingestion for plume modeling
 - [x] Add facility status inference
 - [x] Implement seismic-radiation correlation
+- [x] Connect to real GraphQL API
+- [x] Implement WebSocket subscriptions
+- [x] Add real sensor data visualization
+- [x] Implement globe interaction (zoom, pan, select)
+- [x] Add plume simulation UI
+- [x] Implement alert management
+- [x] Add user preferences and settings
 
 ## In Progress
 
 ## Pending
 
-### Frontend
-- [ ] Connect to real GraphQL API
-- [ ] Implement WebSocket subscriptions
-- [ ] Add real sensor data visualization
-- [ ] Implement globe interaction (zoom, pan, select)
-- [ ] Add plume simulation UI
-- [ ] Implement alert management
-- [ ] Add user preferences and settings
 
 ### DevOps
 - [ ] Set up Kubernetes manifests
