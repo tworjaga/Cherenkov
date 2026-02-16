@@ -10,17 +10,16 @@
 - [x] Add connection pooling with deadpool/bb8
 - [x] Add retry logic with exponential backoff
 
-## Phase 2: Ingestion Hardening (P0) - IN PROGRESS
-- [ ] Create ingestion pipeline with FuturesUnordered
-- [ ] Integrate database writes
-- [ ] Add dead letter queue
-- [ ] Implement circuit breaker pattern
-- [ ] Add backpressure handling
-- [ ] Fix Safecast JSON parsing
-- [ ] Add deduplication logic
+## Phase 2: Ingestion Hardening (P0) - COMPLETED
+- [x] Create ingestion pipeline with FuturesUnordered
+- [x] Integrate database writes
+- [x] Add dead letter queue
+- [x] Implement circuit breaker pattern
+- [x] Add backpressure handling
+- [x] Fix Safecast JSON parsing
+- [x] Add deduplication logic
 
-## Phase 3: Stream Processing (P1)
-
+## Phase 3: Stream Processing (P1) - IN PROGRESS
 - [ ] Rewrite with async tokio streams
 - [ ] Integrate anomaly detection with DB
 - [ ] Implement WebSocket broadcasting
