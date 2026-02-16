@@ -415,6 +415,17 @@ impl RadiationDatabase {
         Ok(None)
     }
 
+    /// Store domain event (for anomaly detection, alerts, etc.)
+    #[instrument(skip(self, event))]
+    pub async fn store_event(&self, event: &DomainEvent) -> Result<(), DatabaseError> {
+        // Store events in warm tier (SQLite) for audit trail
+        self.warm.store_event(event).await
+            .map_err(|e| DatabaseError::Sqlite(e.to_string()))?;
+        
+        info!("Stored domain event: {} ({:?})", event.event_id, event.event_type);
+        Ok(())
+    }
+
     /// Run database migrations
     pub async fn run_migrations(&self) -> Result<(), DatabaseError> {
         self.warm.run_migrations().await
@@ -423,6 +434,7 @@ impl RadiationDatabase {
         info!("Database migrations completed successfully");
         Ok(())
     }
+
 
     /// Health check for all tiers
     pub async fn health_check(&self) -> DatabaseHealth {

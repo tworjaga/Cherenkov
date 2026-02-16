@@ -75,7 +75,26 @@ WHERE acknowledged = FALSE;
 CREATE INDEX IF NOT EXISTS idx_anomalies_sensor 
 ON anomalies(sensor_id, detected_at);
 
+-- Domain events for audit trail (anomalies, alerts, sensor status changes)
+CREATE TABLE IF NOT EXISTS domain_events (
+    event_id TEXT PRIMARY KEY,
+    event_type TEXT NOT NULL,
+    aggregate_id TEXT NOT NULL,
+    payload TEXT NOT NULL,
+    timestamp DATETIME NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Index for event type queries
+CREATE INDEX IF NOT EXISTS idx_domain_events_type 
+ON domain_events(event_type, timestamp);
+
+-- Index for aggregate queries
+CREATE INDEX IF NOT EXISTS idx_domain_events_aggregate 
+ON domain_events(aggregate_id, timestamp);
+
 -- Aggregation cache for common queries
+
 CREATE TABLE IF NOT EXISTS aggregation_cache (
     cache_key TEXT PRIMARY KEY,
     sensor_ids TEXT NOT NULL, -- JSON array

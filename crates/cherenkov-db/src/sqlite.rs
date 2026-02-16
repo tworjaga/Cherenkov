@@ -466,7 +466,32 @@ impl SqliteStorage {
 
         Ok(count)
     }
+
+    /// Store domain event for audit trail
+    pub async fn store_event(&self, event: &crate::DomainEvent) -> anyhow::Result<()> {
+        let timestamp = DateTime::from_timestamp(event.timestamp, 0)
+            .unwrap_or_else(|| Utc::now());
+
+        sqlx::query(
+            r#"
+            INSERT INTO domain_events (
+                event_id, event_type, aggregate_id, payload, timestamp
+            ) VALUES (?, ?, ?, ?, ?)
+            ON CONFLICT(event_id) DO NOTHING
+            "#
+        )
+        .bind(&event.event_id)
+        .bind(format!("{:?}", event.event_type))
+        .bind(event.aggregate_id.to_string())
+        .bind(event.payload.to_string())
+        .bind(timestamp.naive_utc())
+        .execute(&self.pool)
+        .await?;
+
+        Ok(())
+    }
 }
+
 
 /// Sensor information
 #[derive(Debug, Clone)]

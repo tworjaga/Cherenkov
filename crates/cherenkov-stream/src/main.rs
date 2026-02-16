@@ -70,7 +70,11 @@ async fn main() -> anyhow::Result<()> {
     ));
     
     // Start WebSocket broadcaster
-    let ws_broadcaster = tokio::spawn(websocket_broadcaster(anomaly_tx.subscribe()));
+    let ws_broadcaster = tokio::spawn(websocket_broadcaster(
+        anomaly_tx.subscribe(),
+        event_bus.clone(),
+    ));
+
     
     // Start correlation engine
     let correlation_worker = tokio::spawn(correlation_engine_worker(
@@ -226,26 +230,51 @@ async fn store_anomaly(
         timestamp: anomaly.timestamp.timestamp(),
     };
     
-    // TODO: Implement event store in database
+    // Store to database
+    db.store_event(&event).await?;
     info!("Stored anomaly event: {}", event.event_id);
     
     Ok(())
 }
 
+
 /// WebSocket broadcaster for real-time updates
+/// Note: Actual WebSocket broadcasting happens via EventBus to API crate
 async fn websocket_broadcaster(
     mut anomaly_rx: broadcast::Receiver<Anomaly>,
+    event_bus: Arc<EventBus>,
 ) {
-    info!("WebSocket broadcaster started");
-    
-    // TODO: Implement WebSocket server for real-time anomaly streaming
-    // For now, just log received anomalies
+    info!("WebSocket broadcaster started (via EventBus)");
     
     while let Ok(anomaly) = anomaly_rx.recv().await {
-        debug!("Broadcasting anomaly to WebSocket clients: {:?}", anomaly);
-        metrics::gauge!("cherenkov_websocket_subscribers").set(0.0); // Placeholder
+        // Convert to core anomaly and publish to EventBus
+        // API crate will receive and broadcast to WebSocket clients
+        let core_anomaly = CoreAnomaly {
+            sensor_id: anomaly.sensor_id.clone(),
+            severity: match anomaly.severity {
+                Severity::Critical => CoreSeverity::Critical,
+                Severity::Warning => CoreSeverity::Warning,
+                Severity::Info => CoreSeverity::Info,
+            },
+            z_score: anomaly.z_score,
+            timestamp: anomaly.timestamp,
+            dose_rate: anomaly.dose_rate,
+            baseline: anomaly.baseline,
+            algorithm: match anomaly.algorithm {
+                anomaly::Algorithm::Welford => cherenkov_core::Algorithm::Welford,
+                anomaly::Algorithm::IsolationForest => cherenkov_core::Algorithm::IsolationForest,
+            },
+        };
+        
+        let event = CherenkovEvent::AnomalyDetected(core_anomaly);
+        if let Err(e) = event_bus.publish(event).await {
+            warn!("Failed to publish anomaly to EventBus: {}", e);
+        } else {
+            metrics::counter!("cherenkov_stream_anomaly_broadcasts_total").increment(1);
+        }
     }
 }
+
 
 /// Correlation engine for cross-sensor analysis
 async fn correlation_engine_worker(
