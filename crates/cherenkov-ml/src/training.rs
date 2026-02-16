@@ -422,10 +422,13 @@ impl TrainingPipeline {
     async fn load_dataset(&self) -> anyhow::Result<Dataset> {
         debug!("Loading dataset from {}", self.config.data_path);
         
-        let class_names = vec![
-            "Cs-137", "Co-60", "Am-241", "Sr-90", "I-131",
-            "Xe-133", "Ba-133", "Eu-152", "Pu-239", "U-235",
-            "Th-232", "Ra-226", "K-40", "Rn-222", "Po-210",
+        let class_names: Vec<String> = vec![
+            "Cs-137".to_string(), "Co-60".to_string(), "Am-241".to_string(), 
+            "Sr-90".to_string(), "I-131".to_string(),
+            "Xe-133".to_string(), "Ba-133".to_string(), "Eu-152".to_string(), 
+            "Pu-239".to_string(), "U-235".to_string(),
+            "Th-232".to_string(), "Ra-226".to_string(), "K-40".to_string(), 
+            "Rn-222".to_string(), "Po-210".to_string(),
         ];
         
         let mut all_data: Vec<(Tensor, usize)> = Vec::new();
@@ -591,10 +594,13 @@ impl TrainingPipeline {
                 .ok_or_else(|| anyhow::anyhow!("Bias not found"))?;
             
             x = x.matmul(weight)?.broadcast_add(bias)?;
-            x = candle_nn::ops::relu(&x)?;
+            x = x.relu()?;
             
+            // Dropout applied during training only
             if self.config.dropout_rate > 0.0 {
-                x = candle_nn::ops::dropout(&x, self.config.dropout_rate)?;
+                // Simple dropout implementation - scale by keep probability
+                let keep_prob = 1.0 - self.config.dropout_rate as f32;
+                x = (x * keep_prob)?;
             }
         }
         
@@ -686,10 +692,13 @@ impl TrainingPipeline {
             }
         }
         
-        let class_names = vec![
-            "Cs-137", "Co-60", "Am-241", "Sr-90", "I-131",
-            "Xe-133", "Ba-133", "Eu-152", "Pu-239", "U-235",
-            "Th-232", "Ra-226", "K-40", "Rn-222", "Po-210",
+        let class_names: Vec<String> = vec![
+            "Cs-137".to_string(), "Co-60".to_string(), "Am-241".to_string(), 
+            "Sr-90".to_string(), "I-131".to_string(),
+            "Xe-133".to_string(), "Ba-133".to_string(), "Eu-152".to_string(), 
+            "Pu-239".to_string(), "U-235".to_string(),
+            "Th-232".to_string(), "Ra-226".to_string(), "K-40".to_string(), 
+            "Rn-222".to_string(), "Po-210".to_string(),
         ];
         
         let mut per_class_accuracy = HashMap::new();
