@@ -5,8 +5,66 @@ use candle::{Device, Tensor, DType};
 use candle_nn::{VarMap, Optimizer, AdamW, ParamsAdamW};
 use serde::{Serialize, Deserialize};
 use tokio::sync::mpsc;
-use std::time::Instant;
+use std::time::{Instant, Duration};
 use std::fs;
+use std::sync::Arc;
+use tokio::sync::RwLock;
+use chrono::Utc;
+use uuid::Uuid;
+
+/// Learning rate scheduler types
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum LrScheduler {
+    Constant,
+    StepDecay { step_size: usize, gamma: f64 },
+    ExponentialDecay { gamma: f64 },
+    CosineAnnealing { t_max: usize, eta_min: f64 },
+    ReduceOnPlateau { factor: f64, patience: usize, min_lr: f64 },
+}
+
+/// Data augmentation configuration
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AugmentationConfig {
+    pub enabled: bool,
+    pub noise_std: f64,
+    pub scale_range: (f64, f64),
+    pub shift_max: f64,
+    pub mixup_alpha: Option<f64>,
+}
+
+impl Default for AugmentationConfig {
+    fn default() -> Self {
+        Self {
+            enabled: true,
+            noise_std: 0.01,
+            scale_range: (0.95, 1.05),
+            shift_max: 0.02,
+            mixup_alpha: Some(0.2),
+        }
+    }
+}
+
+/// Model version metadata
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ModelVersion {
+    pub version_id: String,
+    pub created_at: String,
+    pub training_config: TrainingConfig,
+    pub metrics: TrainingResult,
+    pub git_commit: Option<String>,
+    pub tags: Vec<String>,
+}
+
+/// Checkpoint metadata for resumption
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CheckpointMeta {
+    pub epoch: usize,
+    pub global_step: usize,
+    pub best_val_loss: f64,
+    pub optimizer_state: Option<String>,
+    pub rng_state: Option<String>,
+}
+
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TrainingConfig {
@@ -25,7 +83,15 @@ pub struct TrainingConfig {
     pub dropout_rate: f64,
     pub use_gpu: bool,
     pub seed: u64,
+    pub lr_scheduler: LrScheduler,
+    pub augmentation: AugmentationConfig,
+    pub resume_from_checkpoint: Option<String>,
+    pub max_checkpoints_to_keep: usize,
+    pub gradient_clip_norm: Option<f64>,
+    pub warmup_epochs: usize,
+    pub label_smoothing: f64,
 }
+
 
 impl Default for TrainingConfig {
     fn default() -> Self {
@@ -45,16 +111,39 @@ impl Default for TrainingConfig {
             dropout_rate: 0.3,
             use_gpu: true,
             seed: 42,
+            lr_scheduler: LrScheduler::CosineAnnealing {
+                t_max: 100,
+                eta_min: 1e-6,
+            },
+            augmentation: AugmentationConfig::default(),
+            resume_from_checkpoint: None,
+            max_checkpoints_to_keep: 5,
+            gradient_clip_norm: Some(1.0),
+            warmup_epochs: 5,
+            label_smoothing: 0.1,
         }
     }
 }
+
 
 pub struct TrainingPipeline {
     config: TrainingConfig,
     device: Device,
     varmap: VarMap,
     metrics_sender: mpsc::Sender<TrainingMetrics>,
+    current_lr: Arc<RwLock<f64>>,
+    global_step: Arc<RwLock<usize>>,
+    best_val_loss: Arc<RwLock<f64>>,
+    plateau_counter: Arc<RwLock<usize>>,
 }
+
+#[derive(Debug, Clone)]
+pub struct AugmentedSample {
+    pub data: Tensor,
+    pub label: usize,
+    pub weight: f64,
+}
+
 
 #[derive(Debug, Clone, Serialize)]
 pub struct TrainingMetrics {
@@ -101,19 +190,91 @@ impl TrainingPipeline {
         let varmap = VarMap::new();
         let (metrics_sender, metrics_receiver) = mpsc::channel(100);
         
+        // Initialize model weights
+        Self::init_weights(&varmap, &config, &device)?;
+        
         let pipeline = Self {
             config,
             device,
             varmap,
             metrics_sender,
+            current_lr: Arc::new(RwLock::new(config.learning_rate)),
+            global_step: Arc::new(RwLock::new(0)),
+            best_val_loss: Arc::new(RwLock::new(f64::INFINITY)),
+            plateau_counter: Arc::new(RwLock::new(0)),
         };
         
         Ok((pipeline, metrics_receiver))
     }
+
+    fn init_weights(varmap: &VarMap, config: &TrainingConfig, device: &Device) -> anyhow::Result<()> {
+        use candle_nn::Init;
+        
+        let init = Init::KaimingUniform;
+        
+        for (i, hidden_size) in config.hidden_layers.iter().enumerate() {
+            let w = varmap.get_or_try_insert(
+                &format!("w{}", i),
+                || Tensor::randn(0.0f32, 0.02f32, (config.input_size, *hidden_size), device)
+            )?;
+            let b = varmap.get_or_try_insert(
+                &format!("b{}", i),
+                || Tensor::zeros(*hidden_size, DType::F32, device)
+            )?;
+        }
+        
+        let last_hidden = config.hidden_layers.last().copied().unwrap_or(config.input_size);
+        let w_out = varmap.get_or_try_insert(
+            "w_out",
+            || Tensor::randn(0.0f32, 0.02f32, (last_hidden, config.num_classes), device)
+        )?;
+        let b_out = varmap.get_or_try_insert(
+            "b_out",
+            || Tensor::zeros(config.num_classes, DType::F32, device)
+        )?;
+        
+        Ok(())
+    }
+
+    pub async fn resume_from_checkpoint(&mut self, checkpoint_path: &str) -> anyhow::Result<CheckpointMeta> {
+        info!("Resuming from checkpoint: {}", checkpoint_path);
+        
+        let meta_path = PathBuf::from(checkpoint_path).with_extension("meta.json");
+        let meta: CheckpointMeta = if meta_path.exists() {
+            let content = fs::read_to_string(&meta_path)?;
+            serde_json::from_str(&content)?
+        } else {
+            CheckpointMeta {
+                epoch: 0,
+                global_step: 0,
+                best_val_loss: f64::INFINITY,
+                optimizer_state: None,
+                rng_state: None,
+            }
+        };
+        
+        self.varmap.load(Path::new(checkpoint_path))?;
+        
+        *self.global_step.write().await = meta.global_step;
+        *self.best_val_loss.write().await = meta.best_val_loss;
+        
+        info!("Resumed from epoch {}, global_step {}", meta.epoch, meta.global_step);
+        
+        Ok(meta)
+    }
+
     
     pub async fn train(&mut self) -> anyhow::Result<TrainingResult> {
         let start = Instant::now();
         info!("Starting training for model: {}", self.config.model_name);
+        
+        // Resume from checkpoint if specified
+        let start_epoch = if let Some(ref checkpoint) = self.config.resume_from_checkpoint {
+            let meta = self.resume_from_checkpoint(checkpoint).await?;
+            meta.epoch
+        } else {
+            0
+        };
         
         let dataset = self.load_dataset().await?;
         info!("Dataset loaded: {} train, {} val, {} test samples", 
@@ -127,13 +288,25 @@ impl TrainingPipeline {
             },
         )?;
         
-        let mut best_val_loss = f64::INFINITY;
-        let mut best_epoch = 0;
+        let mut best_epoch = start_epoch;
         let mut patience_counter = 0;
         let mut final_result = None;
         
-        for epoch in 0..self.config.epochs {
+        for epoch in start_epoch..self.config.epochs {
             let epoch_start = Instant::now();
+            
+            // Update learning rate based on scheduler
+            let current_lr = self.update_learning_rate(epoch).await;
+            
+            // Apply warmup if in warmup phase
+            let effective_lr = if epoch < self.config.warmup_epochs {
+                self.config.learning_rate * (epoch as f64 + 1.0) / (self.config.warmup_epochs as f64)
+            } else {
+                current_lr
+            };
+            
+            // Update optimizer learning rate
+            optimizer.set_learning_rate(effective_lr);
             
             let train_metrics = self.train_epoch(&dataset.train_data, &mut optimizer).await?;
             let val_metrics = self.validate(&dataset.val_data).await?;
@@ -144,7 +317,7 @@ impl TrainingPipeline {
                 train_accuracy: train_metrics.1,
                 val_loss: val_metrics.0,
                 val_accuracy: val_metrics.1,
-                learning_rate: self.config.learning_rate,
+                learning_rate: effective_lr,
                 timestamp: chrono::Utc::now().to_rfc3339(),
             };
             
@@ -152,22 +325,29 @@ impl TrainingPipeline {
                 warn!("Failed to send metrics: {}", e);
             }
             
-            info!("Epoch {}: train_loss={:.4}, train_acc={:.2}%, val_loss={:.4}, val_acc={:.2}%, time={:?}",
-                epoch, train_metrics.0, train_metrics.1 * 100.0,
+            info!("Epoch {}: lr={:.6}, train_loss={:.4}, train_acc={:.2}%, val_loss={:.4}, val_acc={:.2}%, time={:?}",
+                epoch, effective_lr, train_metrics.0, train_metrics.1 * 100.0,
                 val_metrics.0, val_metrics.1 * 100.0, epoch_start.elapsed());
             
-            if val_metrics.0 < best_val_loss {
-                best_val_loss = val_metrics.0;
+            // Update plateau counter for ReduceOnPlateau scheduler
+            let mut best_val = self.best_val_loss.write().await;
+            let mut plateau = self.plateau_counter.write().await;
+            
+            if val_metrics.0 < *best_val {
+                *best_val = val_metrics.0;
                 best_epoch = epoch;
                 patience_counter = 0;
+                *plateau = 0;
                 
                 self.save_checkpoint(epoch, "best").await?;
             } else {
                 patience_counter += 1;
+                *plateau += 1;
             }
             
             if epoch > 0 && epoch % self.config.checkpoint_interval == 0 {
                 self.save_checkpoint(epoch, &format!("epoch_{}", epoch)).await?;
+                self.cleanup_old_checkpoints().await?;
             }
             
             if patience_counter >= self.config.early_stopping_patience {
@@ -175,17 +355,19 @@ impl TrainingPipeline {
                 break;
             }
         }
+
         
         let test_metrics = self.validate(&dataset.test_data).await?;
         let per_class_accuracy = self.calculate_per_class_accuracy(&dataset.test_data).await?;
         let confusion_matrix = self.calculate_confusion_matrix(&dataset.test_data).await?;
         
         let model_path = self.export_model().await?;
+        let version = self.create_model_version(&result).await?;
         
         let result = TrainingResult {
             model_path: model_path.clone(),
-            final_loss: best_val_loss,
-            validation_accuracy: best_val_loss,
+            final_loss: *self.best_val_loss.read().await,
+            validation_accuracy: *self.best_val_loss.read().await,
             test_accuracy: test_metrics.1,
             epochs_completed: best_epoch,
             training_duration_secs: start.elapsed().as_secs(),
@@ -195,11 +377,47 @@ impl TrainingPipeline {
         };
         
         self.save_training_report(&result).await?;
+        self.save_model_version(&version).await?;
         
         info!("Training completed. Model saved to {}", model_path);
+        info!("Model version {} created", version.version_id);
         
         Ok(result)
     }
+
+    async fn update_learning_rate(&self, epoch: usize) -> f64 {
+        let current = *self.current_lr.read().await;
+        let new_lr = match &self.config.lr_scheduler {
+            LrScheduler::Constant => current,
+            LrScheduler::StepDecay { step_size, gamma } => {
+                if epoch > 0 && epoch % step_size == 0 {
+                    current * gamma
+                } else {
+                    current
+                }
+            }
+            LrScheduler::ExponentialDecay { gamma } => {
+                current * gamma.powi(epoch as i32)
+            }
+            LrScheduler::CosineAnnealing { t_max, eta_min } => {
+                let progress = (epoch as f64) / (*t_max as f64);
+                let cosine = (progress * std::f64::consts::PI).cos();
+                eta_min + (self.config.learning_rate - eta_min) * (1.0 + cosine) / 2.0
+            }
+            LrScheduler::ReduceOnPlateau { factor, patience, min_lr } => {
+                let plateau = *self.plateau_counter.read().await;
+                if plateau > 0 && plateau % patience == 0 && current > *min_lr {
+                    (current * factor).max(*min_lr)
+                } else {
+                    current
+                }
+            }
+        };
+        
+        *self.current_lr.write().await = new_lr;
+        new_lr
+    }
+
     
     async fn load_dataset(&self) -> anyhow::Result<Dataset> {
         debug!("Loading dataset from {}", self.config.data_path);
@@ -243,6 +461,54 @@ impl TrainingPipeline {
             class_names,
         })
     }
+
+    fn augment_sample(&self, tensor: &Tensor, label: usize) -> anyhow::Result<AugmentedSample> {
+        if !self.config.augmentation.enabled {
+            return Ok(AugmentedSample {
+                data: tensor.clone(),
+                label,
+                weight: 1.0,
+            });
+        }
+        
+        let mut data = tensor.to_vec1::<f32>()?;
+        let aug = &self.config.augmentation;
+        
+        // Add Gaussian noise
+        if aug.noise_std > 0.0 {
+            for val in &mut data {
+                let noise = rand::random::<f32>() * aug.noise_std as f32;
+                *val += noise;
+            }
+        }
+        
+        // Random scaling
+        let scale = if aug.scale_range.0 < aug.scale_range.1 {
+            let range = aug.scale_range.1 - aug.scale_range.0;
+            aug.scale_range.0 + rand::random::<f64>() * range
+        } else {
+            1.0
+        };
+        
+        for val in &mut data {
+            *val *= scale as f32;
+        }
+        
+        // Random shift
+        let shift = (rand::random::<f64>() * 2.0 - 1.0) * aug.shift_max;
+        for val in &mut data {
+            *val += shift as f32;
+        }
+        
+        let augmented = Tensor::from_vec(data, tensor.shape().clone(), &self.device)?;
+        
+        Ok(AugmentedSample {
+            data: augmented,
+            label,
+            weight: 1.0,
+        })
+    }
+
     
     async fn train_epoch(
         &self,
@@ -366,10 +632,42 @@ impl TrainingPipeline {
         let config_json = serde_json::to_string_pretty(&self.config)?;
         fs::write(&config_path, config_json)?;
         
+        // Create model version metadata
+        let version_id = Uuid::new_v4().to_string();
+        let version_path = output_dir.join(format!("version_{}.json", version_id));
+        
         let onnx_path = output_dir.join("model.onnx");
         
         Ok(onnx_path.to_string_lossy().to_string())
     }
+
+    async fn create_model_version(&self, result: &TrainingResult) -> anyhow::Result<ModelVersion> {
+        let git_commit = std::env::var("GIT_COMMIT").ok();
+        
+        Ok(ModelVersion {
+            version_id: Uuid::new_v4().to_string(),
+            created_at: Utc::now().to_rfc3339(),
+            training_config: self.config.clone(),
+            metrics: result.clone(),
+            git_commit,
+            tags: vec!["auto-generated".to_string()],
+        })
+    }
+
+    async fn save_model_version(&self, version: &ModelVersion) -> anyhow::Result<()> {
+        let output_dir = PathBuf::from(&self.config.output_path);
+        let version_path = output_dir.join(format!("version_{}.json", version.version_id));
+        
+        let version_json = serde_json::to_string_pretty(version)?;
+        fs::write(&version_path, version_json)?;
+        
+        // Also update latest version symlink/reference
+        let latest_path = output_dir.join("latest_version.json");
+        fs::write(&latest_path, &version_json)?;
+        
+        Ok(())
+    }
+
     
     async fn calculate_per_class_accuracy(
         &self,
@@ -443,4 +741,35 @@ pub async fn run_training_job(config: TrainingConfig) -> anyhow::Result<Training
     });
     
     pipeline.train().await
+}
+
+/// List all available model versions
+pub async fn list_model_versions(model_path: &str) -> anyhow::Result<Vec<ModelVersion>> {
+    let path = PathBuf::from(model_path);
+    let mut versions = Vec::new();
+    
+    if path.exists() {
+        for entry in fs::read_dir(&path)? {
+            let entry = entry?;
+            let file_name = entry.file_name();
+            if file_name.to_string_lossy().starts_with("version_") {
+                let content = fs::read_to_string(entry.path())?;
+                let version: ModelVersion = serde_json::from_str(&content)?;
+                versions.push(version);
+            }
+        }
+    }
+    
+    // Sort by creation time (newest first)
+    versions.sort_by(|a, b| b.created_at.cmp(&a.created_at));
+    
+    Ok(versions)
+}
+
+/// Load a specific model version
+pub async fn load_model_version(model_path: &str, version_id: &str) -> anyhow::Result<ModelVersion> {
+    let version_path = PathBuf::from(model_path).join(format!("version_{}.json", version_id));
+    let content = fs::read_to_string(&version_path)?;
+    let version: ModelVersion = serde_json::from_str(&content)?;
+    Ok(version)
 }
