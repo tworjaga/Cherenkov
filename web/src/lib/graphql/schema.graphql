@@ -1,0 +1,129 @@
+scalar Timestamp
+scalar UUID
+
+type Query {
+  sensors: [Sensor!]!
+  sensor(id: ID!): Sensor
+  readings(
+    sensorIds: [ID!]!
+    from: Timestamp!
+    to: Timestamp!
+    aggregation: String
+  ): [Reading!]!
+  anomalies(
+    severity: [String!]
+    since: Timestamp!
+    limit: Int
+  ): [Anomaly!]!
+  facilities: [Facility!]!
+  globalStatus: GlobalStatus!
+  simulatePlume(
+    lat: Float!
+    lon: Float!
+    releaseRate: Float!
+    durationHours: Int!
+    isotope: String
+  ): PlumeSimulation!
+}
+
+type Mutation {
+  acknowledgeAlert(alertId: ID!): Alert!
+  createAlertRule(rule: AlertRuleInput!): AlertRule!
+}
+
+type Subscription {
+  sensorUpdates(sensorId: ID!): SensorUpdate!
+  anomalyAlerts(
+    minLat: Float
+    maxLat: Float
+    minLon: Float
+    maxLon: Float
+  ): AnomalyAlert!
+  allSensorUpdates: SensorUpdate!
+}
+
+type Sensor {
+  id: ID!
+  name: String!
+  latitude: Float!
+  longitude: Float!
+  status: String!
+  lastReading: Timestamp
+}
+
+type Reading {
+  id: ID!
+  sensorId: ID!
+  timestamp: Timestamp!
+  doseRate: Float!
+  unit: String!
+}
+
+type Anomaly {
+  id: ID!
+  sensorId: ID!
+  severity: String!
+  zScore: Float!
+  detectedAt: Timestamp!
+}
+
+type Facility {
+  id: ID!
+  name: String!
+  facilityType: String!
+  latitude: Float!
+  longitude: Float!
+  status: String!
+}
+
+type GlobalStatus {
+  defconLevel: Int!
+  status: String!
+  activeAnomalies: Int!
+  lastUpdated: Timestamp!
+}
+
+type PlumeSimulation {
+  lat: Float!
+  lon: Float!
+  concentrationGrid: [[Float!]!]!
+  maxDose: Float!
+}
+
+type SensorUpdate {
+  sensorId: ID!
+  timestamp: Timestamp!
+  doseRate: Float!
+  latitude: Float!
+  longitude: Float!
+}
+
+type AnomalyAlert {
+  anomalyId: ID!
+  sensorId: ID!
+  severity: String!
+  zScore: Float!
+  detectedAt: Timestamp!
+  message: String!
+}
+
+type Alert {
+  id: ID!
+  acknowledged: Boolean!
+  acknowledgedAt: Timestamp
+}
+
+type AlertRule {
+  id: ID!
+  name: String!
+  enabled: Boolean!
+  createdAt: Timestamp!
+}
+
+input AlertRuleInput {
+  name: String!
+  severityThreshold: String!
+  doseRateThreshold: Float!
+  emailNotifications: Boolean!
+  pushNotifications: Boolean!
+}

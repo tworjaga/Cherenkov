@@ -1,0 +1,118 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg-primary: #050508;
+  --bg-secondary: #0a0a10;
+  --bg-tertiary: #12121a;
+  --bg-hover: #1a1a25;
+  --bg-active: #252535;
+  
+  --border-subtle: #1f1f2e;
+  --border-default: #2a2a3d;
+  --border-active: #3a3a50;
+  --border-accent: rgba(0, 212, 255, 0.25);
+  
+  --accent-primary: #00d4ff;
+  --accent-secondary: #00a8cc;
+  --accent-muted: #006680;
+  --accent-glow: rgba(0, 212, 255, 0.15);
+  --accent-pulse: rgba(0, 212, 255, 0.4);
+  
+  --alert-normal: #00ff88;
+  --alert-low: #00d4ff;
+  --alert-medium: #ffb800;
+  --alert-high: #ff6b35;
+  --alert-critical: #ff3366;
+  
+  --text-primary: #ffffff;
+  --text-secondary: #a0a0b0;
+  --text-tertiary: #606070;
+  --text-disabled: #404050;
+}
+
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+html,
+body {
+  max-width: 100vw;
+  overflow-x: hidden;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-default);
+  border-radius: 2px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--border-active);
+}
+
+/* Selection */
+::selection {
+  background: var(--accent-glow);
+  color: var(--accent-primary);
+}
+
+/* Focus visible */
+:focus-visible {
+  outline: 1px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+  :root {
+    --border-subtle: #3a3a50;
+    --text-secondary: #c0c0d0;
+    --text-tertiary: #808090;
+  }
+}
+
+/* MapLibre overrides */
+.maplibregl-map {
+  font-family: 'Inter', sans-serif;
+}
+
+.maplibregl-popup-content {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-default);
+  border-radius: 4px;
+  padding: 12px;
+  color: var(--text-primary);
+}
+
+.maplibregl-popup-anchor-bottom .maplibregl-popup-tip {
+  border-top-color: var(--border-default);
+}
