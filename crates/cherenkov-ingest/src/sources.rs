@@ -265,6 +265,9 @@ impl DataSource for EpaRadnetSource {
 }
 
 /// OpenAQ air quality correlation source
+/// 
+/// Fetches air quality data (PM2.5, PM10, O3, NO2, SO2, CO) for correlation
+/// with radiation transport patterns and atmospheric dispersion modeling.
 pub struct OpenAqSource {
     client: Client,
     config: SourceConfig,
@@ -283,6 +286,40 @@ impl OpenAqSource {
     }
 }
 
+#[derive(Debug, Deserialize)]
+struct OpenAqResponse {
+    results: Vec<OpenAqMeasurement>,
+}
+
+#[derive(Debug, Deserialize)]
+struct OpenAqMeasurement {
+    location: String,
+    city: Option<String>,
+    country: Option<String>,
+    coordinates: Option<OpenAqCoordinates>,
+    measurements: Vec<OpenAqParameter>,
+    #[serde(rename = "date")]
+    timestamp: OpenAqTimestamp,
+}
+
+#[derive(Debug, Deserialize)]
+struct OpenAqCoordinates {
+    latitude: f64,
+    longitude: f64,
+}
+
+#[derive(Debug, Deserialize)]
+struct OpenAqParameter {
+    parameter: String,
+    value: f64,
+    unit: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct OpenAqTimestamp {
+    utc: String,
+}
+
 #[async_trait]
 impl DataSource for OpenAqSource {
     fn name(&self) -> String {
@@ -295,11 +332,62 @@ impl DataSource for OpenAqSource {
 
     #[instrument(skip(self))]
     async fn fetch(&mut self) -> anyhow::Result<Vec<RadiationReading>> {
-        // OpenAQ provides air quality data that can correlate with radiation transport
-        // This is a stub for future implementation
+        // OpenAQ provides air quality data for correlation with radiation transport
+        // Parameters: PM2.5, PM10, O3, NO2, SO2, CO
+        
+        let response = self.client
+            .get(self.config.url)
+            .query(&[
+                ("limit", "100"),
+                ("sort", "desc"),
+            ])
+            .send()
+            .await?;
+
+        if !response.status().is_success() {
+            return Err(anyhow::anyhow!("OpenAQ API returned {}", response.status()));
+        }
+
+        let data: OpenAqResponse = response.json().await?;
+        info!("Fetched {} locations from OpenAQ", data.results.len());
+
+        // Log air quality data for correlation analysis
+        // Note: OpenAQ provides air quality, not radiation data directly
+        // This data is used for atmospheric correlation and plume modeling
+        let mut air_quality_readings = 0;
+        
+        for measurement in &data.results {
+            for param in &measurement.measurements {
+                air_quality_readings += 1;
+                
+                // Log significant air quality events that might correlate with radiation
+                match param.parameter.as_str() {
+                    "pm25" if param.value > 100.0 => {
+                        warn!("High PM2.5 detected at {}: {} μg/m³", 
+                            measurement.location, param.value);
+                    }
+                    "pm10" if param.value > 150.0 => {
+                        warn!("High PM10 detected at {}: {} μg/m³",
+                            measurement.location, param.value);
+                    }
+                    "o3" if param.value > 200.0 => {
+                        warn!("High O3 detected at {}: {} ppb",
+                            measurement.location, param.value);
+                    }
+                    _ => {}
+                }
+            }
+        }
+
+        metrics::counter!("cherenkov_ingest_fetched_total", "source" => "openaq")
+            .increment(air_quality_readings);
+
+        // Return empty vec - air quality data is logged but not stored as radiation readings
+        // Future: Extend data model to store air quality metrics for correlation analysis
         Ok(vec![])
     }
 }
+
 
 /// Open-Meteo weather data source for plume modeling
 pub struct OpenMeteoSource {
