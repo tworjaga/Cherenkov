@@ -22,7 +22,20 @@ thiserror = { workspace = true }
 anyhow = { workspace = true }
 uuid = { version = "1.6", features = ["v4", "serde"] }
 tower = "0.4"
-tower-http = { version = "0.5", features = ["cors", "compression"] }
+tower-http = { version = "0.5", features = ["cors", "compression", "auth"] }
+
+# Authentication
+jsonwebtoken = "9.2"
+argon2 = "0.5"
+rand = "0.8"
+
+# Rate limiting
+governor = "0.6"
+dashmap = "5.5"
+
+# Internal crates
+cherenkov-db = { path = "../cherenkov-db" }
+cherenkov-observability = { path = "../cherenkov-observability" }
 
 [dev-dependencies]
 tokio-test = { workspace = true }
