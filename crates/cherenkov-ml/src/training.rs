@@ -280,8 +280,9 @@ impl TrainingPipeline {
         info!("Starting training for model: {}", self.config.model_name);
         
         // Resume from checkpoint if specified
-        let start_epoch = if let Some(ref checkpoint) = self.config.resume_from_checkpoint {
-            let meta = self.resume_from_checkpoint(checkpoint).await?;
+        let checkpoint_to_resume = self.config.resume_from_checkpoint.clone();
+        let start_epoch = if let Some(checkpoint) = checkpoint_to_resume {
+            let meta = self.resume_from_checkpoint(&checkpoint).await?;
             meta.epoch
         } else {
             0
