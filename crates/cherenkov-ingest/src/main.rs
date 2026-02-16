@@ -3,9 +3,11 @@ use std::time::Duration;
 use tracing::{info, warn, error};
 
 mod sources;
+mod sources_extra;
 mod normalizer;
 mod metrics;
 mod pipeline;
+
 
 use pipeline::{IngestionPipeline, PipelineConfig};
 use cherenkov_db::{RadiationDatabase, DatabaseConfig, scylla::ScyllaConfig};
@@ -92,8 +94,13 @@ fn create_sources() -> Vec<Box<dyn pipeline::DataSource>> {
         Box::new(sources::EpaRadnetSource::new()),
         Box::new(sources::OpenAqSource::new()),
         Box::new(sources::OpenMeteoSource::new()),
+        Box::new(sources_extra::NasaFirmsSource::new(
+            std::env::var("NASA_FIRMS_API_KEY").unwrap_or_default()
+        )),
+        Box::new(sources_extra::IaeaPrisSource::new()),
     ]
 }
+
 
 async fn health_check_server(db: Arc<RadiationDatabase>) {
     let mut interval = tokio::time::interval(Duration::from_secs(30));
