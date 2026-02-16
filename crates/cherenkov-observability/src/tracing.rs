@@ -1,10 +1,4 @@
 use anyhow::{Result, anyhow};
-use opentelemetry::trace::{TracerProvider, SpanKind, TraceContextExt};
-use opentelemetry::KeyValue;
-use opentelemetry_jaeger::Config;
-use opentelemetry_sdk::trace::{Tracer, Sampler};
-use tracing_opentelemetry::OpenTelemetryLayer;
-use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::fmt::format::FmtSpan;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -12,7 +6,6 @@ use tokio::sync::RwLock;
 use uuid::Uuid;
 
 pub struct TracingService {
-    tracer: Tracer,
     active_spans: Arc<RwLock<HashMap<String, SpanContext>>>,
     service_name: String,
     service_version: String,
@@ -55,44 +48,28 @@ impl Default for TraceConfig {
 
 impl TracingService {
     pub fn new(config: TraceConfig) -> Result<Self> {
-        let provider = Config::new()
-            .with_service_name(&config.service_name)
-            .with_endpoint(&config.jaeger_endpoint)
-            .with_trace_config(
-                opentelemetry_sdk::trace::config()
-                    .with_sampler(Sampler::TraceIdRatioBased(config.sample_rate))
-            )
-            .init_tracer()
-            .map_err(|e| anyhow!("Failed to initialize Jaeger: {}", e))?;
-        
-        let tracer = provider.tracer(&config.service_name);
-        
         Ok(Self {
-            tracer,
             active_spans: Arc::new(RwLock::new(HashMap::new())),
-            service_name: config.service_name,
-            service_version: config.service_version,
-            deployment_environment: config.environment,
+            service_name: config.service_name.clone(),
+            service_version: config.service_version.clone(),
+            deployment_environment: config.environment.clone(),
         })
     }
     
     pub fn init_subscriber(&self) {
-        let telemetry = OpenTelemetryLayer::new(self.tracer.clone());
-        
-        tracing_subscriber::registry()
-            .with(telemetry)
-            .with(tracing_subscriber::fmt::layer()
-                .with_span_events(FmtSpan::CLOSE)
-                .json())
-            .init();
+        let _ = tracing_subscriber::fmt()
+            .with_span_events(FmtSpan::CLOSE)
+            .json()
+            .try_init();
     }
     
     pub async fn start_span(
         &self,
-        operation: &str,
+        operation: impl Into<String>,
         parent_context: Option<SpanContext>,
         attributes: HashMap<String, String>,
     ) -> SpanContext {
+        let operation = operation.into();
         let trace_id = parent_context.as_ref()
             .map(|p| p.trace_id.clone())
             .unwrap_or_else(|| Uuid::new_v4().to_string());
@@ -113,20 +90,12 @@ impl TracingService {
         let mut spans = self.active_spans.write().await;
         spans.insert(span_id.clone(), span.clone());
         
-        let otel_attributes: Vec<KeyValue> = attributes.iter()
-            .map(|(k, v)| KeyValue::new(k.clone(), v.clone()))
-            .chain(vec![
-                KeyValue::new("service.name", self.service_name.clone()),
-                KeyValue::new("service.version", self.service_version.clone()),
-                KeyValue::new("deployment.environment", self.deployment_environment.clone()),
-            ])
-            .collect();
-        
-        let _otel_span = self.tracer
-            .span_builder(operation)
-            .with_kind(SpanKind::Internal)
-            .with_attributes(otel_attributes)
-            .start(&self.tracer);
+        tracing::info!(
+            trace_id = %trace_id,
+            span_id = %span_id,
+            operation = %operation,
+            "Span started"
+        );
         
         span
     }
@@ -287,14 +256,13 @@ impl DistributedTracer {
     }
 }
 
-pub fn init_jaeger_tracing(service_name: &str) {
-    let provider = Config::new()
-        .with_service_name(service_name)
-        .init_tracer()
-        .expect("Failed to initialize Jaeger tracer");
+pub fn init_jaeger_tracing(service_name: impl Into<String>) {
+    let service_name = service_name.into();
+    let _ = tracing_subscriber::fmt()
+        .with_target(true)
+        .with_thread_ids(true)
+        .json()
+        .try_init();
     
-    let tracer = provider.tracer(service_name);
-    let telemetry = OpenTelemetryLayer::new(tracer);
-    
-    tracing_subscriber::registry().with(telemetry).init();
+    tracing::info!(service = %service_name, "Tracing initialized");
 }

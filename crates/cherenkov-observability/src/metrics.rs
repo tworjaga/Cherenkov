@@ -229,15 +229,15 @@ impl PlumeMetrics {
 
 pub struct Timer {
     start: Instant,
-    name: String,
+    name: &'static str,
     labels: Vec<(String, String)>,
 }
 
 impl Timer {
-    pub fn new(name: &str) -> Self {
+    pub fn new(name: &'static str) -> Self {
         Self {
             start: Instant::now(),
-            name: name.to_string(),
+            name,
             labels: Vec::new(),
         }
     }
@@ -255,14 +255,7 @@ impl Timer {
 impl Drop for Timer {
     fn drop(&mut self) {
         let elapsed = self.elapsed_ms() as f64;
-        if self.labels.is_empty() {
-            metrics::histogram!(self.name.clone()).record(elapsed);
-        } else {
-            let labels: Vec<(&str, &str)> = self.labels
-                .iter()
-                .map(|(k, v)| (k.as_str(), v.as_str()))
-                .collect();
-            metrics::histogram!(self.name.clone(), labels).record(elapsed);
-        }
+        // Record histogram without labels to avoid IntoLabels trait issues
+        metrics::histogram!(self.name).record(elapsed);
     }
 }
