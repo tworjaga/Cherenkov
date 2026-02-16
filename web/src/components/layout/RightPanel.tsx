@@ -1,5 +1,7 @@
 import React from 'react';
 import { useAppStore } from '../../stores/useAppStore';
+import { AlertFeed } from '../dashboard/AlertFeed';
+
 
 export const RightPanel: React.FC = () => {
   const open = useAppStore((state) => state.rightPanelOpen);
@@ -50,9 +52,9 @@ export const RightPanel: React.FC = () => {
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4">
+      <div className="flex-1 overflow-hidden flex flex-col">
         {selectedSensor ? (
-          <div className="space-y-4">
+          <div className="p-4 space-y-4">
             <div>
               <h3 className="text-text-secondary text-xs uppercase tracking-wider mb-1">Sensor</h3>
               <p className="text-text-primary font-mono">{selectedSensor}</p>
@@ -61,7 +63,7 @@ export const RightPanel: React.FC = () => {
             <p className="text-text-tertiary text-sm">Sensor data loading...</p>
           </div>
         ) : selectedFacility ? (
-          <div className="space-y-4">
+          <div className="p-4 space-y-4">
             <div>
               <h3 className="text-text-secondary text-xs uppercase tracking-wider mb-1">Facility</h3>
               <p className="text-text-primary font-mono">{selectedFacility}</p>
@@ -70,9 +72,10 @@ export const RightPanel: React.FC = () => {
             <p className="text-text-tertiary text-sm">Facility data loading...</p>
           </div>
         ) : (
-          <p className="text-text-tertiary text-sm">Select a sensor or facility on the globe</p>
+          <AlertFeed />
         )}
       </div>
+
     </aside>
     </>
   );
