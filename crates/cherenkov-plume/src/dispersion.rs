@@ -2,16 +2,26 @@ use crate::{ReleaseParameters, PlumeSimulation, ConcentrationGrid, ArrivalTime};
 use nalgebra::{Vector3, DVector};
 use tracing::{info, debug, warn};
 use std::time::Instant;
+use candle::{Device, Tensor, DType};
+use std::sync::Arc;
+
 
 pub struct LagrangianDispersion {
     grid: AtmosphericGrid,
     particles: Vec<Particle>,
     dt_seconds: f64,
     use_gpu: bool,
+    device: Device,
     decay_constant: f64,
     dry_deposition_velocity: f64,
     wet_deposition_rate: f64,
+    /// GPU buffers for particle data
+    gpu_positions: Option<Tensor>,
+    gpu_activities: Option<Tensor>,
+    gpu_deposited: Option<Tensor>,
+    gpu_half_lives: Option<Tensor>,
 }
+
 
 struct AtmosphericGrid {
     u: Vec<Vec<Vec<f64>>>,
@@ -70,16 +80,117 @@ impl LagrangianDispersion {
             config.num_particles, config.use_gpu
         );
         
+        let device = if config.use_gpu {
+            Device::cuda_if_available(0).unwrap_or(Device::Cpu)
+        } else {
+            Device::Cpu
+        };
+        
+        info!("Using device: {:?}", device);
+        
         Self {
             grid,
             particles: Vec::with_capacity(config.num_particles),
             dt_seconds: config.dt_seconds,
-            use_gpu: config.use_gpu,
+            use_gpu: config.use_gpu && device.is_cuda(),
+            device,
             decay_constant: 0.0,
             dry_deposition_velocity: 0.01,
             wet_deposition_rate: 0.0,
+            gpu_positions: None,
+            gpu_activities: None,
+            gpu_deposited: None,
+            gpu_half_lives: None,
         }
     }
+    
+    /// Initialize GPU buffers for particle data
+    fn init_gpu_buffers(&mut self) -> anyhow::Result<()> {
+        if !self.use_gpu {
+            return Ok(());
+        }
+        
+        let n = self.particles.len();
+        
+        // Extract particle data into contiguous arrays
+        let positions: Vec<f32> = self.particles.iter()
+            .flat_map(|p| vec![p.position.x as f32, p.position.y as f32, p.position.z as f32])
+            .collect();
+        
+        let activities: Vec<f32> = self.particles.iter()
+            .map(|p| p.activity_bq as f32)
+            .collect();
+        
+        let deposited: Vec<f32> = self.particles.iter()
+            .map(|p| if p.deposited { 1.0f32 } else { 0.0f32 })
+            .collect();
+        
+        let half_lives: Vec<f32> = self.particles.iter()
+            .map(|p| p.half_life_hours as f32)
+            .collect();
+        
+        // Create tensors on GPU
+        self.gpu_positions = Some(Tensor::from_vec(
+            positions, 
+            (n, 3), 
+            &self.device
+        )?);
+        
+        self.gpu_activities = Some(Tensor::from_vec(
+            activities,
+            (n,),
+            &self.device
+        )?);
+        
+        self.gpu_deposited = Some(Tensor::from_vec(
+            deposited,
+            (n,),
+            &self.device
+        )?);
+        
+        self.gpu_half_lives = Some(Tensor::from_vec(
+            half_lives,
+            (n,),
+            &self.device
+        )?);
+        
+        info!("GPU buffers initialized for {} particles", n);
+        
+        Ok(())
+    }
+    
+    /// Synchronize particle data from GPU to CPU
+    fn sync_from_gpu(&mut self) -> anyhow::Result<()> {
+        if !self.use_gpu {
+            return Ok(());
+        }
+        
+        if let Some(ref positions) = self.gpu_positions {
+            let pos_data = positions.to_vec1::<f32>()?;
+            for (i, particle) in self.particles.iter_mut().enumerate() {
+                particle.position.x = pos_data[i * 3] as f64;
+                particle.position.y = pos_data[i * 3 + 1] as f64;
+                particle.position.z = pos_data[i * 3 + 2] as f64;
+            }
+        }
+        
+        if let Some(ref activities) = self.gpu_activities {
+            let act_data = activities.to_vec1::<f32>()?;
+            for (i, particle) in self.particles.iter_mut().enumerate() {
+                particle.activity_bq = act_data[i] as f64;
+            }
+        }
+        
+        if let Some(ref deposited) = self.gpu_deposited {
+            let dep_data = deposited.to_vec1::<f32>()?;
+            for (i, particle) in self.particles.iter_mut().enumerate() {
+                particle.deposited = dep_data[i] > 0.5;
+            }
+        }
+        
+        Ok(())
+    }
+
     
     pub fn simulate(&mut self, release: &ReleaseParameters, hours: u32) -> PlumeSimulation {
         let start = Instant::now();
@@ -262,10 +373,148 @@ impl LagrangianDispersion {
     }
     
     fn apply_physics_gpu(&mut self, elapsed_hours: f64) {
-        warn!("GPU acceleration not yet implemented, using CPU fallback");
-        self.apply_decay(elapsed_hours);
-        self.apply_dry_deposition();
+        if !self.use_gpu {
+            // Fallback to CPU
+            self.apply_decay(elapsed_hours);
+            self.apply_dry_deposition();
+            self.apply_wet_deposition(elapsed_hours);
+            return;
+        }
+        
+        let start = Instant::now();
+        
+        // Initialize buffers if not already done
+        if self.gpu_positions.is_none() {
+            if let Err(e) = self.init_gpu_buffers() {
+                warn!("Failed to initialize GPU buffers: {}, falling back to CPU", e);
+                self.use_gpu = false;
+                self.apply_decay(elapsed_hours);
+                self.apply_dry_deposition();
+                return;
+            }
+        }
+        
+        // Apply radioactive decay on GPU
+        if let Err(e) = self.apply_decay_gpu(elapsed_hours) {
+            warn!("GPU decay failed: {}, falling back to CPU", e);
+            self.apply_decay(elapsed_hours);
+        }
+        
+        // Apply dry deposition on GPU
+        if let Err(e) = self.apply_dry_deposition_gpu() {
+            warn!("GPU dry deposition failed: {}, falling back to CPU", e);
+            self.apply_dry_deposition();
+        }
+        
+        // Apply wet deposition on GPU
+        if let Err(e) = self.apply_wet_deposition_gpu(elapsed_hours) {
+            warn!("GPU wet deposition failed: {}, falling back to CPU", e);
+            self.apply_wet_deposition(elapsed_hours);
+        }
+        
+        debug!("GPU physics applied in {:?}", start.elapsed());
     }
+    
+    /// Apply radioactive decay using GPU
+    fn apply_decay_gpu(&mut self, elapsed_hours: f64) -> anyhow::Result<()> {
+        let half_lives = self.gpu_half_lives.as_ref()
+            .ok_or_else(|| anyhow::anyhow!("Half-life buffer not initialized"))?;
+        let activities = self.gpu_activities.as_mut()
+            .ok_or_else(|| anyhow::anyhow!("Activity buffer not initialized"))?;
+        
+        let n = activities.dims()[0];
+        
+        // decay_factor = exp(-0.693 * elapsed_hours / half_life)
+        let decay_constant = -0.693f32 * elapsed_hours as f32;
+        let decay_tensor = Tensor::new(decay_constant, &self.device)?;
+        
+        // Calculate decay factors: exp(decay_constant / half_life)
+        let decay_factors = decay_tensor.broadcast_div(half_lives)?.exp()?;
+        
+        // Apply decay: activity *= decay_factor
+        *activities = activities.broadcast_mul(&decay_factors)?;
+        
+        Ok(())
+    }
+    
+    /// Apply dry deposition using GPU
+    fn apply_dry_deposition_gpu(&mut self) -> anyhow::Result<()> {
+        let positions = self.gpu_positions.as_ref()
+            .ok_or_else(|| anyhow::anyhow!("Position buffer not initialized"))?;
+        let deposited = self.gpu_deposited.as_mut()
+            .ok_or_else(|| anyhow::anyhow!("Deposited buffer not initialized"))?;
+        let activities = self.gpu_activities.as_mut()
+            .ok_or_else(|| anyhow::anyhow!("Activity buffer not initialized"))?;
+        
+        // Get z-coordinates (height)
+        let z_coords = positions.narrow(1, 2, 1)?.squeeze(1)?;
+        
+        // Create mask for particles near ground (z < 10m) and not yet deposited
+        let near_ground = z_coords.lt(10.0f32)?;
+        let not_deposited = deposited.lt(0.5f32)?;
+        let can_deposit = near_ground.broadcast_mul(&not_deposited)?;
+        
+        // Deposition probability
+        let dep_prob = self.dry_deposition_velocity as f32 * self.dt_seconds as f32 / 10.0f32;
+        
+        // Random deposition (simplified - use probability threshold)
+        // In production, this would use a proper random number generator on GPU
+        let random_threshold = Tensor::rand(0.0f32, 1.0f32, can_deposit.shape(), &self.device)?;
+        let will_deposit = random_threshold.lt(dep_prob)?.broadcast_mul(&can_deposit)?;
+        
+        // Update deposited status
+        *deposited = deposited.broadcast_add(&will_deposit)?.clamp(0.0f32, 1.0f32)?;
+        
+        // Set deposited particles to ground level
+        let zero_z = Tensor::zeros(z_coords.shape(), DType::F32, &self.device)?;
+        let new_z = will_deposit.broadcast_mul(&zero_z)?;
+        let keep_z = not_deposited.broadcast_mul(&z_coords)?;
+        let _updated_z = keep_z.broadcast_add(&new_z)?;
+        
+        // Zero out activity of deposited particles (optional - track deposited activity separately)
+        let zero_activity = Tensor::zeros(activities.shape(), DType::F32, &self.device)?;
+        let keep_activity = not_deposited.broadcast_mul(activities)?;
+        let deposited_activity = will_deposit.broadcast_mul(&zero_activity)?;
+        *activities = keep_activity.broadcast_add(&deposited_activity)?;
+        
+        Ok(())
+    }
+    
+    /// Apply wet deposition using GPU
+    fn apply_wet_deposition_gpu(&mut self, _elapsed_hours: f64) -> anyhow::Result<()> {
+        let rain_rate = self.grid.get_rain_rate(_elapsed_hours) as f32;
+        
+        if rain_rate <= 0.0 {
+            return Ok(());
+        }
+        
+        let deposited = self.gpu_deposited.as_mut()
+            .ok_or_else(|| anyhow::anyhow!("Deposited buffer not initialized"))?;
+        let activities = self.gpu_activities.as_mut()
+            .ok_or_else(|| anyhow::anyhow!("Activity buffer not initialized"))?;
+        
+        let not_deposited = deposited.lt(0.5f32)?;
+        
+        // Scavenging coefficient
+        let scavenging_coeff = 1e-4f32 * rain_rate;
+        let wet_dep_prob = scavenging_coeff * self.dt_seconds as f32;
+        
+        // Random wet deposition
+        let random_threshold = Tensor::rand(0.0f32, 1.0f32, not_deposited.shape(), &self.device)?;
+        let will_deposit = random_threshold.lt(wet_dep_prob)?.broadcast_mul(&not_deposited)?;
+        
+        // Update deposited status
+        *deposited = deposited.broadcast_add(&will_deposit)?.clamp(0.0f32, 1.0f32)?;
+        
+        // Zero out activity of wet-deposited particles
+        let zero_activity = Tensor::zeros(activities.shape(), DType::F32, &self.device)?;
+        let keep_activity = not_deposited.broadcast_mul(activities)?;
+        let deposited_activity = will_deposit.broadcast_mul(&zero_activity)?;
+        *activities = keep_activity.broadcast_add(&deposited_activity)?;
+        
+        Ok(())
+    }
+
     
     fn deposit_concentration(&self, grid: &mut ConcentrationGrid, timestep: usize) {
         if timestep >= grid.levels.len() {
