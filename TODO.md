@@ -66,11 +66,12 @@
 ### UI/UX Improvements
 - [x] Add loading states for async operations
 - [x] Implement toast notifications for alerts
-- [ ] Add responsive design for mobile/tablet
-- [ ] Create dark/light theme toggle
+- [x] Add responsive design for mobile/tablet
+- [x] Create dark/light theme toggle
 - [x] Add keyboard navigation shortcuts help panel
 - [x] Implement data export functionality
 - [ ] Add print-friendly styles for reports
+
 
 
 ### Performance Optimizations
