@@ -103,6 +103,7 @@
 
 - [x] Implement ML training pipeline
 
-- [ ] Add GPU acceleration for plume simulation
+- [x] Add GPU acceleration for plume simulation
+
 - [ ] Set up CI/CD with GitHub Actions
 - [ ] Deploy to production environment
