@@ -9,8 +9,8 @@
 - [x] Add ScyllaDB time-series schema
 - [x] Create WebGL2 globe renderer (WASM)
 - [x] Build GraphQL API foundation
-- [x] Set up SolidJS web frontend
-- [x] Fix 605 TypeScript compilation errors
+- [x] Set up React web frontend
+- [x] Fix TypeScript compilation errors
 - [x] Configure router, WASM types, component lifecycle
 - [x] Add Docker Compose for local development
 - [x] Set up CI/CD with GitHub Actions
@@ -36,11 +36,57 @@
 - [x] Add plume simulation UI
 - [x] Implement alert management
 - [x] Add user preferences and settings
+- [x] Integrate WebGL2 WASM globe renderer with custom layers
+- [x] Create TimeSlider component with LIVE/PAUSED/REPLAY modes
+- [x] Build AlertCard and AlertFeed with filtering
+- [x] Add GlobalChart for radiation trends
+- [x] Implement useWebSocket hook for real-time data
 
 ## In Progress
 
 ## Pending
 
+### Critical Fixes Needed
+- [ ] Fix WASM Rust implementation - add missing methods (setView, resize, addFacility, updatePlume, setLayerVisibility)
+- [ ] Fix Tailwind CSS custom color classes (bg-bg-primary, text-text-primary, etc.)
+- [ ] Add missing date-fns dependency to package.json
+- [ ] Fix ARIA accessibility warnings in components
+- [ ] Add proper error boundaries for WASM loading failures
+- [ ] Implement actual WebGL shader programs for globe rendering
+- [ ] Add facility data to WASM renderer
+- [ ] Implement plume particle system in WebGL
+
+### UI/UX Improvements
+- [ ] Add loading states for async operations
+- [ ] Implement toast notifications for alerts
+- [ ] Add responsive design for mobile/tablet
+- [ ] Create dark/light theme toggle
+- [ ] Add keyboard navigation shortcuts help panel
+- [ ] Implement data export functionality
+- [ ] Add print-friendly styles for reports
+
+### Performance Optimizations
+- [ ] Implement sensor clustering for large datasets
+- [ ] Add virtual scrolling for alert feed
+- [ ] Optimize WebGL rendering with instancing
+- [ ] Add service worker for offline support
+- [ ] Implement requestAnimationFrame throttling
+- [ ] Add memory leak detection and cleanup
+
+### Testing
+- [ ] Add unit tests for React components
+- [ ] Create integration tests for WebSocket
+- [ ] Add E2E tests with Playwright
+- [ ] Implement WASM test suite
+- [ ] Add performance benchmarks
+- [ ] Create visual regression tests
+
+### Backend Integration
+- [ ] Connect WebSocket to actual backend endpoint
+- [ ] Implement GraphQL queries for historical data
+- [ ] Add authentication flow to web app
+- [ ] Implement rate limiting for API calls
+- [ ] Add request caching layer
 
 ### DevOps
 - [x] Set up Kubernetes manifests
@@ -48,14 +94,18 @@
 - [x] Add monitoring stack (Prometheus, Grafana)
 - [x] Set up distributed tracing (Jaeger)
 - [x] Configure multi-region deployment
-
+- [ ] Add WASM build to CI pipeline
+- [ ] Configure CDN for static assets
+- [ ] Implement blue-green deployments
 
 ### Documentation
 - [x] Add API documentation
 - [x] Create deployment guide
 - [x] Write contribution guidelines
 - [x] Add security documentation
-
+- [ ] Add frontend component storybook
+- [ ] Create user manual
+- [ ] Add troubleshooting guide
 
 ## Notes
 
