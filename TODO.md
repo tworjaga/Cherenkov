@@ -43,11 +43,12 @@
 
 
 ### DevOps
-- [ ] Set up Kubernetes manifests
-- [ ] Configure Flux GitOps
-- [ ] Add monitoring stack (Prometheus, Grafana)
-- [ ] Set up distributed tracing (Jaeger)
-- [ ] Configure multi-region deployment
+- [x] Set up Kubernetes manifests
+- [x] Configure Flux GitOps
+- [x] Add monitoring stack (Prometheus, Grafana)
+- [x] Set up distributed tracing (Jaeger)
+- [x] Configure multi-region deployment
+
 
 ### Documentation
 - [ ] Add API documentation
