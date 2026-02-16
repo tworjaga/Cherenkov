@@ -390,6 +390,9 @@ impl DataSource for OpenAqSource {
 
 
 /// Open-Meteo weather data source for plume modeling
+/// 
+/// Fetches weather data (wind speed, direction, temperature, humidity) 
+/// for atmospheric dispersion modeling and radiation plume calculations.
 pub struct OpenMeteoSource {
     client: Client,
     config: SourceConfig,
@@ -408,6 +411,32 @@ impl OpenMeteoSource {
     }
 }
 
+#[derive(Debug, Deserialize)]
+struct OpenMeteoResponse {
+    latitude: f64,
+    longitude: f64,
+    hourly: OpenMeteoHourly,
+    current_weather: Option<OpenMeteoCurrentWeather>,
+}
+
+#[derive(Debug, Deserialize)]
+struct OpenMeteoHourly {
+    time: Vec<String>,
+    temperature_2m: Vec<f64>,
+    relative_humidity_2m: Vec<f64>,
+    wind_speed_10m: Vec<f64>,
+    wind_direction_10m: Vec<f64>,
+    pressure_msl: Vec<f64>,
+}
+
+#[derive(Debug, Deserialize)]
+struct OpenMeteoCurrentWeather {
+    temperature: f64,
+    windspeed: f64,
+    winddirection: f64,
+    weathercode: i32,
+}
+
 #[async_trait]
 impl DataSource for OpenMeteoSource {
     fn name(&self) -> String {
@@ -420,8 +449,89 @@ impl DataSource for OpenMeteoSource {
 
     #[instrument(skip(self))]
     async fn fetch(&mut self) -> anyhow::Result<Vec<RadiationReading>> {
-        // Weather data for plume modeling
-        // This is a stub for future implementation
+        // Fetch weather data for key monitoring locations
+        // Using coordinates of major radiation monitoring networks
+        
+        let locations = vec![
+            // Tokyo area (Safecast origin)
+            (35.6762, 139.6503),
+            // Chernobyl area
+            (51.2763, 30.2219),
+            // Fukushima area
+            (37.7608, 140.4748),
+            // New York area
+            (40.7128, -74.0060),
+            // London area
+            (51.5074, -0.1278),
+            // Paris area
+            (48.8566, 2.3522),
+            // Berlin area
+            (52.5200, 13.4050),
+        ];
+
+        let mut total_weather_readings = 0;
+
+        for (lat, lon) in locations {
+            let response = self.client
+                .get(self.config.url)
+                .query(&[
+                    ("latitude", lat.to_string()),
+                    ("longitude", lon.to_string()),
+                    ("hourly", "temperature_2m,relative_humidity_2m,wind_speed_10m,wind_direction_10m,pressure_msl"),
+                    ("current_weather", "true"),
+                    ("timezone", "auto"),
+                    ("forecast_days", "1"),
+                ])
+                .send()
+                .await?;
+
+            if !response.status().is_success() {
+                warn!("Open-Meteo API returned {} for location ({}, {})", 
+                    response.status(), lat, lon);
+                continue;
+            }
+
+            let data: OpenMeteoResponse = response.json().await?;
+            
+            // Log current weather conditions
+            if let Some(current) = data.current_weather {
+                info!(
+                    "Weather at ({}, {}): {:.1}°C, wind {:.1} m/s from {}°, code {}",
+                    lat, lon, current.temperature, current.windspeed, 
+                    current.winddirection, current.weathercode
+                );
+                
+                // Log high wind conditions (relevant for plume dispersion)
+                if current.windspeed > 15.0 {
+                    warn!("High wind speed at ({}, {}): {:.1} m/s - significant plume dispersion",
+                        lat, lon, current.windspeed);
+                }
+            }
+
+            // Count hourly forecast data points
+            let hourly_count = data.hourly.time.len();
+            total_weather_readings += hourly_count;
+
+            // Log atmospheric stability indicators
+            if hourly_count > 0 {
+                let avg_temp = data.hourly.temperature_2m.iter().sum::<f64>() / hourly_count as f64;
+                let avg_wind = data.hourly.wind_speed_10m.iter().sum::<f64>() / hourly_count as f64;
+                
+                info!(
+                    "Hourly forecast for ({}, {}): {} hours, avg temp {:.1}°C, avg wind {:.1} m/s",
+                    lat, lon, hourly_count, avg_temp, avg_wind
+                );
+            }
+        }
+
+        metrics::counter!("cherenkov_ingest_fetched_total", "source" => "openmeteo")
+            .increment(total_weather_readings as u64);
+
+        metrics::gauge!("cherenkov_openmeteo_locations_monitored")
+            .set(locations.len() as f64);
+
+        // Weather data is logged for plume modeling but not stored as radiation readings
+        // Future: Store weather data in separate table for dispersion calculations
         Ok(vec![])
     }
 }
