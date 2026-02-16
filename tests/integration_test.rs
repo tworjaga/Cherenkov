@@ -1,7 +1,7 @@
 use std::time::Duration;
 use tokio::time::timeout;
-use cherenkov_core::{EventBus, CherenkovEvent, NewReading, Anomaly, Alert};
-use cherenkov_db::{RadiationReading, QualityFlag};
+use cherenkov_core::{EventBus, CherenkovEvent, NormalizedReading, Anomaly, Alert, Severity, SensorStatus};
+use cherenkov_db::{RadiationReading, QualityFlag as DbQualityFlag};
 use uuid::Uuid;
 use chrono::Utc;
 
@@ -11,13 +11,15 @@ async fn test_eventbus_publish_subscribe() {
     let event_bus = EventBus::new(1000);
     let mut rx = event_bus.subscribe();
     
-    let reading = NewReading {
+    let reading = NormalizedReading {
         sensor_id: Uuid::new_v4(),
         timestamp: Utc::now(),
         latitude: 40.7128,
         longitude: -74.0060,
         dose_rate_microsieverts: 0.15,
+        uncertainty: 0.02,
         source: "test".to_string(),
+        quality_flag: cherenkov_core::QualityFlag::Valid,
     };
     
     let event = CherenkovEvent::NewReading(reading.clone());
@@ -35,6 +37,7 @@ async fn test_eventbus_publish_subscribe() {
     }
 }
 
+
 /// Integration test: Anomaly detection event flow
 #[tokio::test]
 async fn test_anomaly_event_flow() {
@@ -42,13 +45,14 @@ async fn test_anomaly_event_flow() {
     let mut rx = event_bus.subscribe();
     
     let anomaly = Anomaly {
-        sensor_id: Uuid::new_v4().to_string(),
-        severity: cherenkov_core::Severity::Critical,
+        anomaly_id: Uuid::new_v4().to_string(),
+        sensor_id: Uuid::new_v4(),
+        severity: Severity::Critical,
         z_score: 4.5,
-        timestamp: Utc::now(),
+        detected_at: Utc::now(),
         dose_rate: 2.5,
         baseline: 0.15,
-        message: "Test anomaly".to_string(),
+        algorithm: "welford".to_string(),
     };
     
     let event = CherenkovEvent::AnomalyDetected(anomaly.clone());
@@ -59,12 +63,13 @@ async fn test_anomaly_event_flow() {
     
     match received.unwrap().unwrap() {
         CherenkovEvent::AnomalyDetected(a) => {
-            assert_eq!(a.sensor_id, anomaly.sensor_id);
-            assert_eq!(a.severity, anomaly.severity);
+            assert_eq!(a.anomaly_id, anomaly.anomaly_id);
+            assert_eq!(a.severity as i32, anomaly.severity as i32);
         }
         _ => panic!("Expected AnomalyDetected event"),
     }
 }
+
 
 /// Integration test: Alert event flow
 #[tokio::test]
@@ -74,11 +79,10 @@ async fn test_alert_event_flow() {
     
     let alert = Alert {
         alert_id: Uuid::new_v4().to_string(),
-        alert_type: cherenkov_core::AlertType::RadiationSpike,
-        severity: cherenkov_core::Severity::Warning,
+        anomaly_ids: vec![Uuid::new_v4().to_string()],
         message: "Test alert".to_string(),
-        affected_sensors: vec![Uuid::new_v4().to_string()],
-        timestamp: Utc::now(),
+        severity: Severity::Warning,
+        created_at: Utc::now(),
         acknowledged: false,
     };
     
@@ -97,6 +101,7 @@ async fn test_alert_event_flow() {
     }
 }
 
+
 /// Integration test: Multiple subscribers receive events
 #[tokio::test]
 async fn test_multiple_subscribers() {
@@ -104,13 +109,15 @@ async fn test_multiple_subscribers() {
     let mut rx1 = event_bus.subscribe();
     let mut rx2 = event_bus.subscribe();
     
-    let reading = NewReading {
+    let reading = NormalizedReading {
         sensor_id: Uuid::new_v4(),
         timestamp: Utc::now(),
         latitude: 51.5074,
         longitude: -0.1278,
         dose_rate_microsieverts: 0.12,
+        uncertainty: 0.01,
         source: "test".to_string(),
+        quality_flag: cherenkov_core::QualityFlag::Valid,
     };
     
     let event = CherenkovEvent::NewReading(reading);
@@ -123,6 +130,7 @@ async fn test_multiple_subscribers() {
     assert!(received2.is_ok());
 }
 
+
 /// Integration test: EventBus lag handling
 #[tokio::test]
 async fn test_eventbus_lag() {
@@ -131,13 +139,15 @@ async fn test_eventbus_lag() {
     
     // Publish more events than buffer size
     for i in 0..20 {
-        let reading = NewReading {
+        let reading = NormalizedReading {
             sensor_id: Uuid::new_v4(),
             timestamp: Utc::now(),
             latitude: 35.6762,
             longitude: 139.6503,
             dose_rate_microsieverts: 0.1 * (i as f64),
+            uncertainty: 0.01,
             source: "test".to_string(),
+            quality_flag: cherenkov_core::QualityFlag::Valid,
         };
         let event = CherenkovEvent::NewReading(reading);
         event_bus.publish(event).await.unwrap();
@@ -146,6 +156,7 @@ async fn test_eventbus_lag() {
     // Subscriber should detect lag
     drop(rx); // Just verify no panic
 }
+
 
 /// Integration test: Database reading serialization
 #[test]
@@ -158,7 +169,7 @@ fn test_radiation_reading_serialization() {
         longitude: 2.3522,
         dose_rate_microsieverts: 0.18,
         uncertainty: 0.05,
-        quality_flag: QualityFlag::Valid,
+        quality_flag: DbQualityFlag::Valid,
         source: "safecast".to_string(),
         cell_id: "u09".to_string(),
     };
@@ -174,9 +185,9 @@ fn test_radiation_reading_serialization() {
 /// Integration test: QualityFlag serialization
 #[test]
 fn test_quality_flag_serialization() {
-    let valid = QualityFlag::Valid;
-    let suspect = QualityFlag::Suspect;
-    let invalid = QualityFlag::Invalid;
+    let valid = DbQualityFlag::Valid;
+    let suspect = DbQualityFlag::Suspect;
+    let invalid = DbQualityFlag::Invalid;
     
     let valid_json = serde_json::to_string(&valid).unwrap();
     let suspect_json = serde_json::to_string(&suspect).unwrap();
@@ -187,26 +198,19 @@ fn test_quality_flag_serialization() {
     assert!(invalid_json.contains("Invalid"));
 }
 
-/// Integration test: Correlated event detection
+
+/// Integration test: Sensor status change event
 #[tokio::test]
-async fn test_correlated_event() {
+async fn test_sensor_status_change() {
     let event_bus = EventBus::new(1000);
     let mut rx = event_bus.subscribe();
     
-    let primary = Anomaly {
-        sensor_id: Uuid::new_v4().to_string(),
-        severity: cherenkov_core::Severity::Critical,
-        z_score: 5.0,
-        timestamp: Utc::now(),
-        dose_rate: 3.0,
-        baseline: 0.15,
-        message: "Primary anomaly".to_string(),
-    };
+    let sensor_id = Uuid::new_v4();
     
-    let event = CherenkovEvent::CorrelatedEventDetected {
-        primary,
-        correlated_count: 5,
-        correlation_score: 0.85,
+    let event = CherenkovEvent::SensorStatusChange {
+        sensor_id,
+        status: SensorStatus::Offline,
+        timestamp: Utc::now(),
     };
     
     event_bus.publish(event).await.unwrap();
@@ -215,52 +219,37 @@ async fn test_correlated_event() {
     assert!(received.is_ok());
     
     match received.unwrap().unwrap() {
-        CherenkovEvent::CorrelatedEventDetected { correlated_count, .. } => {
-            assert_eq!(correlated_count, 5);
+        CherenkovEvent::SensorStatusChange { sensor_id: id, status, .. } => {
+            assert_eq!(id, sensor_id);
+            assert!(matches!(status, SensorStatus::Offline));
         }
-        _ => panic!("Expected CorrelatedEventDetected"),
+        _ => panic!("Expected SensorStatusChange"),
     }
 }
 
-/// Integration test: Sensor status events
+
+/// Integration test: Health update event
 #[tokio::test]
-async fn test_sensor_status_events() {
+async fn test_health_update_event() {
     let event_bus = EventBus::new(1000);
     let mut rx = event_bus.subscribe();
     
-    let sensor_id = Uuid::new_v4();
-    
-    // Test offline event
-    let offline_event = CherenkovEvent::SensorOffline { 
-        sensor_id,
-        last_seen: Utc::now(),
+    let event = CherenkovEvent::HealthUpdate {
+        component: "ingest".to_string(),
+        healthy: true,
+        message: Some("All systems operational".to_string()),
     };
-    event_bus.publish(offline_event).await.unwrap();
+    
+    event_bus.publish(event).await.unwrap();
     
     let received = timeout(Duration::from_secs(1), rx.recv()).await;
     assert!(received.is_ok());
     
     match received.unwrap().unwrap() {
-        CherenkovEvent::SensorOffline { id, .. } => {
-            assert_eq!(id, sensor_id);
+        CherenkovEvent::HealthUpdate { component, healthy, .. } => {
+            assert_eq!(component, "ingest");
+            assert!(healthy);
         }
-        _ => panic!("Expected SensorOffline event"),
-    }
-    
-    // Test online event
-    let online_event = CherenkovEvent::SensorOnline {
-        sensor_id,
-        first_reading: Utc::now(),
-    };
-    event_bus.publish(online_event).await.unwrap();
-    
-    let received = timeout(Duration::from_secs(1), rx.recv()).await;
-    assert!(received.is_ok());
-    
-    match received.unwrap().unwrap() {
-        CherenkovEvent::SensorOnline { id, .. } => {
-            assert_eq!(id, sensor_id);
-        }
-        _ => panic!("Expected SensorOnline event"),
+        _ => panic!("Expected HealthUpdate event"),
     }
 }
