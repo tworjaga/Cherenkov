@@ -1,75 +1,72 @@
-import { createEffect, createSignal } from 'solid-js';
-import Chart from 'chart.js/auto';
+import { createSignal, onMount } from 'solid-js';
 
 function SensorChart() {
   const [canvasRef, setCanvasRef] = createSignal<HTMLCanvasElement | null>(null);
-  const [chartInstance, setChartInstance] = createSignal<Chart | null>(null);
 
-  createEffect(() => {
+  onMount(() => {
     const canvas = canvasRef();
     if (!canvas) return;
-    
+
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Destroy existing chart if any
-    const existing = chartInstance();
-    if (existing) {
-      existing.destroy();
-    }
+    // Set canvas size
+    canvas.width = canvas.offsetWidth;
+    canvas.height = canvas.offsetHeight;
 
-    const chart = new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels: ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00'],
-        datasets: [
-          {
-            label: 'Global Average (μSv/h)',
-            data: [0.15, 0.14, 0.16, 0.18, 0.17, 0.15],
-            borderColor: '#00d4ff',
-            backgroundColor: 'rgba(0, 212, 255, 0.1)',
-            tension: 0.4,
-            fill: true,
-          },
-          {
-            label: 'Anomaly Threshold',
-            data: [0.5, 0.5, 0.5, 0.5, 0.5, 0.5],
-            borderColor: '#ff4757',
-            borderDash: [5, 5],
-            tension: 0,
-            pointRadius: 0,
-          },
-        ],
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: {
-            display: true,
-            labels: { color: '#a1a1aa' },
-          },
-        },
-        scales: {
-          x: {
-            grid: { color: 'rgba(42, 42, 58, 0.5)' },
-            ticks: { color: '#a1a1aa' },
-          },
-          y: {
-            grid: { color: 'rgba(42, 42, 58, 0.5)' },
-            ticks: { color: '#a1a1aa' },
-            beginAtZero: true,
-          },
-        },
-      },
-    });
+    // Draw placeholder chart
+    const drawChart = () => {
+      ctx.fillStyle = '#0a0a0f';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    setChartInstance(chart);
+      // Draw grid lines
+      ctx.strokeStyle = '#2a2a3a';
+      ctx.lineWidth = 1;
+      for (let i = 0; i < 5; i++) {
+        const y = (canvas.height / 4) * i;
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(canvas.width, y);
+        ctx.stroke();
+      }
+
+      // Draw sample data line
+      ctx.strokeStyle = '#00d4ff';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      for (let i = 0; i < canvas.width; i += 5) {
+        const y = canvas.height / 2 + Math.sin(i * 0.02) * 50 + Math.random() * 20;
+        if (i === 0) {
+          ctx.moveTo(i, y);
+        } else {
+          ctx.lineTo(i, y);
+        }
+      }
+      ctx.stroke();
+
+      // Draw labels
+      ctx.fillStyle = '#6b7280';
+      ctx.font = '12px sans-serif';
+      ctx.fillText('Radiation levels over time', 10, 20);
+      ctx.fillText('μSv/h', 10, canvas.height - 10);
+    };
+
+    drawChart();
+
+    // Redraw on resize
+    const handleResize = () => {
+      canvas.width = canvas.offsetWidth;
+      canvas.height = canvas.offsetHeight;
+      drawChart();
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
   });
 
   return (
-    <div class="h-64">
-      <canvas ref={setCanvasRef} class="w-full h-full"></canvas>
+    <div class="w-full h-64 bg-[#0a0a0f] rounded-lg border border-[#2a2a3a]">
+      <canvas ref={setCanvasRef} class="w-full h-full" />
     </div>
   );
 }

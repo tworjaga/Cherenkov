@@ -209,7 +209,8 @@ function Dashboard() {
                     <p class="font-medium">{source.name}</p>
                     <p class="text-sm text-gray-500">{source.sensorCount.toLocaleString()} sensors</p>
                   </div>
-                  <span class={`w-2 h-2 rounded-full ${source.status === 'online' ? 'bg-green-500' : 'bg-red-500'}`}></span>
+                  <span title={source.status === 'online' ? 'Data source online' : 'Data source offline'} class={`w-2 h-2 rounded-full ${source.status === 'online' ? 'bg-green-500' : 'bg-red-500'}`}></span>
+
                 </div>
               )}
             </For>

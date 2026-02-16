@@ -253,6 +253,7 @@ function Settings() {
                   <label class="block text-sm text-gray-400 mb-2">Email</label>
                   <input
                     type="email"
+                    title="User email address"
                     value={userData()?.me?.email || ''}
                     disabled
                     class="w-full bg-[#0a0a0f] border border-[#2a2a3a] rounded-lg px-4 py-2 text-gray-500"
@@ -263,9 +264,11 @@ function Settings() {
                   <label class="block text-sm text-gray-400 mb-2">Language</label>
                   <select
                     value={localPrefs().language || 'en'}
+                    title="Select language"
                     onChange={(e) => updateLocalPref('language', e.currentTarget.value)}
                     class="w-full bg-[#0a0a0f] border border-[#2a2a3a] rounded-lg px-4 py-2 focus:outline-none focus:border-[#00d4ff]"
                   >
+
                     {languages.map(lang => (
                       <option value={lang.code}>{lang.name}</option>
                     ))}
@@ -276,9 +279,11 @@ function Settings() {
                   <label class="block text-sm text-gray-400 mb-2">Timezone</label>
                   <select
                     value={localPrefs().timezone || 'UTC'}
+                    title="Select timezone"
                     onChange={(e) => updateLocalPref('timezone', e.currentTarget.value)}
                     class="w-full bg-[#0a0a0f] border border-[#2a2a3a] rounded-lg px-4 py-2 focus:outline-none focus:border-[#00d4ff]"
                   >
+
                     {timezones.map(tz => (
                       <option value={tz}>{tz}</option>
                     ))}
@@ -299,11 +304,13 @@ function Settings() {
                     <p class="text-sm text-gray-400">Receive alerts via email</p>
                   </div>
                   <button
+                    title={localPrefs().notifications?.email ? 'Disable email notifications' : 'Enable email notifications'}
                     onClick={() => updateNotificationPref('email', !localPrefs().notifications?.email)}
                     class={`w-12 h-6 rounded-full transition-colors ${localPrefs().notifications?.email ? 'bg-[#00d4ff]' : 'bg-gray-600'}`}
                   >
                     <span class={`block w-5 h-5 bg-white rounded-full transition-transform ${localPrefs().notifications?.email ? 'translate-x-6' : 'translate-x-1'}`}></span>
                   </button>
+
                 </div>
 
                 <div class="flex items-center justify-between">
@@ -312,11 +319,13 @@ function Settings() {
                     <p class="text-sm text-gray-400">Browser push notifications</p>
                   </div>
                   <button
+                    title={localPrefs().notifications?.push ? 'Disable push notifications' : 'Enable push notifications'}
                     onClick={() => updateNotificationPref('push', !localPrefs().notifications?.push)}
                     class={`w-12 h-6 rounded-full transition-colors ${localPrefs().notifications?.push ? 'bg-[#00d4ff]' : 'bg-gray-600'}`}
                   >
                     <span class={`block w-5 h-5 bg-white rounded-full transition-transform ${localPrefs().notifications?.push ? 'translate-x-6' : 'translate-x-1'}`}></span>
                   </button>
+
                 </div>
 
                 <div class="flex items-center justify-between">
@@ -325,11 +334,13 @@ function Settings() {
                     <p class="text-sm text-gray-400">Critical alerts via SMS</p>
                   </div>
                   <button
+                    title={localPrefs().notifications?.sms ? 'Disable SMS notifications' : 'Enable SMS notifications'}
                     onClick={() => updateNotificationPref('sms', !localPrefs().notifications?.sms)}
                     class={`w-12 h-6 rounded-full transition-colors ${localPrefs().notifications?.sms ? 'bg-[#00d4ff]' : 'bg-gray-600'}`}
                   >
                     <span class={`block w-5 h-5 bg-white rounded-full transition-transform ${localPrefs().notifications?.sms ? 'translate-x-6' : 'translate-x-1'}`}></span>
                   </button>
+
                 </div>
 
                 <div class="pt-4 border-t border-[#2a2a3a]">
@@ -342,10 +353,12 @@ function Settings() {
                     min="0.1"
                     max="5"
                     step="0.1"
+                    title="Adjust alert threshold"
                     value={localPrefs().notifications?.alertThreshold || 0.5}
                     onInput={(e) => updateNotificationPref('alertThreshold', parseFloat(e.currentTarget.value))}
                     class="w-full accent-[#00d4ff]"
                   />
+
                   <p class="text-xs text-gray-500 mt-1">Alerts triggered when dose rate exceeds this threshold</p>
                 </div>
               </div>
@@ -379,9 +392,11 @@ function Settings() {
                   <label class="block text-sm text-gray-400 mb-2">Default View</label>
                   <select
                     value={localPrefs().display?.defaultView || 'dashboard'}
+                    title="Select default view"
                     onChange={(e) => updateDisplayPref('defaultView', e.currentTarget.value as any)}
                     class="w-full bg-[#0a0a0f] border border-[#2a2a3a] rounded-lg px-4 py-2 focus:outline-none focus:border-[#00d4ff]"
                   >
+
                     <option value="dashboard">Dashboard</option>
                     <option value="globe">Globe</option>
                     <option value="sensors">Sensors</option>
@@ -394,11 +409,13 @@ function Settings() {
                     <p class="text-sm text-gray-400">Rotate globe when idle</p>
                   </div>
                   <button
+                    title={localPrefs().display?.globeRotation ? 'Disable globe auto-rotation' : 'Enable globe auto-rotation'}
                     onClick={() => updateDisplayPref('globeRotation', !localPrefs().display?.globeRotation)}
                     class={`w-12 h-6 rounded-full transition-colors ${localPrefs().display?.globeRotation ? 'bg-[#00d4ff]' : 'bg-gray-600'}`}
                   >
                     <span class={`block w-5 h-5 bg-white rounded-full transition-transform ${localPrefs().display?.globeRotation ? 'translate-x-6' : 'translate-x-1'}`}></span>
                   </button>
+
                 </div>
 
                 <div class="flex items-center justify-between">
@@ -407,11 +424,13 @@ function Settings() {
                     <p class="text-sm text-gray-400">Display sensor labels on globe</p>
                   </div>
                   <button
+                    title={localPrefs().display?.showLabels ? 'Hide sensor labels' : 'Show sensor labels'}
                     onClick={() => updateDisplayPref('showLabels', !localPrefs().display?.showLabels)}
                     class={`w-12 h-6 rounded-full transition-colors ${localPrefs().display?.showLabels ? 'bg-[#00d4ff]' : 'bg-gray-600'}`}
                   >
                     <span class={`block w-5 h-5 bg-white rounded-full transition-transform ${localPrefs().display?.showLabels ? 'translate-x-6' : 'translate-x-1'}`}></span>
                   </button>
+
                 </div>
 
                 <div>
@@ -449,9 +468,11 @@ function Settings() {
                   <label class="block text-sm text-gray-400 mb-2">Default Time Range</label>
                   <select
                     value={localPrefs().data?.defaultTimeRange || 24}
+                    title="Select default time range"
                     onChange={(e) => updateDataPref('defaultTimeRange', parseInt(e.currentTarget.value))}
                     class="w-full bg-[#0a0a0f] border border-[#2a2a3a] rounded-lg px-4 py-2 focus:outline-none focus:border-[#00d4ff]"
                   >
+
                     <option value={1}>Last hour</option>
                     <option value={6}>Last 6 hours</option>
                     <option value={24}>Last 24 hours</option>
@@ -466,11 +487,13 @@ function Settings() {
                     <p class="text-sm text-gray-400">Automatically update data</p>
                   </div>
                   <button
+                    title={localPrefs().data?.autoRefresh ? 'Disable auto-refresh' : 'Enable auto-refresh'}
                     onClick={() => updateDataPref('autoRefresh', !localPrefs().data?.autoRefresh)}
                     class={`w-12 h-6 rounded-full transition-colors ${localPrefs().data?.autoRefresh ? 'bg-[#00d4ff]' : 'bg-gray-600'}`}
                   >
                     <span class={`block w-5 h-5 bg-white rounded-full transition-transform ${localPrefs().data?.autoRefresh ? 'translate-x-6' : 'translate-x-1'}`}></span>
                   </button>
+
                 </div>
 
                 <Show when={localPrefs().data?.autoRefresh}>
@@ -478,9 +501,11 @@ function Settings() {
                     <label class="block text-sm text-gray-400 mb-2">Refresh Interval (seconds)</label>
                     <select
                       value={localPrefs().data?.refreshInterval || 30}
+                      title="Select refresh interval"
                       onChange={(e) => updateDataPref('refreshInterval', parseInt(e.currentTarget.value))}
                       class="w-full bg-[#0a0a0f] border border-[#2a2a3a] rounded-lg px-4 py-2 focus:outline-none focus:border-[#00d4ff]"
                     >
+
                       <option value={5}>5 seconds</option>
                       <option value={10}>10 seconds</option>
                       <option value={30}>30 seconds</option>
@@ -608,12 +633,14 @@ function Settings() {
                   <label class="block text-sm text-gray-400 mb-1">Key Name</label>
                   <input
                     type="text"
+                    title="Enter API key name"
                     value={newApiKeyName()}
                     onInput={(e) => setNewApiKeyName(e.currentTarget.value)}
                     placeholder="e.g., Production App"
                     class="w-full bg-[#0a0a0f] border border-[#2a2a3a] rounded-lg px-3 py-2 focus:outline-none focus:border-[#00d4ff]"
                   />
                 </div>
+
                 
                 <div>
                   <label class="block text-sm text-gray-400 mb-2">Permissions</label>
