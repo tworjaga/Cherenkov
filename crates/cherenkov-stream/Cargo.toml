@@ -19,8 +19,10 @@ metrics = { workspace = true }
 uuid = { version = "1.6", features = ["v4", "serde"] }
 
 # Internal crates
+cherenkov-core = { path = "../cherenkov-core" }
 cherenkov-db = { path = "../cherenkov-db" }
 cherenkov-observability = { path = "../cherenkov-observability" }
+
 
 # Async streaming
 tokio-stream = "0.1"

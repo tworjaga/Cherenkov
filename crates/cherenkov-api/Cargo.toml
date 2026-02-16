@@ -34,8 +34,10 @@ governor = "0.6"
 dashmap = "5.5"
 
 # Internal crates
+cherenkov-core = { path = "../cherenkov-core" }
 cherenkov-db = { path = "../cherenkov-db" }
 cherenkov-observability = { path = "../cherenkov-observability" }
+
 
 [dev-dependencies]
 tokio-test = { workspace = true }

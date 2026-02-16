@@ -22,8 +22,10 @@ anyhow = { workspace = true }
 metrics = { workspace = true }
 
 # Internal crates
+cherenkov-core = { path = "../cherenkov-core" }
 cherenkov-db = { path = "../cherenkov-db" }
 cherenkov-observability = { path = "../cherenkov-observability" }
+
 
 
 # Circuit breaker and resilience
