@@ -93,7 +93,8 @@
 
 - [x] Add Open-Meteo weather integration
 
-- [ ] Implement EPA RadNet CSV parsing
+- [x] Implement EPA RadNet CSV parsing
+
 - [ ] Add EURDEP XML SOAP parsing
 - [ ] Complete GraphQL subscription resolvers
 - [ ] Add WebSocket real-time streaming
