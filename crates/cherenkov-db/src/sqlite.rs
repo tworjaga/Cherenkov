@@ -6,6 +6,15 @@ use uuid::Uuid;
 
 use crate::{RadiationReading, QualityFlag, TimeSeriesPoint, AggregationLevel, GeoPoint, SensorReading, TimeRange};
 
+#[derive(sqlx::FromRow)]
+struct AggregatedRow {
+    time_bucket: String,
+    avg_dose: f64,
+    min_dose: f64,
+    max_dose: f64,
+    reading_count: i64,
+}
+
 #[derive(Debug)]
 pub struct SqliteStorage {
     pool: Pool<Sqlite>,
@@ -510,15 +519,6 @@ pub struct AnomalyRecord {
     pub detected_at: i64,
 }
 
-
-#[derive(sqlx::FromRow)]
-struct AggregatedRow {
-    time_bucket: String,
-    avg_dose: f64,
-    min_dose: f64,
-    max_dose: f64,
-    reading_count: i64,
-}
 
 /// Calculate haversine distance between two points in kilometers
 fn haversine_distance(lat1: f64, lon1: f64, lat2: f64, lon2: f64) -> f64 {
