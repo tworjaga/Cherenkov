@@ -5,9 +5,14 @@ import { RightPanel } from './components/layout/RightPanel';
 import { BottomPanel } from './components/layout/BottomPanel';
 import { GlobeContainer } from './components/globe/GlobeContainer';
 import { useAppStore } from './stores/useAppStore';
+import { useWebSocket } from './hooks/useWebSocket';
 
 const App: React.FC = () => {
   const view = useAppStore((state) => state.view);
+  
+  // Initialize WebSocket connection
+  useWebSocket();
+
 
   return (
     <div className="h-screen w-screen bg-bg-primary text-text-primary overflow-hidden flex flex-col">
