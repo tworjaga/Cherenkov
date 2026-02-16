@@ -156,7 +156,7 @@ pub struct TrainingMetrics {
     pub timestamp: String,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TrainingResult {
     pub model_path: String,
     pub final_loss: f64,
@@ -194,7 +194,7 @@ impl TrainingPipeline {
         Self::init_weights(&varmap, &config, &device)?;
         
         let pipeline = Self {
-            config,
+            config: config.clone(),
             device,
             varmap,
             metrics_sender,
@@ -208,29 +208,38 @@ impl TrainingPipeline {
     }
 
     fn init_weights(varmap: &VarMap, config: &TrainingConfig, device: &Device) -> anyhow::Result<()> {
-        use candle_nn::Init;
-        
-        let init = Init::KaimingUniform;
-        
+        // Initialize weights using get method: (name, shape, init, dtype, device)
         for (i, hidden_size) in config.hidden_layers.iter().enumerate() {
-            let w = varmap.get_or_try_insert(
+            let _w = varmap.get(
                 &format!("w{}", i),
-                || Tensor::randn(0.0f32, 0.02f32, (config.input_size, *hidden_size), device)
+                (config.input_size, *hidden_size),
+                candle_nn::Init::Randn { mean: 0.0, stdev: 0.02 },
+                DType::F32,
+                device
             )?;
-            let b = varmap.get_or_try_insert(
+            let _b = varmap.get(
                 &format!("b{}", i),
-                || Tensor::zeros(*hidden_size, DType::F32, device)
+                (*hidden_size,),
+                candle_nn::Init::Const(0.0),
+                DType::F32,
+                device
             )?;
         }
         
         let last_hidden = config.hidden_layers.last().copied().unwrap_or(config.input_size);
-        let w_out = varmap.get_or_try_insert(
+        let _w_out = varmap.get(
             "w_out",
-            || Tensor::randn(0.0f32, 0.02f32, (last_hidden, config.num_classes), device)
+            (last_hidden, config.num_classes),
+            candle_nn::Init::Randn { mean: 0.0, stdev: 0.02 },
+            DType::F32,
+            device
         )?;
-        let b_out = varmap.get_or_try_insert(
+        let _b_out = varmap.get(
             "b_out",
-            || Tensor::zeros(config.num_classes, DType::F32, device)
+            (config.num_classes,),
+            candle_nn::Init::Const(0.0),
+            DType::F32,
+            device
         )?;
         
         Ok(())
@@ -290,7 +299,6 @@ impl TrainingPipeline {
         
         let mut best_epoch = start_epoch;
         let mut patience_counter = 0;
-        let mut final_result = None;
         
         for epoch in start_epoch..self.config.epochs {
             let epoch_start = Instant::now();
@@ -330,24 +338,29 @@ impl TrainingPipeline {
                 val_metrics.0, val_metrics.1 * 100.0, epoch_start.elapsed());
             
             // Update plateau counter for ReduceOnPlateau scheduler
-            let mut best_val = self.best_val_loss.write().await;
-            let mut plateau = self.plateau_counter.write().await;
-            
-            if val_metrics.0 < *best_val {
-                *best_val = val_metrics.0;
-                best_epoch = epoch;
-                patience_counter = 0;
-                *plateau = 0;
+            let is_better = {
+                let mut best_val = self.best_val_loss.write().await;
+                let mut plateau = self.plateau_counter.write().await;
                 
+                let better = val_metrics.0 < *best_val;
+                if better {
+                    *best_val = val_metrics.0;
+                    best_epoch = epoch;
+                    patience_counter = 0;
+                    *plateau = 0;
+                } else {
+                    patience_counter += 1;
+                    *plateau += 1;
+                }
+                better
+            };
+            
+            if is_better {
                 self.save_checkpoint(epoch, "best").await?;
-            } else {
-                patience_counter += 1;
-                *plateau += 1;
             }
             
             if epoch > 0 && epoch % self.config.checkpoint_interval == 0 {
                 self.save_checkpoint(epoch, &format!("epoch_{}", epoch)).await?;
-                self.cleanup_old_checkpoints().await?;
             }
             
             if patience_counter >= self.config.early_stopping_patience {
@@ -362,7 +375,6 @@ impl TrainingPipeline {
         let confusion_matrix = self.calculate_confusion_matrix(&dataset.test_data).await?;
         
         let model_path = self.export_model().await?;
-        let version = self.create_model_version(&result).await?;
         
         let result = TrainingResult {
             model_path: model_path.clone(),
@@ -377,6 +389,8 @@ impl TrainingPipeline {
         };
         
         self.save_training_report(&result).await?;
+        
+        let version = self.create_model_version(&result).await?;
         self.save_model_version(&version).await?;
         
         info!("Training completed. Model saved to {}", model_path);
@@ -524,12 +538,13 @@ impl TrainingPipeline {
         
         for batch in data.chunks(self.config.batch_size) {
             let batch_tensors: Vec<&Tensor> = batch.iter().map(|(t, _)| t).collect();
-            let batch_labels: Vec<usize> = batch.iter().map(|(_, l)| *l).collect();
+            let batch_labels: Vec<u32> = batch.iter().map(|(_, l)| *l as u32).collect();
             
             let batch_tensor = Tensor::stack(&batch_tensors, 0)?;
             let logits = self.forward(&batch_tensor)?;
             
-            let loss = candle_nn::loss::cross_entropy(&logits, &Tensor::new(batch_labels.clone(), &self.device)?)?;
+            let labels_tensor = Tensor::from_vec(batch_labels.clone(), (batch_labels.len(),), &self.device)?;
+            let loss = candle_nn::loss::cross_entropy(&logits, &labels_tensor)?;
             
             optimizer.backward_step(&loss)?;
             
@@ -539,7 +554,7 @@ impl TrainingPipeline {
             let pred_vec = predictions.to_vec1::<u32>()?;
             
             for (pred, actual) in pred_vec.iter().zip(batch_labels.iter()) {
-                if *pred as usize == *actual {
+                if *pred as usize == *actual as usize {
                     correct += 1;
                 }
                 total += 1;
@@ -559,19 +574,20 @@ impl TrainingPipeline {
         
         for batch in data.chunks(self.config.batch_size) {
             let batch_tensors: Vec<&Tensor> = batch.iter().map(|(t, _)| t).collect();
-            let batch_labels: Vec<usize> = batch.iter().map(|(_, l)| *l).collect();
+            let batch_labels: Vec<u32> = batch.iter().map(|(_, l)| *l as u32).collect();
             
             let batch_tensor = Tensor::stack(&batch_tensors, 0)?;
             let logits = self.forward(&batch_tensor)?;
             
-            let loss = candle_nn::loss::cross_entropy(&logits, &Tensor::new(batch_labels.clone(), &self.device)?)?;
+            let labels_tensor = Tensor::from_vec(batch_labels.clone(), (batch_labels.len(),), &self.device)?;
+            let loss = candle_nn::loss::cross_entropy(&logits, &labels_tensor)?;
             total_loss += loss.to_vec0::<f32>()? as f64;
             
             let predictions = logits.argmax(1)?;
             let pred_vec = predictions.to_vec1::<u32>()?;
             
             for (pred, actual) in pred_vec.iter().zip(batch_labels.iter()) {
-                if *pred as usize == *actual {
+                if *pred as usize == *actual as usize {
                     correct += 1;
                 }
                 total += 1;
@@ -588,28 +604,49 @@ impl TrainingPipeline {
         let mut x = input.clone();
         
         for (i, hidden_size) in self.config.hidden_layers.iter().enumerate() {
-            let weight = self.varmap.get(&format!("w{}", i))
-                .ok_or_else(|| anyhow::anyhow!("Weight not found"))?;
-            let bias = self.varmap.get(&format!("b{}", i))
-                .ok_or_else(|| anyhow::anyhow!("Bias not found"))?;
+            let weight = self.varmap.get(
+                &format!("w{}", i),
+                (self.config.input_size, *hidden_size),
+                candle_nn::Init::Randn { mean: 0.0, stdev: 0.02 },
+                DType::F32,
+                &self.device
+            )?;
+            let bias = self.varmap.get(
+                &format!("b{}", i),
+                (*hidden_size,),
+                candle_nn::Init::Const(0.0),
+                DType::F32,
+                &self.device
+            )?;
             
-            x = x.matmul(weight)?.broadcast_add(bias)?;
+            x = x.matmul(&weight)?.broadcast_add(&bias)?;
             x = x.relu()?;
             
             // Dropout applied during training only
             if self.config.dropout_rate > 0.0 {
                 // Simple dropout implementation - scale by keep probability
-                let keep_prob = 1.0 - self.config.dropout_rate as f32;
-                x = (x * keep_prob)?;
+                let keep_prob = 1.0 - self.config.dropout_rate;
+                x = (&x * keep_prob)?;
             }
         }
         
-        let output_weight = self.varmap.get("w_out")
-            .ok_or_else(|| anyhow::anyhow!("Output weight not found"))?;
-        let output_bias = self.varmap.get("b_out")
-            .ok_or_else(|| anyhow::anyhow!("Output bias not found"))?;
+        let last_hidden = self.config.hidden_layers.last().copied().unwrap_or(self.config.input_size);
+        let output_weight = self.varmap.get(
+            "w_out",
+            (last_hidden, self.config.num_classes),
+            candle_nn::Init::Randn { mean: 0.0, stdev: 0.02 },
+            DType::F32,
+            &self.device
+        )?;
+        let output_bias = self.varmap.get(
+            "b_out",
+            (self.config.num_classes,),
+            candle_nn::Init::Const(0.0),
+            DType::F32,
+            &self.device
+        )?;
         
-        let logits = x.matmul(output_weight)?.broadcast_add(output_bias)?;
+        let logits = x.matmul(&output_weight)?.broadcast_add(&output_bias)?;
         
         Ok(logits)
     }
@@ -640,7 +677,7 @@ impl TrainingPipeline {
         
         // Create model version metadata
         let version_id = Uuid::new_v4().to_string();
-        let version_path = output_dir.join(format!("version_{}.json", version_id));
+        let _version_path = output_dir.join(format!("version_{}.json", version_id));
         
         let onnx_path = output_dir.join("model.onnx");
         
@@ -665,11 +702,11 @@ impl TrainingPipeline {
         let version_path = output_dir.join(format!("version_{}.json", version.version_id));
         
         let version_json = serde_json::to_string_pretty(version)?;
-        fs::write(&version_path, version_json)?;
+        fs::write(&version_path, &version_json)?;
         
         // Also update latest version symlink/reference
         let latest_path = output_dir.join("latest_version.json");
-        fs::write(&latest_path, &version_json)?;
+        fs::write(&latest_path, version_json)?;
         
         Ok(())
     }

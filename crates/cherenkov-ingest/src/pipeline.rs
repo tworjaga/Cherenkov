@@ -300,10 +300,7 @@ impl IngestionPipeline {
 
     /// Run the ingestion pipeline with multiple sources
     #[instrument(skip(self, sources))]
-    pub async fn run<S>(&self, sources: Vec<S>) -> anyhow::Result<()>
-    where
-        S: DataSource + Send + 'static,
-    {
+    pub async fn run(&self, sources: Vec<Box<dyn DataSource>>) -> anyhow::Result<()> {
         info!("Starting ingestion pipeline with {} sources", sources.len());
 
         let (tx, mut rx) = mpsc::channel::<RadiationReading>(self.config.channel_buffer_size);
@@ -311,13 +308,13 @@ impl IngestionPipeline {
         // Spawn source tasks
         let mut source_handles = FuturesUnordered::new();
         
-        for source in sources {
+        for mut source in sources {
             let tx = tx.clone();
             let permit = self.backpressure.clone().acquire_owned().await?;
             
             let handle = tokio::spawn(async move {
                 let _permit = permit; // Hold permit until task completes
-                Self::run_source(source, tx).await
+                Self::run_source(&mut *source, tx).await
             });
             
             source_handles.push(handle);
@@ -411,10 +408,7 @@ impl IngestionPipeline {
         Ok(())
     }
 
-    async fn run_source<S>(mut source: S, tx: mpsc::Sender<RadiationReading>) -> anyhow::Result<()>
-    where
-        S: DataSource,
-    {
+    async fn run_source(source: &mut dyn DataSource, tx: mpsc::Sender<RadiationReading>) -> anyhow::Result<()> {
         loop {
             match source.fetch().await {
                 Ok(readings) => {

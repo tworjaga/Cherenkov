@@ -2,10 +2,9 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use chrono::{DateTime, Utc, NaiveDate, Duration};
+use chrono::{DateTime, Utc, NaiveDate, Duration, Timelike};
 use tracing::{info, debug, warn, error};
 use reqwest;
-use std::io::Cursor;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WeatherModel {
@@ -16,7 +15,7 @@ pub struct WeatherModel {
     pub metadata: WeatherMetadata,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq, Hash)]
 pub enum WeatherSource {
     Gfs025,    // NOAA GFS 0.25 degree
     Ecmwf,     // ECMWF HRES

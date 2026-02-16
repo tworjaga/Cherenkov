@@ -230,7 +230,7 @@ impl LagrangianDispersion {
             if t % 60 == 0 {
                 let snapshot = t / 60;
                 self.deposit_concentration(&mut concentration_grid, snapshot);
-                concentration_grid.timestamps.push(elapsed_hours);
+                concentration_grid.timestamps.push(elapsed_hours as i64);
             }
         }
         
@@ -248,7 +248,6 @@ impl LagrangianDispersion {
             concentration_grid,
             arrival_times,
             total_integrated_dose: total_dose,
-            simulation_time_ms: simulation_time,
         }
     }
     
@@ -543,7 +542,6 @@ impl LagrangianDispersion {
                 longitude: p.position.x,
                 time_seconds: p.deposition_time.unwrap_or(0.0) * 3600.0,
                 concentration: p.activity_bq,
-                isotope: p.isotope.clone(),
             })
             .collect()
     }
@@ -711,7 +709,7 @@ impl GaussianPlumeModel {
             let angle_rad = angle_deg as f64 * std::f64::consts::PI / 180.0;
             
             // Search along this angle for the contour
-            for dist in (0..(max_distance_m as i64)).step_by(step as i64) {
+            for dist in (0..(max_distance_m as usize)).step_by(step as usize) {
                 let x = dist as f64 * angle_rad.cos();
                 let y = dist as f64 * angle_rad.sin();
                 

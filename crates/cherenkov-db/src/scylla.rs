@@ -1,8 +1,8 @@
-use scylla::{Session, SessionBuilder, ExecutionProfile, Consistency};
-use scylla::transport::load_balancing::DcAwareRoundRobinPolicy;
+use scylla::{Session, SessionBuilder, ExecutionProfile};
+use scylla::frame::types::Consistency;
 use std::sync::Arc;
 use std::time::Duration;
-use tracing::{info, error, warn};
+use tracing::{info, warn};
 use tokio::sync::Semaphore;
 
 pub struct ScyllaStorage {
@@ -44,14 +44,9 @@ impl ScyllaStorage {
             .request_timeout(Some(config.connection_timeout))
             .build();
 
-        let load_balancing_policy = DcAwareRoundRobinPolicy::builder()
-            .prefer_local(true)
-            .build();
-
         let session = SessionBuilder::new()
             .known_nodes(&config.nodes)
             .default_execution_profile_handle(execution_profile.into_handle())
-            .load_balancing_policy(Arc::new(load_balancing_policy))
             .build()
             .await?;
 
@@ -151,8 +146,9 @@ impl ScyllaStorage {
         let result = self.session.execute(&prepared, (sensor_id, &buckets, from, to)).await?;
         
         let mut readings = Vec::new();
-        for row in result.rows()? {
-            let reading = super::RadiationReading::from_row(row)?;
+        let rows = result.rows()?;
+        for row in rows {
+            let reading = parse_row_to_reading(row)?;
             readings.push(reading);
         }
         
@@ -177,8 +173,9 @@ impl ScyllaStorage {
         let result = self.session.execute(&prepared, (cell_id, geohash_prefix, from, to)).await?;
         
         let mut readings = Vec::new();
-        for row in result.rows()? {
-            let reading = super::RadiationReading::from_row(row)?;
+        let rows = result.rows()?;
+        for row in rows {
+            let reading = parse_row_to_reading(row)?;
             readings.push(reading);
         }
         
@@ -200,11 +197,11 @@ impl ScyllaStorage {
         let prepared = self.session.prepare(query).await?;
         let result = self.session.execute(&prepared, (sensor_id,)).await?;
         
-        if let Some(row) = result.first_row()? {
-            Ok(Some(super::RadiationReading::from_row(row)?))
-        } else {
-            Ok(None)
+        let rows = result.rows()?;
+        if let Some(row) = rows.into_iter().next() {
+            return Ok(Some(parse_row_to_reading(row)?));
         }
+        Ok(None)
     }
     
     pub fn get_session(&self) -> Arc<Session> {
@@ -220,4 +217,82 @@ impl ScyllaStorage {
             }
         }
     }
+}
+
+/// Helper function to parse a Scylla row into RadiationReading
+fn parse_row_to_reading(row: scylla::frame::response::result::Row) -> anyhow::Result<super::RadiationReading> {
+    use scylla::frame::response::result::CqlValue;
+    
+    let columns = row.columns;
+    if columns.len() < 10 {
+        return Err(anyhow::anyhow!("Row has insufficient columns: {}", columns.len()));
+    }
+    
+    let sensor_id = match &columns[0] {
+        Some(CqlValue::Uuid(u)) => *u,
+        _ => return Err(anyhow::anyhow!("Invalid sensor_id")),
+    };
+    
+    let bucket = match &columns[1] {
+        Some(CqlValue::BigInt(b)) => *b,
+        _ => return Err(anyhow::anyhow!("Invalid bucket")),
+    };
+    
+    let timestamp = match &columns[2] {
+        Some(CqlValue::BigInt(t)) => *t,
+        _ => return Err(anyhow::anyhow!("Invalid timestamp")),
+    };
+    
+    let latitude = match &columns[3] {
+        Some(CqlValue::Double(l)) => *l,
+        _ => return Err(anyhow::anyhow!("Invalid latitude")),
+    };
+    
+    let longitude = match &columns[4] {
+        Some(CqlValue::Double(l)) => *l,
+        _ => return Err(anyhow::anyhow!("Invalid longitude")),
+    };
+    
+    let dose_rate_microsieverts = match &columns[5] {
+        Some(CqlValue::Double(d)) => *d,
+        _ => return Err(anyhow::anyhow!("Invalid dose_rate")),
+    };
+    
+    let uncertainty = match &columns[6] {
+        Some(CqlValue::Float(u)) => *u,
+        Some(CqlValue::Double(u)) => *u as f32,
+        _ => return Err(anyhow::anyhow!("Invalid uncertainty")),
+    };
+    
+    let quality_flag = match &columns[7] {
+        Some(CqlValue::Text(q)) => match q.as_str() {
+            "Valid" => super::QualityFlag::Valid,
+            "Suspect" => super::QualityFlag::Suspect,
+            _ => super::QualityFlag::Invalid,
+        },
+        _ => super::QualityFlag::Invalid,
+    };
+    
+    let source = match &columns[8] {
+        Some(CqlValue::Text(s)) => s.clone(),
+        _ => String::new(),
+    };
+    
+    let cell_id = match &columns[9] {
+        Some(CqlValue::Text(c)) => c.clone(),
+        _ => String::new(),
+    };
+    
+    Ok(super::RadiationReading {
+        sensor_id,
+        bucket,
+        timestamp,
+        latitude,
+        longitude,
+        dose_rate_microsieverts,
+        uncertainty,
+        quality_flag,
+        source,
+        cell_id,
+    })
 }

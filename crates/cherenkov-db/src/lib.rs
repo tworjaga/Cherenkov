@@ -338,7 +338,8 @@ impl RadiationDatabase {
         time_window: TimeRange,
     ) -> Result<Vec<SensorReading>, DatabaseError> {
         // Use geohash for efficient spatial indexing
-        let geohash_prefix = geohash::encode(center.latitude, center.longitude, 4)
+        let coord = geohash::Coord { x: center.longitude, y: center.latitude };
+        let geohash_prefix = geohash::encode(coord, 4)
             .map_err(|e| DatabaseError::Query(format!("Geohash error: {:?}", e)))?;
 
         // Query hot tier by location
