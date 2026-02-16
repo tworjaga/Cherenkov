@@ -65,6 +65,7 @@ pub struct Anomaly {
     pub severity: Severity,
     pub z_score: f64,
     pub detected_at: DateTime<Utc>,
+    pub timestamp: DateTime<Utc>,
     pub dose_rate: f64,
     pub baseline: f64,
     pub algorithm: String,
