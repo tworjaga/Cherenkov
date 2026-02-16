@@ -37,6 +37,7 @@ dashmap = "5.5"
 # Streaming and async utilities
 futures-util = "0.3"
 tokio-stream = "0.1"
+async-stream = "0.3"
 metrics = "0.22"
 
 # Internal crates

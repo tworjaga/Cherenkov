@@ -94,23 +94,28 @@ impl StreamProcessor {
             // Get or create sliding window for this sensor
             let mut windows_guard = windows.write().await;
             let window = windows_guard.entry(sensor_id.clone()).or_insert_with(|| {
-                SlidingWindow::new(3600, 100) // 1 hour window, max 100 readings
+                SlidingWindow::new(
+                    std::time::Duration::from_secs(3600),
+                    std::time::Duration::from_secs(60),
+                ) // 1 hour window, 1 minute slide
             });
 
             // Add reading to window
-            window.add(crate::window::Reading {
-                sensor_id: sensor_id.clone(),
-                dose_rate: reading.dose_rate_microsieverts,
-                timestamp: chrono::DateTime::from_timestamp(reading.timestamp, 0)
-                    .unwrap_or_else(|| chrono::Utc::now()),
-            });
+            window.add(reading.clone());
 
             // Run anomaly detection
-            let window_data = window.get_window();
+            let window_data = window.get_window(&sensor_id);
             if window_data.len() >= 10 { // Need minimum samples
                 let mut detector_guard = detector.write().await;
                 
-                if let Some(anomaly) = detector_guard.detect(window_data.to_vec()) {
+                // Convert TimestampedReading to Reading for anomaly detector
+                let readings: Vec<crate::anomaly::Reading> = window_data.iter().map(|r| crate::anomaly::Reading {
+                    sensor_id: r.sensor_id.clone(),
+                    timestamp: r.timestamp,
+                    dose_rate: r.dose_rate,
+                }).collect();
+                
+                if let Some(anomaly) = detector_guard.detect(readings) {
                     info!("Anomaly detected for sensor {}: z_score={:.2}", 
                         sensor_id, anomaly.z_score);
 
@@ -130,6 +135,9 @@ impl StreamProcessor {
             if windows_guard.len() > 10000 {
                 windows_guard.retain(|_, w| !w.is_stale(3600));
             }
+            
+            // Drop the lock before async operations
+            drop(windows_guard);
         }
 
         info!("Anomaly detection worker stopped");

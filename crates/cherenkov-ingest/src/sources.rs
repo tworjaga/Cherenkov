@@ -681,10 +681,10 @@ impl DataSource for OpenMeteoSource {
                 .query(&[
                     ("latitude", lat.to_string()),
                     ("longitude", lon.to_string()),
-                    ("hourly", "temperature_2m,relative_humidity_2m,wind_speed_10m,wind_direction_10m,pressure_msl"),
-                    ("current_weather", "true"),
-                    ("timezone", "auto"),
-                    ("forecast_days", "1"),
+                    ("hourly", "temperature_2m,relative_humidity_2m,wind_speed_10m,wind_direction_10m,pressure_msl".to_string()),
+                    ("current_weather", "true".to_string()),
+                    ("timezone", "auto".to_string()),
+                    ("forecast_days", "1".to_string()),
                 ])
                 .send()
                 .await?;

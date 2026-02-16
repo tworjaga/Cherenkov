@@ -1,8 +1,6 @@
 use std::sync::Arc;
 use std::time::Duration;
-use tokio::sync::{mpsc, broadcast, RwLock};
-use tokio_stream::wrappers::ReceiverStream;
-use futures::StreamExt;
+use tokio::sync::{mpsc, broadcast};
 use tracing::{info, warn, error, instrument};
 use chrono::Utc;
 use uuid::Uuid;
@@ -12,13 +10,12 @@ mod window;
 mod correlation;
 mod processor;
 
-use anomaly::{AnomalyDetector, Anomaly, Severity};
-use window::SlidingWindow;
+use anomaly::{Anomaly, Severity};
 use correlation::CorrelationEngine;
 use processor::StreamProcessor;
 use cherenkov_db::{RadiationDatabase, RadiationReading, DatabaseConfig, scylla::ScyllaConfig};
 use cherenkov_observability::init_observability;
-use cherenkov_core::{EventBus, CherenkovEvent, NormalizedReading, Anomaly as CoreAnomaly, Severity as CoreSeverity};
+use cherenkov_core::{EventBus, CherenkovEvent, Anomaly as CoreAnomaly, Severity as CoreSeverity};
 
 
 #[tokio::main]
@@ -43,7 +40,7 @@ async fn main() -> anyhow::Result<()> {
     info!("EventBus initialized for stream processing");
     
     // Subscribe to NewReading events from ingest
-    let mut reading_rx = event_bus.subscribe();
+    let reading_rx = event_bus.subscribe();
     info!("Subscribed to NewReading events from EventBus");
     
     // Create broadcast channel for real-time anomaly alerts (internal)
@@ -63,7 +60,7 @@ async fn main() -> anyhow::Result<()> {
     
     // Start anomaly detection worker
     let detection_worker = tokio::spawn(anomaly_detection_worker(
-        processor.get_reading_rx(),
+        processor.subscribe_anomalies(),
         anomaly_tx.clone(),
         event_bus.clone(),
         db.clone(),
@@ -74,7 +71,6 @@ async fn main() -> anyhow::Result<()> {
         anomaly_tx.subscribe(),
         event_bus.clone(),
     ));
-
     
     // Start correlation engine
     let correlation_worker = tokio::spawn(correlation_engine_worker(
@@ -82,7 +78,6 @@ async fn main() -> anyhow::Result<()> {
         event_bus.clone(),
         db.clone(),
     ));
-
     
     // Start health check server
     let health_server = tokio::spawn(health_check_server(db.clone()));
@@ -127,7 +122,7 @@ async fn eventbus_listener(
                         cherenkov_core::QualityFlag::Invalid => cherenkov_db::QualityFlag::Invalid,
                     },
                     source: reading.source,
-                    cell_id: reading.cell_id,
+                    cell_id: reading.sensor_id.to_string(),
                 };
                 
                 if let Err(e) = ingest_tx.send(radiation_reading).await {
@@ -147,83 +142,58 @@ async fn eventbus_listener(
 
 /// Anomaly detection worker with sliding windows
 async fn anomaly_detection_worker(
-    mut reading_rx: mpsc::Receiver<RadiationReading>,
+    mut anomaly_rx: broadcast::Receiver<Anomaly>,
     anomaly_tx: broadcast::Sender<Anomaly>,
     event_bus: Arc<EventBus>,
     db: Arc<RadiationDatabase>,
 ) {
-
-    let mut detector = AnomalyDetector::new();
-    let mut windows: SlidingWindow = SlidingWindow::new(
-        Duration::from_secs(3600), // 1 hour window
-        Duration::from_secs(60),   // 1 minute slide
-    );
-    
     info!("Anomaly detection worker started");
     
-    while let Some(reading) = reading_rx.recv().await {
-        // Add to sliding window
-        windows.add(reading.clone());
+    while let Ok(anomaly) = anomaly_rx.recv().await {
+        // Process anomaly from processor
+        info!("Processing anomaly from processor: {:?}", anomaly);
         
-        // Get window for this sensor
-        let sensor_window = windows.get_window(&reading.sensor_id.to_string());
-        
-        // Convert window readings to the format expected by detector
-        let readings: Vec<anomaly::Reading> = sensor_window.iter().map(|r| anomaly::Reading {
-            sensor_id: r.sensor_id.to_string(),
-            timestamp: chrono::DateTime::from_timestamp(r.timestamp, 0).unwrap_or_else(|| chrono::Utc::now()),
-            latitude: r.latitude,
-            longitude: r.longitude,
-            dose_rate: r.dose_rate_microsieverts,
-        }).collect();
-        
-        // Run anomaly detection
-        if let Some(anomaly) = detector.detect(&readings) {
-            info!("Anomaly detected: {:?}", anomaly);
-            
-            // Store anomaly in database
-            if let Err(e) = store_anomaly(&db, &anomaly).await {
-                error!("Failed to store anomaly: {}", e);
-            }
-            
-            // Broadcast to internal subscribers
-            if let Err(e) = anomaly_tx.send(anomaly.clone()) {
-                warn!("Failed to broadcast anomaly internally: {}", e);
-            }
-            
-            // Publish to EventBus for API and other consumers
-            let sensor_uuid = Uuid::parse_str(&anomaly.sensor_id).unwrap_or_else(|_| Uuid::new_v4());
-            let core_anomaly = CoreAnomaly {
-                anomaly_id: Uuid::new_v4().to_string(),
-                sensor_id: sensor_uuid,
-                severity: match anomaly.severity {
-                    Severity::Critical => CoreSeverity::Critical,
-                    Severity::Warning => CoreSeverity::Warning,
-                    Severity::Info => CoreSeverity::Info,
-                },
-                z_score: anomaly.z_score,
-                detected_at: anomaly.timestamp,
-                timestamp: anomaly.timestamp,
-                dose_rate: anomaly.dose_rate,
-                baseline: anomaly.baseline,
-                algorithm: match anomaly.algorithm {
-                    anomaly::Algorithm::Welford => "Welford".to_string(),
-                    anomaly::Algorithm::IsolationForest => "IsolationForest".to_string(),
-                },
-            };
-            
-            let event = CherenkovEvent::AnomalyDetected(core_anomaly);
-            if let Err(e) = event_bus.publish(event).await {
-                warn!("Failed to publish AnomalyDetected to EventBus: {}", e);
-            } else {
-                metrics::counter!("cherenkov_stream_anomaly_events_published_total").increment(1);
-            }
-            
-            metrics::counter!("cherenkov_anomalies_detected_total", 
-                "severity" => format!("{:?}", anomaly.severity)
-            ).increment(1);
+        // Store anomaly in database
+        if let Err(e) = store_anomaly(&db, &anomaly).await {
+            error!("Failed to store anomaly: {}", e);
         }
-
+        
+        // Broadcast to internal subscribers
+        if let Err(e) = anomaly_tx.send(anomaly.clone()) {
+            warn!("Failed to broadcast anomaly internally: {}", e);
+        }
+        
+        // Publish to EventBus for API and other consumers
+        let sensor_uuid = Uuid::parse_str(&anomaly.sensor_id).unwrap_or_else(|_| Uuid::new_v4());
+        let core_anomaly = CoreAnomaly {
+            anomaly_id: Uuid::new_v4().to_string(),
+            sensor_id: sensor_uuid,
+            severity: match anomaly.severity {
+                Severity::Critical => CoreSeverity::Critical,
+                Severity::Warning => CoreSeverity::Warning,
+                Severity::Info => CoreSeverity::Info,
+            },
+            z_score: anomaly.z_score,
+            detected_at: anomaly.timestamp,
+            timestamp: anomaly.timestamp,
+            dose_rate: anomaly.dose_rate,
+            baseline: anomaly.baseline,
+            algorithm: match anomaly.algorithm {
+                anomaly::Algorithm::Welford => "Welford".to_string(),
+                anomaly::Algorithm::IsolationForest => "IsolationForest".to_string(),
+            },
+        };
+        
+        let event = CherenkovEvent::AnomalyDetected(core_anomaly);
+        if let Err(e) = event_bus.publish(event).await {
+            warn!("Failed to publish AnomalyDetected to EventBus: {}", e);
+        } else {
+            metrics::counter!("cherenkov_stream_anomaly_events_published_total").increment(1);
+        }
+        
+        metrics::counter!("cherenkov_anomalies_detected_total", 
+            "severity" => format!("{:?}", anomaly.severity)
+        ).increment(1);
     }
 }
 
@@ -297,8 +267,7 @@ async fn correlation_engine_worker(
     event_bus: Arc<EventBus>,
     db: Arc<RadiationDatabase>,
 ) {
-
-    let mut correlation_engine = CorrelationEngine::new_with_db(db.clone());
+    let correlation_engine = CorrelationEngine::new_with_db(db.clone());
     
     info!("Correlation engine worker started");
     
@@ -350,7 +319,6 @@ async fn correlation_engine_worker(
             
             info!("Correlated event: {:?}", correlated_event);
         }
-
     }
 }
 

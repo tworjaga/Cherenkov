@@ -8,7 +8,8 @@ pub struct SubscriptionRoot;
 #[Subscription]
 impl SubscriptionRoot {
     async fn reading_updates(&self, sensor_id: ID) -> impl Stream<Item = ReadingUpdate> {
-        tokio_stream::wrappers::IntervalStream::new(Duration::from_secs(1))
+        let interval = tokio::time::interval(Duration::from_secs(1));
+        tokio_stream::wrappers::IntervalStream::new(interval)
             .map(move |_| ReadingUpdate {
                 sensor_id: sensor_id.clone(),
                 timestamp: chrono::Utc::now(),
@@ -17,7 +18,8 @@ impl SubscriptionRoot {
     }
     
     async fn global_alerts(&self) -> impl Stream<Item = Alert> {
-        tokio_stream::wrappers::IntervalStream::new(Duration::from_secs(5))
+        let interval = tokio::time::interval(Duration::from_secs(5));
+        tokio_stream::wrappers::IntervalStream::new(interval)
             .map(|_| Alert {
                 id: ID::from(uuid::Uuid::new_v4().to_string()),
                 severity: "info".to_string(),

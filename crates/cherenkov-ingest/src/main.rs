@@ -51,15 +51,16 @@ async fn main() -> anyhow::Result<()> {
         dedup_window_secs: 60,
     };
     
-    let pipeline = IngestionPipeline::new(config, db.clone(), event_bus.clone());
+    let pipeline = Arc::new(IngestionPipeline::new(config, db.clone(), event_bus.clone()));
 
     
     // Create data sources
     let sources = create_sources();
     
     // Start pipeline
+    let pipeline_clone = pipeline.clone();
     let pipeline_handle = tokio::spawn(async move {
-        if let Err(e) = pipeline.run(sources).await {
+        if let Err(e) = pipeline_clone.run(sources).await {
             error!("Pipeline error: {}", e);
         }
     });
@@ -68,7 +69,7 @@ async fn main() -> anyhow::Result<()> {
     let health_handle = tokio::spawn(health_check_server(db.clone()));
     
     // Start DLQ replayer
-    let dlq_handle = tokio::spawn(dlq_replayer(pipeline));
+    let dlq_handle = tokio::spawn(dlq_replayer(pipeline.clone()));
     
     // Start EventBus metrics reporter
     let metrics_handle = tokio::spawn(eventbus_metrics_reporter(event_bus.clone()));
@@ -116,7 +117,7 @@ async fn health_check_server(db: Arc<RadiationDatabase>) {
     }
 }
 
-async fn dlq_replayer(pipeline: IngestionPipeline) {
+async fn dlq_replayer(pipeline: Arc<IngestionPipeline>) {
     let mut interval = tokio::time::interval(Duration::from_secs(300)); // 5 minutes
     
     loop {
