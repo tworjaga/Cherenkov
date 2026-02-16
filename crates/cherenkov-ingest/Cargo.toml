@@ -45,7 +45,3 @@ bincode = { workspace = true }
 [dev-dependencies]
 tokio-test = { workspace = true }
 criterion = { workspace = true }
-
-[[bench]]
-name = "ingest_benchmark"
-harness = false
