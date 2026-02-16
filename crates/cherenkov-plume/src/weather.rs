@@ -317,7 +317,7 @@ impl WeatherIngestService {
         grid.levels_hpa.iter()
             .enumerate()
             .min_by(|(_, a), (_, b)| {
-                (a - pressure_hpa).abs().partial_cmp(&(b - pressure_hpa).abs()).unwrap()
+                (*a - pressure_hpa).abs().partial_cmp(&(*b - pressure_hpa).abs()).unwrap()
             })
             .map(|(i, _)| i)
             .unwrap_or(0)

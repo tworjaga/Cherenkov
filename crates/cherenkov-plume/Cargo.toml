@@ -17,6 +17,7 @@ thiserror = { workspace = true }
 anyhow = { workspace = true }
 nalgebra = "0.32"
 nalgebra-sparse = "0.9"
+rand = "0.8"
 
 [dev-dependencies]
 tokio-test = { workspace = true }

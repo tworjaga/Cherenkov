@@ -1,4 +1,5 @@
 use nalgebra::Vector3;
+use rand;
 
 pub struct RadioactiveParticle {
     pub position: Vector3<f64>,
