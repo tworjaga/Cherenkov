@@ -1,129 +1,45 @@
-# Cherenkov Project TODO
+# Cherenkov Implementation TODO
 
-## Completed
+## Phase 1: Data Layer Foundation (P0)
+- [ ] Implement RadiationDatabase struct with tiering
+- [ ] Add SQLite warm storage module
+- [ ] Add object storage cold archive module
+- [ ] Implement time-range queries
+- [ ] Implement geo-spatial queries
+- [ ] Add migration system
+- [ ] Add connection pooling with deadpool/bb8
+- [ ] Add retry logic with exponential backoff
 
-- [x] Initialize Rust workspace with 8 crates
-- [x] Set up project structure (crates, web, docs, k8s)
-- [x] Create ingestion daemon architecture
-- [x] Implement stream processing with timely-dataflow
-- [x] Add ScyllaDB time-series schema
-- [x] Create WebGL2 globe renderer (WASM)
-- [x] Build GraphQL API foundation
-- [x] Set up React web frontend
-- [x] Fix TypeScript compilation errors
-- [x] Configure router, WASM types, component lifecycle
-- [x] Add Docker Compose for local development
-- [x] Set up CI/CD with GitHub Actions
-- [x] Create architecture documentation
-- [x] Implement data source crawlers (Safecast, uRADMonitor, EPA RadNet)
-- [x] Add WebSocket server for real-time updates
-- [x] Implement anomaly detection algorithms (Welford, Isolation Forest)
-- [x] Set up ScyllaDB cluster configuration with connection pooling
-- [x] Add ML inference service with candle and batch processing
-- [x] Implement plume dispersion modeling with physics simulation
-- [x] Add JWT authentication and ABAC authorization
-- [x] Set up observability metrics collection
-- [x] Add distributed tracing (OpenTelemetry/Jaeger)
-- [x] Implement structured logging (JSON format)
-- [x] Add ML model training pipeline
-- [x] Implement weather data ingestion for plume modeling
-- [x] Add facility status inference
-- [x] Implement seismic-radiation correlation
-- [x] Connect to real GraphQL API
-- [x] Implement WebSocket subscriptions
-- [x] Add real sensor data visualization
-- [x] Implement globe interaction (zoom, pan, select)
-- [x] Add plume simulation UI
-- [x] Implement alert management
-- [x] Add user preferences and settings
-- [x] Integrate WebGL2 WASM globe renderer with custom layers
-- [x] Create TimeSlider component with LIVE/PAUSED/REPLAY modes
-- [x] Build AlertCard and AlertFeed with filtering
-- [x] Add GlobalChart for radiation trends
-- [x] Implement useWebSocket hook for real-time data
-- [x] Fix WASM TypeScript definitions (setView, resize, addFacility, updatePlume, setLayerVisibility)
-- [x] Add ErrorBoundary component for WASM/WebGL error handling
-- [x] Verify Tailwind CSS custom color configuration
-- [x] Confirm date-fns dependency in package.json
-- [x] Fix ARIA accessibility in TimeSlider (aria-valuetext, tabIndex)
-- [x] Verify WebGL shader programs (globe.vert, globe.frag, sensor.vert, sensor.frag)
-- [x] Confirm facility data rendering in WASM (FacilityData, add_facility, draw_facility)
-- [x] Confirm plume particle system (PlumeParticle, update_plume, draw_plume_particle)
+## Phase 2: Ingestion Hardening (P0)
+- [ ] Create ingestion pipeline with FuturesUnordered
+- [ ] Integrate database writes
+- [ ] Add dead letter queue
+- [ ] Implement circuit breaker pattern
+- [ ] Add backpressure handling
+- [ ] Fix Safecast JSON parsing
+- [ ] Add deduplication logic
 
-## In Progress
+## Phase 3: Stream Processing (P1)
+- [ ] Rewrite with async tokio streams
+- [ ] Integrate anomaly detection with DB
+- [ ] Implement WebSocket broadcasting
+- [ ] Add cross-sensor correlation
+- [ ] Add sliding window statistics
 
+## Phase 4: API Completion (P1)
+- [ ] Complete GraphQL resolvers
+- [ ] Add authentication layer
+- [ ] Implement WebSocket subscriptions
+- [ ] Add REST endpoints
+- [ ] Add rate limiting
 
-## Pending
+## Phase 5: ML and Simulation (P3)
+- [ ] Rule-based isotope identification
+- [ ] Gaussian plume model
+- [ ] Weather data integration
 
-### Critical Fixes Needed
-- [ ] Add keyboard navigation to TimeSlider slider control
-- [ ] Implement globe geometry buffer for WebGL sphere rendering
-- [ ] Add facility marker textures (diamond shape)
-- [ ] Implement plume particle animation over time
-
-
-
-### UI/UX Improvements
-- [x] Add loading states for async operations
-- [x] Implement toast notifications for alerts
-- [x] Add responsive design for mobile/tablet
-- [x] Create dark/light theme toggle
-- [x] Add keyboard navigation shortcuts help panel
-- [x] Implement data export functionality
-- [ ] Add print-friendly styles for reports
-
-
-
-### Performance Optimizations
-- [x] Implement sensor clustering for large datasets
-- [x] Add virtual scrolling for alert feed
-- [ ] Optimize WebGL rendering with instancing
-- [x] Add service worker for offline support
-- [x] Implement requestAnimationFrame throttling
-- [x] Add memory leak detection and cleanup
-
-
-### Testing
-- [x] Add unit tests for React components (LoadingSpinner, Toast, clustering algorithm)
-- [x] Set up Vitest test infrastructure with jsdom environment
-- [ ] Create integration tests for WebSocket
-- [ ] Add E2E tests with Playwright
-- [ ] Implement WASM test suite
-- [ ] Add performance benchmarks
-- [ ] Create visual regression tests
-
-
-
-### Backend Integration
-- [x] Connect WebSocket to actual backend endpoint
-- [x] Implement GraphQL queries for historical data
-- [x] Add authentication flow to web app
-- [x] Implement rate limiting for API calls
-- [x] Add request caching layer
-
-
-### DevOps
-- [x] Set up Kubernetes manifests
-- [x] Configure Flux GitOps
-- [x] Add monitoring stack (Prometheus, Grafana)
-- [x] Set up distributed tracing (Jaeger)
-- [x] Configure multi-region deployment
-- [ ] Add WASM build to CI pipeline
-- [ ] Configure CDN for static assets
-- [ ] Implement blue-green deployments
-
-### Documentation
-- [x] Add API documentation
-- [x] Create deployment guide
-- [x] Write contribution guidelines
-- [x] Add security documentation
-- [x] Add frontend component storybook
-- [x] Create user manual
-- [x] Add troubleshooting guide
-
-
-## Notes
-
-- GitHub: tworjaga
-- Telegram: @al7exy
-- License: MIT
+## Phase 6: Observability and Deployment (P2)
+- [ ] Integrate metrics across components
+- [ ] Complete Docker Compose
+- [ ] Add health checks
+- [ ] Set up Grafana dashboards

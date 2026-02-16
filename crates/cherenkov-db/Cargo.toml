@@ -18,5 +18,30 @@ tracing = { workspace = true }
 thiserror = { workspace = true }
 anyhow = { workspace = true }
 
+# Database tiers
+sqlx = { version = "0.7", features = ["runtime-tokio", "sqlite", "migrate", "chrono"] }
+redis = { workspace = true }
+deadpool = { version = "0.10", features = ["managed", "rt_tokio_1"] }
+deadpool-redis = "0.14"
+
+# Storage and serialization
+aws-sdk-s3 = { version = "1.15", optional = true }
+parquet = { version = "52.0", optional = true }
+arrow = { version = "52.0", optional = true }
+
+# Retry and backoff
+backoff = { version = "0.4", features = ["tokio"] }
+
+# Geospatial
+geohash = "0.13"
+
+# Connection pooling
+bb8 = "0.8"
+
+[features]
+default = []
+cold-storage = ["aws-sdk-s3", "parquet", "arrow"]
+
+
 [dev-dependencies]
 tokio-test = { workspace = true }
