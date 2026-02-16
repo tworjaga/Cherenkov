@@ -6,11 +6,13 @@ namespace: cherenkov
 resources:
 - namespace.yaml
 - configmap.yaml
+- secrets.yaml
 - api-deployment.yaml
 - ingest-deployment.yaml
 - stream-deployment.yaml
 - web-deployment.yaml
 - ingress.yaml
+
 
 commonLabels:
   app.kubernetes.io/part-of: cherenkov

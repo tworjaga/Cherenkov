@@ -1,0 +1,89 @@
+name: Deploy to Production
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment environment'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - staging
+          - production
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  deploy:
+    name: Deploy to ${{ github.event.inputs.environment || 'production' }}
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'production' }}
+    
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'v1.28.0'
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Update kubeconfig
+        run: |
+          aws eks update-kubeconfig \
+            --region ${{ secrets.AWS_REGION }} \
+            --name ${{ secrets.EKS_CLUSTER_NAME }}
+
+      - name: Install Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: 'v3.13.0'
+
+      - name: Deploy to Kubernetes
+        run: |
+          kubectl apply -k k8s/overlays/production/
+          
+          # Wait for deployments to be ready
+          kubectl rollout status deployment/cherenkov-api -n cherenkov --timeout=300s
+          kubectl rollout status deployment/cherenkov-ingest -n cherenkov --timeout=300s
+          kubectl rollout status deployment/cherenkov-stream -n cherenkov --timeout=300s
+
+      - name: Verify deployment
+        run: |
+          kubectl get pods -n cherenkov
+          kubectl get services -n cherenkov
+          
+          # Health check
+          API_URL=$(kubectl get svc cherenkov-api -n cherenkov -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+          curl -f http://${API_URL}:8080/health || exit 1
+
+      - name: Notify deployment status
+        if: always()
+        uses: slackapi/slack-github-action@v1.24.0
+        with:
+          payload: |
+            {
+              "text": "Cherenkov deployment to ${{ github.event.inputs.environment || 'production' }}: ${{ job.status }}",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*Cherenkov Deployment*\nEnvironment: ${{ github.event.inputs.environment || 'production' }}\nStatus: ${{ job.status }}\nVersion: ${{ github.ref_name }}"
+                  }
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
