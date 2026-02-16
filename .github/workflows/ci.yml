@@ -8,46 +8,98 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
 
 jobs:
   test:
+    name: Test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
-      - name: Install Rust
+
+      - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
-      
-      - name: Cache cargo
-        uses: actions/cache@v3
+
+      - name: Cache cargo dependencies
+        uses: actions/cache@v4
         with:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
             target
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-      
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
       - name: Check formatting
         run: cargo fmt --all -- --check
-      
+
       - name: Run clippy
         run: cargo clippy --all-targets --all-features -- -D warnings
-      
-      - name: Run tests
-        run: cargo test --workspace
-      
-      - name: Build release
-        run: cargo build --release --workspace
 
-  docker:
+      - name: Build
+        run: cargo build --all-features --verbose
+
+      - name: Run tests
+        run: cargo test --all-features --verbose
+
+  build-docker:
+    name: Build Docker Images
     runs-on: ubuntu-latest
     needs: test
+    strategy:
+      matrix:
+        service: [ingest, api, stream]
     steps:
       - uses: actions/checkout@v4
-      
-      - name: Build Docker images
-        run: |
-          docker build -t cherenkov-ingest:latest -f crates/cherenkov-ingest/Dockerfile .
-          docker build -t cherenkov-api:latest -f crates/cherenkov-api/Dockerfile .
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build ${{ matrix.service }}
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./crates/cherenkov-${{ matrix.service }}/Dockerfile
+          push: false
+          tags: cherenkov-${{ matrix.service }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  security-audit:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install cargo-audit
+        run: cargo install cargo-audit
+
+      - name: Run security audit
+        run: cargo audit
+
+  coverage:
+    name: Code Coverage
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install tarpaulin
+        run: cargo install cargo-tarpaulin
+
+      - name: Generate coverage report
+        run: cargo tarpaulin --all-features --workspace --timeout 120 --out xml
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./cobertura.xml
+          fail_ci_if_error: true
