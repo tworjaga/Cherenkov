@@ -381,7 +381,110 @@ impl SqliteStorage {
         
         Ok(deleted)
     }
+
+    /// List all sensors
+    pub async fn list_sensors(&self) -> anyhow::Result<Vec<SensorInfo>> {
+        let rows = sqlx::query(
+            r#"
+            SELECT DISTINCT sensor_id, source 
+            FROM radiation_readings_warm
+            ORDER BY sensor_id
+            "#
+        )
+        .fetch_all(&self.pool)
+        .await?;
+
+        let sensors: Vec<SensorInfo> = rows
+            .into_iter()
+            .map(|row| {
+                let sensor_id_str: String = row.get(0);
+                let sensor_id = Uuid::parse_str(&sensor_id_str).unwrap_or_else(|_| Uuid::new_v4());
+                SensorInfo {
+                    sensor_id,
+                    source: row.get(1),
+                }
+            })
+            .collect();
+
+        Ok(sensors)
+    }
+
+    /// Get anomalies since a given timestamp
+    pub async fn get_anomalies(
+        &self,
+        since: i64,
+        limit: usize,
+    ) -> anyhow::Result<Vec<AnomalyRecord>> {
+        let since_naive = DateTime::from_timestamp(since, 0)
+            .unwrap_or_else(|| Utc::now())
+            .naive_utc();
+
+        let rows = sqlx::query(
+            r#"
+            SELECT anomaly_id, sensor_id, severity, z_score, detected_at
+            FROM anomalies
+            WHERE detected_at >= ?
+            ORDER BY detected_at DESC
+            LIMIT ?
+            "#
+        )
+        .bind(since_naive)
+        .bind(limit as i64)
+        .fetch_all(&self.pool)
+        .await?;
+
+        let anomalies: Vec<AnomalyRecord> = rows
+            .into_iter()
+            .map(|row| {
+                let sensor_id_str: String = row.get(1);
+                AnomalyRecord {
+                    anomaly_id: row.get(0),
+                    sensor_id: Uuid::parse_str(&sensor_id_str).unwrap_or_else(|_| Uuid::new_v4()),
+                    severity: row.get(2),
+                    z_score: row.get(3),
+                    detected_at: row.get::<NaiveDateTime, _>(4).and_utc().timestamp(),
+                }
+            })
+            .collect();
+
+        Ok(anomalies)
+    }
+
+    /// Get count of anomalies in last N hours
+    pub async fn get_anomaly_count(&self, hours: i64) -> anyhow::Result<i64> {
+        let since = Utc::now() - chrono::Duration::hours(hours);
+        
+        let count: i64 = sqlx::query_scalar(
+            r#"
+            SELECT COUNT(*) FROM anomalies
+            WHERE detected_at >= ?
+            "#
+        )
+        .bind(since.naive_utc())
+        .fetch_one(&self.pool)
+        .await?;
+
+        Ok(count)
+    }
 }
+
+/// Sensor information
+#[derive(Debug, Clone)]
+pub struct SensorInfo {
+    pub sensor_id: Uuid,
+    pub source: String,
+}
+
+/// Anomaly record from database
+#[derive(Debug, Clone)]
+pub struct AnomalyRecord {
+    pub anomaly_id: String,
+    pub sensor_id: Uuid,
+    pub severity: String,
+    pub z_score: f64,
+    pub detected_at: i64,
+}
+
 
 #[derive(sqlx::FromRow)]
 struct AggregatedRow {
