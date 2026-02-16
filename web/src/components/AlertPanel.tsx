@@ -339,16 +339,21 @@ function AlertPanel() {
                   name="name"
                   type="text"
                   required
+                  title="Enter rule name"
+                  placeholder="e.g., High Radiation Alert"
                   class="w-full bg-[#0a0a0f] border border-[#2a2a3a] rounded-lg px-3 py-2 focus:outline-none focus:border-[#00d4ff]"
                 />
               </div>
+
               
               <div>
                 <label class="block text-sm text-gray-400 mb-1">Minimum Severity</label>
                 <select
                   name="severity"
+                  title="Select minimum severity level"
                   class="w-full bg-[#0a0a0f] border border-[#2a2a3a] rounded-lg px-3 py-2 focus:outline-none focus:border-[#00d4ff]"
                 >
+
                   <option value="low">Low</option>
                   <option value="medium">Medium</option>
                   <option value="high">High</option>
@@ -362,10 +367,12 @@ function AlertPanel() {
                   name="doseRate"
                   type="number"
                   step="0.01"
-                  placeholder="Optional"
+                  title="Enter dose rate threshold"
+                  placeholder="e.g., 2.5"
                   class="w-full bg-[#0a0a0f] border border-[#2a2a3a] rounded-lg px-3 py-2 focus:outline-none focus:border-[#00d4ff]"
                 />
               </div>
+
 
               <div class="flex gap-4">
                 <label class="flex items-center gap-2 text-sm text-gray-400">

@@ -209,6 +209,8 @@ function PlumeSimulator() {
                   type="number"
                   step="0.0001"
                   value={params().latitude}
+                  title="Enter latitude coordinate"
+                  placeholder="e.g., 35.6762"
                   onInput={(e) => setParams(p => ({ ...p, latitude: parseFloat(e.currentTarget.value) }))}
                   class="w-full bg-[#0a0a0f] border border-[#2a2a3a] rounded-lg px-4 py-2 focus:outline-none focus:border-[#00d4ff]"
                 />
@@ -219,10 +221,13 @@ function PlumeSimulator() {
                   type="number"
                   step="0.0001"
                   value={params().longitude}
+                  title="Enter longitude coordinate"
+                  placeholder="e.g., 139.6503"
                   onInput={(e) => setParams(p => ({ ...p, longitude: parseFloat(e.currentTarget.value) }))}
                   class="w-full bg-[#0a0a0f] border border-[#2a2a3a] rounded-lg px-4 py-2 focus:outline-none focus:border-[#00d4ff]"
                 />
               </div>
+
             </div>
 
             <div>
@@ -232,9 +237,11 @@ function PlumeSimulator() {
                 min="0"
                 max="1000"
                 value={params().releaseHeight}
+                title="Adjust release height in meters"
                 onInput={(e) => setParams(p => ({ ...p, releaseHeight: parseInt(e.currentTarget.value) }))}
                 class="w-full accent-[#00d4ff]"
               />
+
               <div class="flex justify-between text-sm text-gray-500 mt-1">
                 <span>0m</span>
                 <span class="text-[#00d4ff]">{params().releaseHeight}m</span>
@@ -247,17 +254,21 @@ function PlumeSimulator() {
               <input
                 type="number"
                 value={params().releaseRate}
+                title="Enter release rate in Becquerels per second"
+                placeholder="e.g., 1000000000"
                 onInput={(e) => setParams(p => ({ ...p, releaseRate: parseInt(e.currentTarget.value) }))}
                 class="w-full bg-[#0a0a0f] border border-[#2a2a3a] rounded-lg px-4 py-2 focus:outline-none focus:border-[#00d4ff]"
               />
               <p class="text-xs text-gray-500 mt-1">Typical range: 10^10 to 10^18 Bq/s for major releases</p>
             </div>
 
+
             <div class="grid grid-cols-2 gap-4">
               <div>
                 <label class="block text-sm text-gray-400 mb-2">Simulation Duration</label>
                 <select
                   value={params().duration}
+                  title="Select simulation duration"
                   onChange={(e) => setParams(p => ({ ...p, duration: parseInt(e.currentTarget.value) }))}
                   class="w-full bg-[#0a0a0f] border border-[#2a2a3a] rounded-lg px-4 py-2 focus:outline-none focus:border-[#00d4ff]"
                 >
@@ -271,6 +282,7 @@ function PlumeSimulator() {
                 <label class="block text-sm text-gray-400 mb-2">Weather Model</label>
                 <select
                   value={params().weatherModel}
+                  title="Select weather model"
                   onChange={(e) => setParams(p => ({ ...p, weatherModel: e.currentTarget.value as any }))}
                   class="w-full bg-[#0a0a0f] border border-[#2a2a3a] rounded-lg px-4 py-2 focus:outline-none focus:border-[#00d4ff]"
                 >
@@ -279,12 +291,14 @@ function PlumeSimulator() {
                   <option value="HRRR">HRRR (USA)</option>
                 </select>
               </div>
+
             </div>
 
             <div>
               <label class="block text-sm text-gray-400 mb-2">Isotope</label>
               <select
                 value={params().isotope}
+                title="Select isotope type"
                 onChange={(e) => setParams(p => ({ ...p, isotope: e.currentTarget.value }))}
                 class="w-full bg-[#0a0a0f] border border-[#2a2a3a] rounded-lg px-4 py-2 focus:outline-none focus:border-[#00d4ff]"
               >
@@ -293,6 +307,7 @@ function PlumeSimulator() {
                 ))}
               </select>
             </div>
+
 
             <button
               onClick={handleRunSimulation}
@@ -421,11 +436,13 @@ function PlumeSimulator() {
             <h3 class="text-lg font-semibold mb-4">Save Simulation</h3>
             <input
               type="text"
-              placeholder="Simulation name"
+              title="Enter simulation name"
+              placeholder="e.g., Fukushima Scenario 1"
               value={simulationName()}
               onInput={(e) => setSimulationName(e.currentTarget.value)}
               class="w-full bg-[#0a0a0f] border border-[#2a2a3a] rounded-lg px-4 py-2 mb-4 focus:outline-none focus:border-[#00d4ff]"
             />
+
             <div class="flex gap-2">
               <button
                 onClick={() => setShowSaveDialog(false)}
