@@ -105,5 +105,6 @@
 
 - [x] Add GPU acceleration for plume simulation
 
-- [ ] Set up CI/CD with GitHub Actions
+- [x] Set up CI/CD with GitHub Actions
+
 - [ ] Deploy to production environment
