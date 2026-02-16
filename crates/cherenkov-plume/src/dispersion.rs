@@ -343,3 +343,172 @@ fn get_half_life_hours(isotope: &str) -> f64 {
         _ => 1000.0,
     }
 }
+
+/// Simplified Gaussian plume model for atmospheric dispersion
+/// C(x,y,z) = Q / (2π σ_y σ_z u) * exp(-y²/2σ_y²) * [exp(-(z-H)²/2σ_z²) + exp(-(z+H)²/2σ_z²)]
+pub struct GaussianPlumeModel {
+    pub weather: WeatherConditions,
+    pub release: ReleaseParameters,
+}
+
+#[derive(Debug, Clone)]
+pub struct WeatherConditions {
+    pub wind_speed_ms: f64,
+    pub wind_direction_deg: f64,
+    pub stability_class: StabilityClass,
+    pub temperature_k: f64,
+    pub pressure_pa: f64,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum StabilityClass {
+    A, // Very unstable
+    B, // Unstable
+    C, // Slightly unstable
+    D, // Neutral
+    E, // Slightly stable
+    F, // Stable
+}
+
+impl StabilityClass {
+    /// Get dispersion coefficients for this stability class
+    /// Returns (a_y, b_y, a_z, b_z) for σ_y = a_y * x^b_y, σ_z = a_z * x^b_z
+    pub fn dispersion_coefficients(&self) -> (f64, f64, f64, f64) {
+        match self {
+            // Coefficients from Pasquill-Gifford model (x in meters)
+            StabilityClass::A => (0.22, 0.90, 0.20, 0.90),
+            StabilityClass::B => (0.16, 0.90, 0.12, 0.90),
+            StabilityClass::C => (0.11, 0.90, 0.08, 0.90),
+            StabilityClass::D => (0.08, 0.90, 0.06, 0.90),
+            StabilityClass::E => (0.06, 0.90, 0.04, 0.90),
+            StabilityClass::F => (0.04, 0.90, 0.02, 0.90),
+        }
+    }
+}
+
+impl Default for WeatherConditions {
+    fn default() -> Self {
+        Self {
+            wind_speed_ms: 5.0,
+            wind_direction_deg: 0.0,
+            stability_class: StabilityClass::D,
+            temperature_k: 288.15,
+            pressure_pa: 101325.0,
+        }
+    }
+}
+
+impl GaussianPlumeModel {
+    pub fn new(weather: WeatherConditions, release: ReleaseParameters) -> Self {
+        Self { weather, release }
+    }
+
+    /// Calculate concentration at a point (x, y, z) downwind from source
+    /// x: downwind distance (m)
+    /// y: crosswind distance (m)
+    /// z: height above ground (m)
+    pub fn concentration(&self, x: f64, y: f64, z: f64) -> f64 {
+        if x <= 0.0 || self.weather.wind_speed_ms <= 0.0 {
+            return 0.0;
+        }
+
+        let q = self.release.release_rate_bq_s;
+        let u = self.weather.wind_speed_ms;
+        let h = self.release.altitude_m;
+        
+        let (sigma_y, sigma_z) = self.dispersion_parameters(x);
+        
+        // Gaussian plume equation
+        let exp_y = (-y * y / (2.0 * sigma_y * sigma_y)).exp();
+        let exp_z1 = (-(z - h).powi(2) / (2.0 * sigma_z * sigma_z)).exp();
+        let exp_z2 = (-(z + h).powi(2) / (2.0 * sigma_z * sigma_z)).exp();
+        
+        let denominator = 2.0 * std::f64::consts::PI * sigma_y * sigma_z * u;
+        
+        q / denominator * exp_y * (exp_z1 + exp_z2)
+    }
+
+    /// Calculate ground-level concentration (z = 0)
+    pub fn ground_level_concentration(&self, x: f64, y: f64) -> f64 {
+        self.concentration(x, y, 0.0)
+    }
+
+    /// Calculate centerline concentration (y = 0, z = 0)
+    pub fn centerline_concentration(&self, x: f64) -> f64 {
+        self.concentration(x, 0.0, 0.0)
+    }
+
+    /// Calculate dose rate at a point (microsieverts per hour)
+    pub fn dose_rate(&self, x: f64, y: f64, z: f64) -> f64 {
+        let concentration_bq_m3 = self.concentration(x, y, z);
+        let dose_factor = self.dose_conversion_factor();
+        
+        // Dose rate = concentration * dose conversion factor
+        concentration_bq_m3 * dose_factor * 1e6 // Convert to microsieverts
+    }
+
+    /// Calculate ground-level dose rate
+    pub fn ground_level_dose_rate(&self, x: f64, y: f64) -> f64 {
+        self.dose_rate(x, y, 0.0)
+    }
+
+    /// Generate evacuation zone contour for a given dose threshold
+    pub fn contour(&self, dose_threshold_microsv_h: f64, max_distance_m: f64) -> Vec<(f64, f64)> {
+        let mut contour_points = Vec::new();
+        let step = 100.0; // 100m resolution
+        
+        // Find contour by scanning in polar coordinates
+        for angle_deg in (0..360).step_by(5) {
+            let angle_rad = angle_deg as f64 * std::f64::consts::PI / 180.0;
+            
+            // Search along this angle for the contour
+            for dist in (0..(max_distance_m as i64)).step_by(step as i64) {
+                let x = dist as f64 * angle_rad.cos();
+                let y = dist as f64 * angle_rad.sin();
+                
+                let dose = self.ground_level_dose_rate(x, y);
+                
+                if dose >= dose_threshold_microsv_h {
+                    contour_points.push((x, y));
+                    break;
+                }
+            }
+        }
+        
+        contour_points
+    }
+
+    /// Calculate dispersion parameters σ_y and σ_z
+    fn dispersion_parameters(&self, x: f64) -> (f64, f64) {
+        let (a_y, b_y, a_z, b_z) = self.weather.stability_class.dispersion_coefficients();
+        
+        let sigma_y = a_y * x.powf(b_y);
+        let sigma_z = a_z * x.powf(b_z);
+        
+        (sigma_y.max(1.0), sigma_z.max(1.0))
+    }
+
+    /// Dose conversion factor (Sv per Bq/m³) - simplified
+    fn dose_conversion_factor(&self) -> f64 {
+        // Simplified dose conversion based on isotope
+        // Typical values range from 1e-15 to 1e-12 Sv per Bq/m³
+        match self.release.isotope.as_str() {
+            "I-131" => 3.2e-14,
+            "Cs-137" => 2.1e-14,
+            "Cs-134" => 2.8e-14,
+            "Co-60" => 3.5e-14,
+            "Am-241" => 1.8e-13,
+            _ => 2.0e-14, // Default
+        }
+    }
+
+    /// Calculate total integrated dose over time
+    pub fn total_integrated_dose(&self, x: f64, y: f64, duration_hours: f64) -> f64 {
+        let avg_concentration = self.ground_level_concentration(x, y);
+        let breathing_rate = 1.2; // m³/hour (adult)
+        let dose_coefficient = self.dose_conversion_factor();
+        
+        // Total dose = concentration * breathing rate * time * dose coefficient
+        avg_concentration * breathing_rate * duration_hours * dose_coefficient * 1e6
+    }
+}
