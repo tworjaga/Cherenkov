@@ -1,5 +1,6 @@
 import React from 'react';
 import { useAppStore } from '../../stores/useAppStore';
+import { AlertFeed } from '../dashboard/AlertFeed';
 
 export const BottomPanel: React.FC = () => {
   const open = useAppStore((state) => state.bottomPanelOpen);
@@ -9,7 +10,7 @@ export const BottomPanel: React.FC = () => {
   const unacknowledgedAlerts = alerts.filter((a) => !a.acknowledged);
 
   return (
-    <div className={`${open ? 'h-[200px]' : 'h-[40px]'} bg-bg-secondary border-t border-border-subtle shrink-0 transition-all duration-300`}>
+    <div className={`${open ? 'h-[240px]' : 'h-[40px]'} bg-bg-secondary border-t border-border-subtle shrink-0 transition-all duration-300`}>
       <div className="flex items-center justify-between px-4 h-[40px] border-b border-border-subtle">
         <div className="flex items-center gap-4">
           <button
@@ -42,43 +43,8 @@ export const BottomPanel: React.FC = () => {
       </div>
 
       {open && (
-        <div className="h-[160px] overflow-y-auto p-4">
-          {alerts.length === 0 ? (
-            <p className="text-text-tertiary text-sm">No active alerts</p>
-          ) : (
-            <div className="space-y-2">
-              {alerts.slice(0, 10).map((alert) => (
-                <div
-                  key={alert.id}
-                  className={`flex items-center gap-3 p-2 rounded-lg ${
-                    alert.acknowledged ? 'opacity-50' : ''
-                  } ${
-                    alert.severity === 'CRITICAL'
-                      ? 'bg-alert-critical/10 border border-alert-critical/30'
-                      : alert.severity === 'HIGH'
-                      ? 'bg-alert-high/10 border border-alert-high/30'
-                      : 'bg-bg-tertiary border border-border-subtle'
-                  }`}
-                >
-                  <span
-                    className={`w-2 h-2 rounded-full ${
-                      alert.severity === 'CRITICAL'
-                        ? 'bg-alert-critical'
-                        : alert.severity === 'HIGH'
-                        ? 'bg-alert-high'
-                        : alert.severity === 'MEDIUM'
-                        ? 'bg-alert-medium'
-                        : 'bg-alert-low'
-                    }`}
-                  />
-                  <span className="text-text-primary text-sm flex-1">{alert.title}</span>
-                  <span className="text-text-tertiary text-xs">
-                    {new Date(alert.timestamp).toLocaleTimeString()}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
+        <div className="h-[200px]">
+          <AlertFeed />
         </div>
       )}
     </div>
