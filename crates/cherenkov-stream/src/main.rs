@@ -127,7 +127,6 @@ async fn eventbus_listener(
                         cherenkov_core::QualityFlag::Invalid => cherenkov_db::QualityFlag::Invalid,
                     },
                     source: reading.source,
-                    cell_id: reading.cell_id,
                 };
                 
                 if let Err(e) = ingest_tx.send(radiation_reading).await {
@@ -183,20 +182,23 @@ async fn anomaly_detection_worker(
             }
             
             // Publish to EventBus for API and other consumers
+            let sensor_uuid = Uuid::parse_str(&anomaly.sensor_id).unwrap_or_else(|_| Uuid::new_v4());
             let core_anomaly = CoreAnomaly {
-                sensor_id: anomaly.sensor_id.clone(),
+                anomaly_id: Uuid::new_v4().to_string(),
+                sensor_id: sensor_uuid,
                 severity: match anomaly.severity {
                     Severity::Critical => CoreSeverity::Critical,
                     Severity::Warning => CoreSeverity::Warning,
                     Severity::Info => CoreSeverity::Info,
                 },
                 z_score: anomaly.z_score,
+                detected_at: anomaly.timestamp,
                 timestamp: anomaly.timestamp,
                 dose_rate: anomaly.dose_rate,
                 baseline: anomaly.baseline,
                 algorithm: match anomaly.algorithm {
-                    anomaly::Algorithm::Welford => cherenkov_core::Algorithm::Welford,
-                    anomaly::Algorithm::IsolationForest => cherenkov_core::Algorithm::IsolationForest,
+                    anomaly::Algorithm::Welford => "Welford".to_string(),
+                    anomaly::Algorithm::IsolationForest => "IsolationForest".to_string(),
                 },
             };
             
@@ -249,20 +251,23 @@ async fn websocket_broadcaster(
     while let Ok(anomaly) = anomaly_rx.recv().await {
         // Convert to core anomaly and publish to EventBus
         // API crate will receive and broadcast to WebSocket clients
+        let sensor_uuid = Uuid::parse_str(&anomaly.sensor_id).unwrap_or_else(|_| Uuid::new_v4());
         let core_anomaly = CoreAnomaly {
-            sensor_id: anomaly.sensor_id.clone(),
+            anomaly_id: Uuid::new_v4().to_string(),
+            sensor_id: sensor_uuid,
             severity: match anomaly.severity {
                 Severity::Critical => CoreSeverity::Critical,
                 Severity::Warning => CoreSeverity::Warning,
                 Severity::Info => CoreSeverity::Info,
             },
             z_score: anomaly.z_score,
+            detected_at: anomaly.timestamp,
             timestamp: anomaly.timestamp,
             dose_rate: anomaly.dose_rate,
             baseline: anomaly.baseline,
             algorithm: match anomaly.algorithm {
-                anomaly::Algorithm::Welford => cherenkov_core::Algorithm::Welford,
-                anomaly::Algorithm::IsolationForest => cherenkov_core::Algorithm::IsolationForest,
+                anomaly::Algorithm::Welford => "Welford".to_string(),
+                anomaly::Algorithm::IsolationForest => "IsolationForest".to_string(),
             },
         };
         
@@ -289,7 +294,7 @@ async fn correlation_engine_worker(
     
     while let Ok(anomaly) = anomaly_rx.recv().await {
         // Check for correlated events
-        let correlated = correlation_engine.check_correlation(&anomaly).await;
+        let correlated = correlation_engine.check_correlation(&anomaly.sensor_id).await;
         
         if !correlated.is_empty() {
             warn!("Correlated anomalies detected: {} events", correlated.len());
@@ -303,20 +308,23 @@ async fn correlation_engine_worker(
             };
             
             // Publish correlated event to EventBus
+            let sensor_uuid = Uuid::parse_str(&anomaly.sensor_id).unwrap_or_else(|_| Uuid::new_v4());
             let core_anomaly = CoreAnomaly {
-                sensor_id: anomaly.sensor_id.clone(),
+                anomaly_id: Uuid::new_v4().to_string(),
+                sensor_id: sensor_uuid,
                 severity: match anomaly.severity {
                     Severity::Critical => CoreSeverity::Critical,
                     Severity::Warning => CoreSeverity::Warning,
                     Severity::Info => CoreSeverity::Info,
                 },
                 z_score: anomaly.z_score,
+                detected_at: anomaly.timestamp,
                 timestamp: anomaly.timestamp,
                 dose_rate: anomaly.dose_rate,
                 baseline: anomaly.baseline,
                 algorithm: match anomaly.algorithm {
-                    anomaly::Algorithm::Welford => cherenkov_core::Algorithm::Welford,
-                    anomaly::Algorithm::IsolationForest => cherenkov_core::Algorithm::IsolationForest,
+                    anomaly::Algorithm::Welford => "Welford".to_string(),
+                    anomaly::Algorithm::IsolationForest => "IsolationForest".to_string(),
                 },
             };
             
