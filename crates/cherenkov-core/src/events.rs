@@ -27,6 +27,13 @@ pub enum CherenkovEvent {
         healthy: bool,
         message: Option<String>,
     },
+    
+    /// Correlated event detected
+    CorrelatedEventDetected {
+        primary: Anomaly,
+        correlated_count: usize,
+        correlation_score: f64,
+    },
 }
 
 /// Normalized radiation reading from any source
