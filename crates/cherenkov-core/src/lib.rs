@@ -4,4 +4,12 @@ pub mod events;
 
 pub use bus::EventBus;
 pub use config::Config;
-pub use events::CherenkovEvent;
+pub use events::{
+    CherenkovEvent,
+    NormalizedReading,
+    Anomaly,
+    Alert,
+    SensorStatus,
+    QualityFlag,
+    Severity,
+};
