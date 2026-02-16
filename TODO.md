@@ -95,7 +95,8 @@
 
 - [x] Implement EPA RadNet CSV parsing
 
-- [ ] Add EURDEP XML SOAP parsing
+- [x] Add EURDEP XML SOAP parsing
+
 - [ ] Complete GraphQL subscription resolvers
 - [ ] Add WebSocket real-time streaming
 - [ ] Implement ML training pipeline
