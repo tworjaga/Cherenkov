@@ -41,20 +41,22 @@
 - [x] Build AlertCard and AlertFeed with filtering
 - [x] Add GlobalChart for radiation trends
 - [x] Implement useWebSocket hook for real-time data
+- [x] Fix WASM TypeScript definitions (setView, resize, addFacility, updatePlume, setLayerVisibility)
+- [x] Add ErrorBoundary component for WASM/WebGL error handling
+- [x] Verify Tailwind CSS custom color configuration
+- [x] Confirm date-fns dependency in package.json
 
 ## In Progress
+
 
 ## Pending
 
 ### Critical Fixes Needed
-- [ ] Fix WASM Rust implementation - add missing methods (setView, resize, addFacility, updatePlume, setLayerVisibility)
-- [ ] Fix Tailwind CSS custom color classes (bg-bg-primary, text-text-primary, etc.)
-- [ ] Add missing date-fns dependency to package.json
 - [ ] Fix ARIA accessibility warnings in components
-- [ ] Add proper error boundaries for WASM loading failures
 - [ ] Implement actual WebGL shader programs for globe rendering
 - [ ] Add facility data to WASM renderer
 - [ ] Implement plume particle system in WebGL
+
 
 ### UI/UX Improvements
 - [ ] Add loading states for async operations
