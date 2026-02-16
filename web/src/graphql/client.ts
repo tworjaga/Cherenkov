@@ -1,8 +1,12 @@
+/// <reference types="vite/client" />
+
 import { createSignal, createResource, createEffect } from 'solid-js';
 import type { Resource, ResourceActions } from 'solid-js';
 
+
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/graphql';
 const WS_URL = import.meta.env.VITE_WS_URL || 'ws://localhost:8080/graphql';
+
 
 export interface GraphQLResponse<T> {
   data?: T;

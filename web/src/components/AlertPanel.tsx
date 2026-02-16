@@ -104,8 +104,11 @@ function AlertPanel() {
     limit: 50,
   }));
 
-  const newAlert = createGraphQLSubscription<Alert>(ALERT_SUBSCRIPTION);
+  // Real-time alert subscription
+  createGraphQLSubscription<Alert>(ALERT_SUBSCRIPTION);
+  
   const [acknowledgeAlert] = createGraphQLMutation<{ acknowledgeAlert: { id: string; acknowledged: boolean } }>();
+
   const [createAlertRule] = createGraphQLMutation<{ createAlertRule: { id: string; name: string } }>();
 
   const handleAcknowledge = async (alertId: string) => {

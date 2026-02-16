@@ -1,4 +1,5 @@
-import { createSignal, createEffect, Show } from 'solid-js';
+import { createSignal, Show } from 'solid-js';
+
 import { createGraphQLMutation, createGraphQLQuery } from '../graphql/client';
 
 const SIMULATE_PLUME_MUTATION = `
@@ -96,8 +97,9 @@ function PlumeSimulator() {
     weatherModel: 'GFS_0P25',
   });
 
-  const [simulationId, setSimulationId] = createSignal<string | null>(null);
+  const [, setSimulationId] = createSignal<string | null>(null);
   const [simulationStatus, setSimulationStatus] = createSignal<'idle' | 'running' | 'completed' | 'failed'>('idle');
+
   const [activeTab, setActiveTab] = createSignal<'params' | 'weather' | 'results'>('params');
   const [showSaveDialog, setShowSaveDialog] = createSignal(false);
   const [simulationName, setSimulationName] = createSignal('');
@@ -109,7 +111,8 @@ function PlumeSimulator() {
 
   const savedSimulations = createGraphQLQuery<{ savedSimulations: Array<{ id: string; name: string; createdAt: string; release: { latitude: number; longitude: number; isotope: string }; result: { maxDistance: number; maxConcentration: number } }> }>(SAVED_SIMULATIONS_QUERY);
   
-  const [executeSimulation, { loading: simulationLoading }] = createGraphQLMutation<{ simulatePlume: { id: string; status: string; result?: SimulationResult['result'] } }>();
+  const [executeSimulation] = createGraphQLMutation<{ simulatePlume: { id: string; status: string; result?: SimulationResult['result'] } }>();
+
 
   const handleRunSimulation = async () => {
     setSimulationStatus('running');
@@ -138,7 +141,7 @@ function PlumeSimulator() {
 
 
 
-  const pollSimulationStatus = async (id: string) => {
+  const pollSimulationStatus = async (_id: string) => {
     // Poll for status updates
     const interval = setInterval(async () => {
       // In production, this would query simulation status
@@ -149,6 +152,7 @@ function PlumeSimulator() {
       }, 3000);
     }, 1000);
   };
+
 
   const handleSaveSimulation = async () => {
     // In production, this would call a save mutation

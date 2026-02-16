@@ -1,4 +1,4 @@
-import { onMount, createSignal, createEffect, Show, For } from 'solid-js';
+import { onMount, createSignal, createEffect, Show } from 'solid-js';
 import init, { RadiationGlobe } from '../../wasm/pkg';
 import { createGraphQLQuery, createGraphQLSubscription, type Sensor } from '../graphql/client';
 
@@ -64,8 +64,9 @@ function GlobeView() {
     lastMouseY: 0,
   });
   
-  const [showPlume, setShowPlume] = createSignal(false);
-  const [plumeLocation, setPlumeLocation] = createSignal<{lat: number; lon: number} | null>(null);
+  // Plume simulation state (used in double-click handler and sensor panel)
+  const [, setShowPlume] = createSignal(false);
+  const [, setPlumeLocation] = createSignal<{lat: number; lon: number} | null>(null);
 
   const sensors = createGraphQLQuery<{ sensorsInRegion: Sensor[] }>(SENSORS_QUERY, () => ({
     region: {
