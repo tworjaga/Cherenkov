@@ -58,6 +58,18 @@ pub struct CircuitBreaker {
     state: Arc<RwLock<CircuitState>>,
 }
 
+impl Clone for CircuitBreaker {
+    fn clone(&self) -> Self {
+        Self {
+            failure_count: self.failure_count.clone(),
+            last_failure: self.last_failure.clone(),
+            threshold: self.threshold,
+            reset_timeout: self.reset_timeout,
+            state: self.state.clone(),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 enum CircuitState {
     Closed,
@@ -129,6 +141,15 @@ impl CircuitBreaker {
 pub struct DeadLetterQueue {
     queue: Arc<RwLock<Vec<DeadLetterEntry>>>,
     max_size: usize,
+}
+
+impl Clone for DeadLetterQueue {
+    fn clone(&self) -> Self {
+        Self {
+            queue: self.queue.clone(),
+            max_size: self.max_size,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -216,14 +237,23 @@ impl DeadLetterQueue {
 /// Deduplication tracker
 #[derive(Debug)]
 pub struct Deduplicator {
-    seen: DashMap<String, i64>, // sensor_id -> last_timestamp
+    seen: Arc<DashMap<String, i64>>, // sensor_id -> last_timestamp
     window_secs: u64,
+}
+
+impl Clone for Deduplicator {
+    fn clone(&self) -> Self {
+        Self {
+            seen: self.seen.clone(),
+            window_secs: self.window_secs,
+        }
+    }
 }
 
 impl Deduplicator {
     pub fn new(window_secs: u64) -> Self {
         Self {
-            seen: DashMap::new(),
+            seen: Arc::new(DashMap::new()),
             window_secs,
         }
     }
