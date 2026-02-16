@@ -17,9 +17,6 @@ export default defineConfig(({ mode }) => ({
     },
   },
 
-
-
-
   server: {
     port: 3000,
     proxy: {
@@ -34,4 +31,4 @@ export default defineConfig(({ mode }) => ({
     target: 'esnext',
     outDir: 'dist',
   },
-});
+}));
