@@ -9,8 +9,6 @@ authors.workspace = true
 
 [dependencies]
 tokio = { workspace = true }
-timely = { workspace = true }
-differential-dataflow = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 chrono = { workspace = true }
@@ -18,6 +16,23 @@ tracing = { workspace = true }
 thiserror = { workspace = true }
 anyhow = { workspace = true }
 metrics = { workspace = true }
+uuid = { version = "1.6", features = ["v4", "serde"] }
+
+# Internal crates
+cherenkov-db = { path = "../cherenkov-db" }
+cherenkov-observability = { path = "../cherenkov-observability" }
+
+# Async streaming
+tokio-stream = "0.1"
+futures = "0.3"
+async-trait = "0.1"
+
+# Redis pub/sub
+redis = { workspace = true }
+
+# Statistical processing
+statrs = "0.16"
+
 
 [dev-dependencies]
 tokio-test = { workspace = true }

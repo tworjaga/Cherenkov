@@ -1,5 +1,144 @@
+use std::collections::{HashMap, VecDeque};
 use std::time::Duration;
+use std::sync::Arc;
+use tokio::sync::RwLock;
+use chrono::{DateTime, Utc};
+use tracing::debug;
 
+use cherenkov_db::RadiationReading;
+
+/// Sliding window for time-series analysis per sensor
+pub struct SlidingWindow {
+    window_size: Duration,
+    slide_interval: Duration,
+    sensor_windows: HashMap<String, SensorWindow>,
+}
+
+pub struct SensorWindow {
+    readings: VecDeque<TimestampedReading>,
+    window_size: Duration,
+}
+
+#[derive(Clone, Debug)]
+pub struct TimestampedReading {
+    pub timestamp: DateTime<Utc>,
+    pub dose_rate: f64,
+    pub sensor_id: String,
+}
+
+impl SlidingWindow {
+    pub fn new(window_size: Duration, slide_interval: Duration) -> Self {
+        Self {
+            window_size,
+            slide_interval,
+            sensor_windows: HashMap::new(),
+        }
+    }
+
+    /// Add a reading to the appropriate sensor window
+    pub fn add(&mut self, reading: RadiationReading) {
+        let sensor_id = reading.sensor_id.to_string();
+        
+        let window = self.sensor_windows.entry(sensor_id.clone()).or_insert_with(|| {
+            SensorWindow::new(self.window_size)
+        });
+        
+        window.add(TimestampedReading {
+            timestamp: DateTime::from_timestamp(reading.timestamp, 0)
+                .unwrap_or_else(|| Utc::now()),
+            dose_rate: reading.dose_rate_microsieverts,
+            sensor_id,
+        });
+    }
+
+    /// Get window contents for a specific sensor
+    pub fn get_window(&self, sensor_id: &str) -> Vec<TimestampedReading> {
+        self.sensor_windows
+            .get(sensor_id)
+            .map(|w| w.get_readings())
+            .unwrap_or_default()
+    }
+
+    /// Get all sensor IDs in the window
+    pub fn sensor_ids(&self) -> Vec<String> {
+        self.sensor_windows.keys().cloned().collect()
+    }
+
+    /// Clean up expired windows
+    pub fn cleanup(&mut self) {
+        let now = Utc::now();
+        for window in self.sensor_windows.values_mut() {
+            window.cleanup(now, self.window_size);
+        }
+        
+        // Remove empty windows
+        self.sensor_windows.retain(|_, w| !w.is_empty());
+    }
+}
+
+impl SensorWindow {
+    fn new(window_size: Duration) -> Self {
+        Self {
+            readings: VecDeque::new(),
+            window_size,
+        }
+    }
+
+    fn add(&mut self, reading: TimestampedReading) {
+        self.readings.push_back(reading);
+        self.cleanup(Utc::now(), self.window_size);
+    }
+
+    fn get_readings(&self) -> Vec<TimestampedReading> {
+        self.readings.iter().cloned().collect()
+    }
+
+    fn cleanup(&mut self, now: DateTime<Utc>, window_size: Duration) {
+        let cutoff = now - chrono::Duration::from_std(window_size).unwrap_or_else(|_| chrono::Duration::hours(1));
+        
+        while let Some(front) = self.readings.front() {
+            if front.timestamp < cutoff {
+                self.readings.pop_front();
+            } else {
+                break;
+            }
+        }
+    }
+
+    fn is_empty(&self) -> bool {
+        self.readings.is_empty()
+    }
+}
+
+/// Thread-safe sliding window for concurrent access
+pub struct ConcurrentSlidingWindow {
+    inner: Arc<RwLock<SlidingWindow>>,
+}
+
+impl ConcurrentSlidingWindow {
+    pub fn new(window_size: Duration, slide_interval: Duration) -> Self {
+        Self {
+            inner: Arc::new(RwLock::new(SlidingWindow::new(window_size, slide_interval))),
+        }
+    }
+
+    pub async fn add(&self, reading: RadiationReading) {
+        let mut guard = self.inner.write().await;
+        guard.add(reading);
+    }
+
+    pub async fn get_window(&self, sensor_id: &str) -> Vec<TimestampedReading> {
+        let guard = self.inner.read().await;
+        guard.get_window(sensor_id)
+    }
+
+    pub async fn cleanup(&self) {
+        let mut guard = self.inner.write().await;
+        guard.cleanup();
+    }
+}
+
+/// Tumbling window for fixed-size batching
 pub struct TumblingWindow {
     size_secs: u64,
 }
