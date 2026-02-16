@@ -103,9 +103,10 @@
 - [x] Create deployment guide
 - [x] Write contribution guidelines
 - [x] Add security documentation
-- [ ] Add frontend component storybook
-- [ ] Create user manual
-- [ ] Add troubleshooting guide
+- [x] Add frontend component storybook
+- [x] Create user manual
+- [x] Add troubleshooting guide
+
 
 ## Notes
 
