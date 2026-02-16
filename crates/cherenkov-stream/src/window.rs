@@ -26,6 +26,14 @@ pub struct TimestampedReading {
     pub sensor_id: String,
 }
 
+/// Reading struct for processor compatibility
+#[derive(Clone, Debug)]
+pub struct Reading {
+    pub timestamp: DateTime<Utc>,
+    pub dose_rate: f64,
+    pub sensor_id: String,
+}
+
 impl SlidingWindow {
     pub fn new(window_size: Duration, slide_interval: Duration) -> Self {
         Self {
@@ -73,6 +81,31 @@ impl SlidingWindow {
         
         // Remove empty windows
         self.sensor_windows.retain(|_, w| !w.is_empty());
+    }
+
+    /// Add a Reading to the window (for processor compatibility)
+    pub fn add_reading(&mut self, reading: Reading) {
+        let sensor_id = reading.sensor_id.clone();
+        
+        let window = self.sensor_windows.entry(sensor_id).or_insert_with(|| {
+            SensorWindow::new(self.window_size)
+        });
+        
+        window.add(TimestampedReading {
+            timestamp: reading.timestamp,
+            dose_rate: reading.dose_rate,
+            sensor_id: reading.sensor_id,
+        });
+    }
+
+    /// Check if window is stale (no recent data)
+    pub fn is_stale(&self, max_age_secs: i64) -> bool {
+        let now = Utc::now();
+        let cutoff = now - chrono::Duration::seconds(max_age_secs);
+        
+        self.sensor_windows.values().all(|w| {
+            w.readings.back().map_or(true, |r| r.timestamp < cutoff)
+        })
     }
 }
 
