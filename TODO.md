@@ -107,4 +107,4 @@
 
 - [x] Set up CI/CD with GitHub Actions
 
-- [ ] Deploy to production environment
+- [x] Deploy to production environment
