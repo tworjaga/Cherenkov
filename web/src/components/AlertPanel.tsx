@@ -137,10 +137,11 @@ function AlertPanel() {
   };
 
   const severityIcons = {
-    critical: '⚠',
-    warning: '⚡',
-    info: 'ℹ',
+    critical: 'C',
+    warning: 'W',
+    info: 'I',
   };
+
 
   const formatTimestamp = (timestamp: string) => {
     const date = new Date(timestamp);

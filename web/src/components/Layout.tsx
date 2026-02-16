@@ -13,7 +13,7 @@ function Layout(props: LayoutProps) {
       <div class="flex-1 flex flex-col overflow-hidden">
         <Header />
         <main aria-label="Main content" class="flex-1 overflow-auto p-6">
-          {props.children}
+          {typeof props.children === 'function' ? props.children() : props.children}
         </main>
       </div>
     </div>

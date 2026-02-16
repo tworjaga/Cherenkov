@@ -2,13 +2,14 @@ import { A } from '@solidjs/router';
 
 function Sidebar() {
   const navItems = [
-    { path: '/', label: 'Dashboard', icon: '◈' },
-    { path: '/globe', label: 'Globe', icon: '◉' },
-    { path: '/sensors', label: 'Sensors', icon: '◆' },
-    { path: '/anomalies', label: 'Anomalies', icon: '▲' },
-    { path: '/plume', label: 'Plume Sim', icon: '◊' },
-    { path: '/settings', label: 'Settings', icon: '⚙' },
+    { path: '/', label: 'Dashboard', icon: 'D' },
+    { path: '/globe', label: 'Globe', icon: 'G' },
+    { path: '/sensors', label: 'Sensors', icon: 'S' },
+    { path: '/anomalies', label: 'Anomalies', icon: 'A' },
+    { path: '/plume', label: 'Plume Sim', icon: 'P' },
+    { path: '/settings', label: 'Settings', icon: 'C' },
   ];
+
 
   return (
     <aside aria-label="Navigation sidebar" class="w-64 bg-[#12121a] border-r border-[#2a2a3a] flex flex-col">
