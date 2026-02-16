@@ -90,3 +90,13 @@ pub enum SensorStatus {
     Degraded,
     Maintenance,
 }
+
+/// Algorithm types for ML processing
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum Algorithm {
+    IsolationForest,
+    LSTM,
+    Autoencoder,
+    Statistical,
+    Ensemble,
+}

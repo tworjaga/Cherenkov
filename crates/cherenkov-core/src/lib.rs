@@ -12,4 +12,5 @@ pub use events::{
     SensorStatus,
     QualityFlag,
     Severity,
+    Algorithm,
 };
