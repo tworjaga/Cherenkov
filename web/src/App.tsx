@@ -1,4 +1,5 @@
 import { Route } from '@solidjs/router';
+
 import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
 import GlobeView from './pages/GlobeView';
@@ -19,5 +20,6 @@ function App() {
     </Route>
   );
 }
+
 
 export default App;
