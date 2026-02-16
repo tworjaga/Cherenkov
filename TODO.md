@@ -23,18 +23,16 @@
 - [x] Implement plume dispersion modeling with physics simulation
 - [x] Add JWT authentication and ABAC authorization
 - [x] Set up observability metrics collection
+- [x] Add distributed tracing (OpenTelemetry/Jaeger)
+- [x] Implement structured logging (JSON format)
+- [x] Add ML model training pipeline
+- [x] Implement weather data ingestion for plume modeling
+- [x] Add facility status inference
+- [x] Implement seismic-radiation correlation
 
 ## In Progress
 
 ## Pending
-
-### Backend
-- [ ] Add distributed tracing (OpenTelemetry/Jaeger)
-- [ ] Implement structured logging (JSON format)
-- [ ] Add ML model training pipeline
-- [ ] Implement weather data ingestion for plume modeling
-- [ ] Add facility status inference
-- [ ] Implement seismic-radiation correlation
 
 ### Frontend
 - [ ] Connect to real GraphQL API
