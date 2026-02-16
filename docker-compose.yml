@@ -46,8 +46,71 @@ services:
       - grafana-data:/var/lib/grafana
       - ./config/grafana:/etc/grafana/provisioning
 
+  ingest:
+    build:
+      context: .
+      dockerfile: crates/cherenkov-ingest/Dockerfile
+    container_name: cherenkov-ingest
+    environment:
+      - RUST_LOG=info
+      - SCYLLA_URI=scylla:9042
+      - REDIS_URI=redis:6379
+      - SQLITE_PATH=/data/cherenkov_warm.db
+    volumes:
+      - ingest-data:/data
+    depends_on:
+      - scylla
+      - redis
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  api:
+    build:
+      context: .
+      dockerfile: crates/cherenkov-api/Dockerfile
+    container_name: cherenkov-api
+    ports:
+      - "8080:8080"
+    environment:
+      - RUST_LOG=info
+      - SCYLLA_URI=scylla:9042
+      - REDIS_URI=redis:6379
+      - SQLITE_PATH=/data/cherenkov_warm.db
+      - JWT_SECRET=${JWT_SECRET:-cherenkov-dev-secret}
+    volumes:
+      - api-data:/data
+    depends_on:
+      - scylla
+      - redis
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  stream:
+    build:
+      context: .
+      dockerfile: crates/cherenkov-stream/Dockerfile
+    container_name: cherenkov-stream
+    environment:
+      - RUST_LOG=info
+      - SCYLLA_URI=scylla:9042
+      - REDIS_URI=redis:6379
+    depends_on:
+      - scylla
+      - redis
+    restart: unless-stopped
+
 volumes:
   scylla-data:
   redis-data:
   prometheus-data:
   grafana-data:
+  ingest-data:
+  api-data:
