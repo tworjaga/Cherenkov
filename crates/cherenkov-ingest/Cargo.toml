@@ -41,6 +41,10 @@ dashmap = "5.5"
 # Serialization for DLQ
 bincode = { workspace = true }
 
+# UUID and regex
+uuid = { version = "1.6", features = ["v4", "serde"] }
+regex = "1.10"
+
 
 [dev-dependencies]
 tokio-test = { workspace = true }

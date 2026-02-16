@@ -1327,6 +1327,7 @@ dependencies = [
  "futures",
  "metrics",
  "redis",
+ "regex",
  "reqwest",
  "scylla",
  "serde",
@@ -1337,6 +1338,7 @@ dependencies = [
  "tokio-test",
  "tokio-util",
  "tracing",
+ "uuid",
 ]
 
 [[package]]
