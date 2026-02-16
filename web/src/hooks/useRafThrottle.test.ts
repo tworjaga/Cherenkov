@@ -1,23 +1,49 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { renderHook } from '@testing-library/react';
-import { useRafThrottle, useRafDebounce } from './useRafThrottle';
+import { renderHook, act } from '@testing-library/react';
 
 describe('useRafThrottle', () => {
-  let now = 0;
+  let rafCallbacks: Map<number, FrameRequestCallback>;
+  let rafId: number;
+  let useRafThrottle: typeof import('./useRafThrottle').useRafThrottle;
 
-  beforeEach(() => {
-    now = 0;
-    vi.spyOn(performance, 'now').mockImplementation(() => now);
-    vi.spyOn(window, 'requestAnimationFrame').mockImplementation((cb: FrameRequestCallback) => {
-      // Execute callback synchronously for testing
-      setTimeout(() => cb(now), 0);
-      return Math.floor(Math.random() * 10000);
+  beforeEach(async () => {
+    rafCallbacks = new Map();
+    rafId = 0;
+
+    // Mock requestAnimationFrame before importing
+    vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
+      rafId++;
+      rafCallbacks.set(rafId, callback);
+      return rafId;
     });
+
+    vi.stubGlobal('cancelAnimationFrame', (id: number) => {
+      rafCallbacks.delete(id);
+    });
+
+    // Mock performance.now with increasing time
+    let now = 0;
+    vi.stubGlobal('performance', {
+      now: () => {
+        now += 20; // Increment by 20ms each call
+        return now;
+      },
+    });
+
+    // Dynamic import to get module with mocks applied
+    const module = await import('./useRafThrottle');
+    useRafThrottle = module.useRafThrottle;
   });
 
   afterEach(() => {
-    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
   });
+
+  const flushRaf = () => {
+    const callbacks = Array.from(rafCallbacks.entries());
+    rafCallbacks.clear();
+    callbacks.forEach(([, cb]) => cb(performance.now()));
+  };
 
   it('returns a throttled function', () => {
     const mockFn = vi.fn();
@@ -26,80 +52,117 @@ describe('useRafThrottle', () => {
     expect(typeof result.current).toBe('function');
   });
 
-  it('executes function immediately on first call', async () => {
+  it('executes function immediately on first call', () => {
     const mockFn = vi.fn();
-    const { result } = renderHook(() => useRafThrottle(mockFn, 60));
+    const { result } = renderHook(() => useRafThrottle(mockFn));
     
-    result.current('test');
+    act(() => {
+      result.current('test');
+    });
     
-    // Wait for RAF to execute
-    await new Promise(resolve => setTimeout(resolve, 10));
+    flushRaf();
     
     expect(mockFn).toHaveBeenCalledWith('test');
   });
 
-  it('throttles calls within frame interval', async () => {
+  it('throttles calls within frame interval', () => {
     const mockFn = vi.fn();
     const { result } = renderHook(() => useRafThrottle(mockFn, 60));
     
     // First call
-    result.current('first');
-    await new Promise(resolve => setTimeout(resolve, 10));
+    act(() => {
+      result.current('first');
+    });
+    flushRaf();
     expect(mockFn).toHaveBeenCalledTimes(1);
     
     // Reset mock
     mockFn.mockClear();
     
-    // Call again immediately (within 16ms) - should be throttled
-    result.current('second');
-    await new Promise(resolve => setTimeout(resolve, 10));
+    // Second call immediately after - should be throttled
+    act(() => {
+      result.current('second');
+    });
+    flushRaf();
     
-    // Should not execute because throttled
-    expect(mockFn).toHaveBeenCalledTimes(0);
+    // Should not have been called again due to throttling
+    expect(mockFn).not.toHaveBeenCalled();
   });
 
-  it('allows new calls after frame interval', async () => {
+  it('allows new calls after frame interval', () => {
     const mockFn = vi.fn();
     const { result } = renderHook(() => useRafThrottle(mockFn, 60));
     
     // First call
-    result.current('first');
-    await new Promise(resolve => setTimeout(resolve, 10));
+    act(() => {
+      result.current('first');
+    });
+    flushRaf();
     expect(mockFn).toHaveBeenCalledTimes(1);
     
-    // Advance time past frame interval (16.67ms)
-    now = 20;
+    // Reset mock
+    mockFn.mockClear();
     
-    // New call should execute
-    result.current('second');
-    await new Promise(resolve => setTimeout(resolve, 10));
+    // Second call after interval
+    act(() => {
+      result.current('second');
+    });
+    flushRaf();
     
-    expect(mockFn).toHaveBeenCalledTimes(2);
-    expect(mockFn).toHaveBeenLastCalledWith('second');
+    expect(mockFn).toHaveBeenCalledWith('second');
   });
 
   it('cancels pending animation frame on unmount', () => {
     const mockFn = vi.fn();
     const { result, unmount } = renderHook(() => useRafThrottle(mockFn));
     
-    result.current('test');
+    // Queue a call
+    act(() => {
+      result.current('test');
+    });
     
-    // Unmount should not throw
-    expect(() => unmount()).not.toThrow();
+    // Unmount before RAF executes
+    unmount();
+    
+    flushRaf();
+    
+    expect(mockFn).not.toHaveBeenCalled();
   });
 });
 
 describe('useRafDebounce', () => {
-  beforeEach(() => {
-    vi.spyOn(window, 'requestAnimationFrame').mockImplementation((cb: FrameRequestCallback) => {
-      setTimeout(() => cb(performance.now()), 0);
-      return Math.floor(Math.random() * 10000);
+  let rafCallbacks: Map<number, FrameRequestCallback>;
+  let rafId: number;
+  let useRafDebounce: typeof import('./useRafThrottle').useRafDebounce;
+
+  beforeEach(async () => {
+    rafCallbacks = new Map();
+    rafId = 0;
+
+    vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
+      rafId++;
+      rafCallbacks.set(rafId, callback);
+      return rafId;
     });
+
+    vi.stubGlobal('cancelAnimationFrame', (id: number) => {
+      rafCallbacks.delete(id);
+    });
+
+    // Dynamic import to get module with mocks applied
+    const module = await import('./useRafThrottle');
+    useRafDebounce = module.useRafDebounce;
   });
 
   afterEach(() => {
-    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
   });
+
+  const flushRaf = () => {
+    const callbacks = Array.from(rafCallbacks.entries());
+    rafCallbacks.clear();
+    callbacks.forEach(([, cb]) => cb(performance.now()));
+  };
 
   it('returns a debounced function', () => {
     const mockFn = vi.fn();
@@ -108,29 +171,40 @@ describe('useRafDebounce', () => {
     expect(typeof result.current).toBe('function');
   });
 
-  it('executes function on animation frame', async () => {
+  it('executes function on animation frame', () => {
     const mockFn = vi.fn();
     const { result } = renderHook(() => useRafDebounce(mockFn));
     
-    result.current('test');
+    act(() => {
+      result.current('test');
+    });
     
-    // Wait for RAF
-    await new Promise(resolve => setTimeout(resolve, 10));
+    flushRaf();
     
     expect(mockFn).toHaveBeenCalledWith('test');
   });
 
-  it('cancels previous RAF on new call', async () => {
+  it('cancels previous RAF on new call', () => {
     const mockFn = vi.fn();
     const { result } = renderHook(() => useRafDebounce(mockFn));
     
-    // Multiple rapid calls
-    result.current('first');
-    result.current('second');
-    result.current('third');
+    // First call
+    act(() => {
+      result.current('first');
+    });
     
-    // Wait for RAF
-    await new Promise(resolve => setTimeout(resolve, 10));
+    // Second call before first executes - cancels first
+    act(() => {
+      result.current('second');
+    });
+    
+    // Third call before second executes - cancels second
+    act(() => {
+      result.current('third');
+    });
+    
+    // Execute RAF
+    flushRaf();
     
     // Should only execute last call
     expect(mockFn).toHaveBeenCalledTimes(1);

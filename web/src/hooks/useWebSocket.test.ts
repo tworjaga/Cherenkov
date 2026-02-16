@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
-import { useWebSocket } from './useWebSocket';
 
 // Mock the store with a factory function
 const mockSetConnection = vi.fn();
@@ -27,13 +26,15 @@ describe('useWebSocket', () => {
   let mockWebSocket: ReturnType<typeof vi.fn>;
   let mockSend: ReturnType<typeof vi.fn>;
   let mockClose: ReturnType<typeof vi.fn>;
+  let useWebSocket: typeof import('./useWebSocket').useWebSocket;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
     mockSend = vi.fn();
     mockClose = vi.fn();
     
-    mockWebSocket = vi.fn().mockImplementation(() => ({
+    // Create mock WebSocket class
+    const MockWebSocket = vi.fn().mockImplementation(() => ({
       send: mockSend,
       close: mockClose,
       readyState: WebSocket.CONNECTING,
@@ -43,21 +44,29 @@ describe('useWebSocket', () => {
       onclose: null as ((event: CloseEvent) => void) | null,
     }));
     
-    vi.stubGlobal('WebSocket', mockWebSocket);
+    mockWebSocket = MockWebSocket;
+    
+    // Set up global WebSocket mock before dynamic import
+    window.WebSocket = MockWebSocket as unknown as typeof WebSocket;
+    
+    // Dynamically import to get fresh module with mock applied
+    const module = await import('./useWebSocket');
+    useWebSocket = module.useWebSocket;
   });
 
   afterEach(() => {
-    vi.unstubAllGlobals();
     vi.useRealTimers();
   });
 
   it('should establish WebSocket connection on mount', async () => {
     renderHook(() => useWebSocket());
     
-    await waitFor(() => {
-      expect(mockWebSocket).toHaveBeenCalledWith(expect.stringContaining('ws'));
-    });
+    expect(mockWebSocket).toHaveBeenCalled();
+    expect(mockWebSocket.mock.calls[0][0]).toContain('ws');
   });
+
+
+
 
   it('should send subscription message on open', async () => {
     renderHook(() => useWebSocket());
@@ -229,10 +238,15 @@ describe('useWebSocket', () => {
   it('should not send messages when disconnected', () => {
     const { result } = renderHook(() => useWebSocket());
     
+    // Try to send when not connected (ws is in CONNECTING state)
+    // The hook's sendMessage should check readyState before calling send
     result.current.sendMessage({ type: 'TEST' });
     
+    // send should not be called because connection is not OPEN
     expect(mockSend).not.toHaveBeenCalled();
   });
+
+
 
   it('should return correct connection status', () => {
     const { result } = renderHook(() => useWebSocket());

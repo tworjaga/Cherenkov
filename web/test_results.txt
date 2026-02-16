@@ -1,0 +1,149 @@
+
+> cherenkov-web@0.1.0 test
+> vitest --run
+
+
+[7m[1m[36m RUN [39m[22m[27m [36mv1.6.1[39m [90mD:/pythonprojects/Cherenkov/web[39m
+
+ [32mÔ£ô[39m src/lib/clustering.test.ts [2m ([22m[2m10 tests[22m[2m)[22m[90m 10[2mms[22m[39m
+ [32mÔ£ô[39m wasm/tests/globe.test.ts [2m ([22m[2m11 tests[22m[2m)[22m[90m 35[2mms[22m[39m
+ [33mÔØ»[39m src/hooks/useRafThrottle.test.ts [2m ([22m[2m8 tests[22m [2m|[22m [31m5 failed[39m[2m)[22m[90m 62[2mms[22m[39m
+[31m   [33mÔØ»[31m src/hooks/useRafThrottle.test.ts[2m > [22museRafThrottle[2m > [22mexecutes function immediately on first call[39m
+[31m     ÔåÆ expected "spy" to be called with arguments: [ 'test' ][90m
+
+Received: 
+
+[31m[90m
+
+Number of calls: [1m0[22m
+[31m[39m
+[31m   [33mÔØ»[31m src/hooks/useRafThrottle.test.ts[2m > [22museRafThrottle[2m > [22mthrottles calls within frame interval[39m
+[31m     ÔåÆ expected "spy" to be called 1 times, but got 0 times[39m
+[31m   [33mÔØ»[31m src/hooks/useRafThrottle.test.ts[2m > [22museRafThrottle[2m > [22mallows new calls after frame interval[39m
+[31m     ÔåÆ expected "spy" to be called 1 times, but got 0 times[39m
+[31m   [33mÔØ»[31m src/hooks/useRafThrottle.test.ts[2m > [22museRafDebounce[2m > [22mexecutes function on animation frame[39m
+[31m     ÔåÆ expected "spy" to be called with arguments: [ 'test' ][90m
+
+Received: 
+
+[31m[90m
+
+Number of calls: [1m0[22m
+[31m[39m
+[31m   [33mÔØ»[31m src/hooks/useRafThrottle.test.ts[2m > [22museRafDebounce[2m > [22mcancels previous RAF on new call[39m
+[31m     ÔåÆ expected "spy" to be called 1 times, but got 0 times[39m
+ [33mÔØ»[39m src/hooks/useWebSocket.test.ts [2m ([22m[2m12 tests[22m [2m|[22m [31m1 failed[39m[2m)[22m[90m 84[2mms[22m[39m
+[31m   [33mÔØ»[31m src/hooks/useWebSocket.test.ts[2m > [22museWebSocket[2m > [22mshould establish WebSocket connection on mount[39m
+[31m     ÔåÆ expected "spy" to be called with arguments: [ StringContaining "ws" ][90m
+
+Received: 
+
+[31m[90m
+
+Number of calls: [1m0[22m
+[31m[39m
+ [32mÔ£ô[39m src/components/ui/Toast.test.tsx [2m ([22m[2m12 tests[22m[2m)[22m[33m 575[2mms[22m[39m
+ [32mÔ£ô[39m src/components/ui/ThemeToggle.test.tsx [2m ([22m[2m5 tests[22m[2m)[22m[90m 241[2mms[22m[39m
+ [32mÔ£ô[39m src/components/ui/LoadingSpinner.test.tsx [2m ([22m[2m8 tests[22m[2m)[22m[90m 279[2mms[22m[39m
+ [32mÔ£ô[39m src/components/dashboard/AlertCard.test.tsx [2m ([22m[2m13 tests[22m[2m)[22m[33m 469[2mms[22m[39m
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ» Failed Tests 6 ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»
+
+ FAIL  src/hooks/useRafThrottle.test.ts > useRafThrottle > executes function immediately on first call
+AssertionError: expected "spy" to be called with arguments: [ 'test' ]
+
+Received: 
+
+
+
+Number of calls: 0
+
+ ÔØ» src/hooks/useRafThrottle.test.ts:32:20
+     30|     vi.advanceTimersByTime(0);
+     31|     
+     32|     expect(mockFn).toHaveBeenCalledWith('test');
+       |                    ^
+     33|   });
+     34| 
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[1/6]ÔÄ»
+
+ FAIL  src/hooks/useRafThrottle.test.ts > useRafThrottle > throttles calls within frame interval
+AssertionError: expected "spy" to be called 1 times, but got 0 times
+ ÔØ» src/hooks/useRafThrottle.test.ts:44:20
+     42|     });
+     43|     vi.advanceTimersByTime(0);
+     44|     expect(mockFn).toHaveBeenCalledTimes(1);
+       |                    ^
+     45|     
+     46|     // Reset mock
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[2/6]ÔÄ»
+
+ FAIL  src/hooks/useRafThrottle.test.ts > useRafThrottle > allows new calls after frame interval
+AssertionError: expected "spy" to be called 1 times, but got 0 times
+ ÔØ» src/hooks/useRafThrottle.test.ts:68:20
+     66|     });
+     67|     vi.advanceTimersByTime(0);
+     68|     expect(mockFn).toHaveBeenCalledTimes(1);
+       |                    ^
+     69|     
+     70|     // Reset mock
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[3/6]ÔÄ»
+
+ FAIL  src/hooks/useRafThrottle.test.ts > useRafDebounce > executes function on animation frame
+AssertionError: expected "spy" to be called with arguments: [ 'test' ]
+
+Received: 
+
+
+
+Number of calls: 0
+
+ ÔØ» src/hooks/useRafThrottle.test.ts:131:20
+    129|     vi.advanceTimersByTime(0);
+    130|     
+    131|     expect(mockFn).toHaveBeenCalledWith('test');
+       |                    ^
+    132|   });
+    133| 
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[4/6]ÔÄ»
+
+ FAIL  src/hooks/useRafThrottle.test.ts > useRafDebounce > cancels previous RAF on new call
+AssertionError: expected "spy" to be called 1 times, but got 0 times
+ ÔØ» src/hooks/useRafThrottle.test.ts:157:20
+    155|     
+    156|     // Should only execute last call
+    157|     expect(mockFn).toHaveBeenCalledTimes(1);
+       |                    ^
+    158|     expect(mockFn).toHaveBeenCalledWith('third');
+    159|   });
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[5/6]ÔÄ»
+
+ FAIL  src/hooks/useWebSocket.test.ts > useWebSocket > should establish WebSocket connection on mount
+AssertionError: expected "spy" to be called with arguments: [ StringContaining "ws" ]
+
+Received: 
+
+
+
+Number of calls: 0
+
+ ÔØ» src/hooks/useWebSocket.test.ts:60:27
+     58|     await new Promise(resolve => setTimeout(resolve, 10));
+     59|     
+     60|     expect(mockWebSocket).toHaveBeenCalledWith(expect.stringContainingÔÇª
+       |                           ^
+     61|   });
+     62| 
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[6/6]ÔÄ»
+
+[2m Test Files [22m [1m[31m2 failed[39m[22m[2m | [22m[1m[32m6 passed[39m[22m[90m (8)[39m
+[2m      Tests [22m [1m[31m6 failed[39m[22m[2m | [22m[1m[32m73 passed[39m[22m[90m (79)[39m
+[2m   Start at [22m 08:00:03
+[2m   Duration [22m 9.98s[2m (transform 349ms, setup 2.82s, collect 3.09s, tests 1.75s, environment 27.44s, prepare 2.82s)[22m
+

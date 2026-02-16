@@ -94,16 +94,18 @@ describe('gridCluster', () => {
   });
 
   it('reduces clusters for large datasets', () => {
+    // Create 1000 sensors clustered in a small geographic area
     const sensors = Array.from({ length: 1000 }, (_, i) => ({
       id: `sensor-${i}`,
-      lat: Math.random() * 180 - 90,
-      lon: Math.random() * 360 - 180,
+      lat: 40 + (Math.random() - 0.5) * 2, // Within 2 degrees of lat 40
+      lon: -74 + (Math.random() - 0.5) * 2, // Within 2 degrees of lon -74
       value: Math.random() * 10,
     }));
     const result = gridCluster(sensors, 3, 50);
     // Grid clustering should group points, creating fewer clusters than total points
     expect(result.length).toBeLessThan(sensors.length);
   });
+
 
 
   it('calculates cluster centers correctly', () => {

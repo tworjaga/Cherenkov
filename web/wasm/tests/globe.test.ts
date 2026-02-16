@@ -35,10 +35,12 @@ describe('WASM Globe Module', () => {
       Globe: class MockGlobe {
         private width: number;
         private height: number;
+        private currentZoom: number;
 
         constructor(width: number, height: number) {
           this.width = width;
           this.height = height;
+          this.currentZoom = 2.0;
         }
 
         render(): void {
@@ -55,12 +57,13 @@ describe('WASM Globe Module', () => {
         }
 
         zoom(delta: number): void {
-          // Mock zoom
+          this.currentZoom += delta;
         }
 
         getZoom(): number {
-          return 2.0;
+          return this.currentZoom;
         }
+
 
         addSensor(id: string, lat: number, lon: number, value: number): void {
           // Mock add sensor
