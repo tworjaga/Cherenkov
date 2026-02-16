@@ -24,7 +24,7 @@ impl EventBus {
     }
     
     /// Publish event to all subscribers
-    pub fn publish(&self, event: CherenkovEvent) -> anyhow::Result<()> {
+    pub async fn publish(&self, event: CherenkovEvent) -> anyhow::Result<()> {
         match self.tx.send(event.clone()) {
             Ok(count) => {
                 debug!("Event published to {} subscribers: {:?}", count, event);
