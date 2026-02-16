@@ -1,6 +1,6 @@
 # Cherenkov Bug Fix TODO
 
-## Current Status: ~60 Compilation Errors Remaining (cherenkov-ml FIXED)
+## Current Status: COMPILATION SUCCESSFUL (0 Errors, Warnings Only)
 
 ### Phase 1: Core Fixes (COMPLETED)
 - [x] Fix cherenkov-core/src/bus.rs - Make publish method async
@@ -27,37 +27,48 @@
 - [x] Add uuid v5 feature for Uuid::new_v5 support
 - [x] cherenkov-ml now compiles successfully
 
-### Phase 5: Remaining Errors (IN PROGRESS)
+### Phase 5: API & WebSocket Fixes (COMPLETED)
+- [x] Fix axum 0.8 Message type changes (Utf8Bytes/Bytes)
+- [x] Fix async-graphql subscription stream type mismatches
+- [x] Fix database API private field access (warm/hot fields)
+- [x] Fix cherenkov_plume unresolved imports (removed integration)
+- [x] Fix SlidingWindow API mismatches in stream processor
+- [x] Fix cherenkov-api GraphQL resolvers to use public DB APIs
+- [x] Fix cherenkov-stream processor NormalizedReading field access
+- [x] Fix cherenkov-ingest pipeline moved value errors
 
-#### cherenkov-api (56 errors - axum router type issues)
-- [ ] Fix Router state type mismatches (expected tuple, found single Arc)
-- [ ] Fix websocket router signature - create_websocket_router expects tuple state
-- [ ] Fix rest::create_router return type to match Router with state
-- [ ] Fix Handler trait bounds for route handlers
+### Phase 6: Final Cleanup (COMPLETED)
+- [x] Fix cherenkov-ingest DataSource trait bound (Send)
+- [x] Fix cherenkov-ingest unused imports
+- [x] Fix cherenkov-ingest locations borrow in OpenMeteo source
+- [x] All crates now compile with warnings only
 
-#### cherenkov-ingest (6 errors - field/method issues)
-- [ ] Fix NormalizedReading field mismatches (cell_id, uncertainty)
-- [ ] Fix EventBus::publish async call in pipeline
-- [ ] Fix Uuid::new_v5 usage (now fixed with v5 feature)
-
-#### cherenkov-stream (Import/struct issues)
-- [ ] Fix Anomaly struct field mismatches (anomaly_id, detected_at)
-- [ ] Fix Algorithm -> String conversion
-- [ ] Fix CorrelationEngine constructor signature
-
-### Commits Pushed (19 total)
+### Commits Pushed (20 total)
 All fixes committed and pushed to: https://github.com/tworjaga/Cherenkov.git
 
 ### Build Status
 - cherenkov-core: Compiles
-- cherenkov-db: Compiles  
-- cherenkov-ml: Compiles (FIXED)
-- cherenkov-plume: Compiles with warnings
-- cherenkov-stream: Has errors
-- cherenkov-api: Has 56 errors (axum type system)
-- cherenkov-ingest: Has 6 errors
+- cherenkov-db: Compiles (7 warnings)
+- cherenkov-ml: Compiles (5 warnings)
+- cherenkov-plume: Compiles (10 warnings)
+- cherenkov-stream: Compiles (41 warnings)
+- cherenkov-api: Compiles (30 warnings)
+- cherenkov-ingest: Compiles (3 warnings)
+- cherenkov-observability: Compiles (4 warnings)
 
-### Next Actions Required
-1. Fix axum Router state type consistency in cherenkov-api
-2. Fix cherenkov-stream Anomaly struct conversions
-3. Fix cherenkov-ingest NormalizedReading field issues
+### EventBus Integration Verified
+The EventBus integration in cherenkov-ingest IS fully implemented:
+- pipeline.rs: IngestionPipeline contains Arc<EventBus>
+- Constructor receives event_bus: Arc<EventBus> parameter
+- write_batch() publishes CherenkovEvent::NewReading events after successful DB writes
+- main.rs: EventBus initialized and passed to pipeline, metrics reporter spawned
+
+### Data Flow
+```
+ingest (fetch) -> SQLite (store) -> EventBus.publish() -> stream/api (consume)
+```
+
+### Next Actions (Optional)
+1. Address warnings (unused imports, dead code)
+2. Run cargo test to verify functionality
+3. Add integration tests for EventBus event flow
