@@ -208,18 +208,20 @@ impl TrainingPipeline {
     }
 
     fn init_weights(varmap: &VarMap, config: &TrainingConfig, device: &Device) -> anyhow::Result<()> {
-        // Initialize weights using get method: (name, shape, init, dtype, device)
+        // Initialize weights using get method: (shape, name, init, dtype, device)
         for (i, hidden_size) in config.hidden_layers.iter().enumerate() {
+            let w_name = format!("w{}", i);
+            let b_name = format!("b{}", i);
             let _w = varmap.get(
-                &format!("w{}", i),
                 (config.input_size, *hidden_size),
+                w_name.as_str(),
                 candle_nn::Init::Randn { mean: 0.0, stdev: 0.02 },
                 DType::F32,
                 device
             )?;
             let _b = varmap.get(
-                &format!("b{}", i),
                 (*hidden_size,),
+                b_name.as_str(),
                 candle_nn::Init::Const(0.0),
                 DType::F32,
                 device
@@ -228,15 +230,15 @@ impl TrainingPipeline {
         
         let last_hidden = config.hidden_layers.last().copied().unwrap_or(config.input_size);
         let _w_out = varmap.get(
-            "w_out",
             (last_hidden, config.num_classes),
+            "w_out",
             candle_nn::Init::Randn { mean: 0.0, stdev: 0.02 },
             DType::F32,
             device
         )?;
         let _b_out = varmap.get(
-            "b_out",
             (config.num_classes,),
+            "b_out",
             candle_nn::Init::Const(0.0),
             DType::F32,
             device
@@ -289,10 +291,11 @@ impl TrainingPipeline {
         info!("Dataset loaded: {} train, {} val, {} test samples", 
             dataset.train_data.len(), dataset.val_data.len(), dataset.test_data.len());
         
+        let learning_rate = self.config.learning_rate;
         let mut optimizer = AdamW::new(
             self.varmap.all_vars(),
             ParamsAdamW {
-                lr: self.config.learning_rate,
+                lr: learning_rate,
                 ..Default::default()
             },
         )?;
@@ -604,16 +607,18 @@ impl TrainingPipeline {
         let mut x = input.clone();
         
         for (i, hidden_size) in self.config.hidden_layers.iter().enumerate() {
+            let w_name = format!("w{}", i);
+            let b_name = format!("b{}", i);
             let weight = self.varmap.get(
-                &format!("w{}", i),
                 (self.config.input_size, *hidden_size),
+                w_name.as_str(),
                 candle_nn::Init::Randn { mean: 0.0, stdev: 0.02 },
                 DType::F32,
                 &self.device
             )?;
             let bias = self.varmap.get(
-                &format!("b{}", i),
                 (*hidden_size,),
+                b_name.as_str(),
                 candle_nn::Init::Const(0.0),
                 DType::F32,
                 &self.device
@@ -632,15 +637,15 @@ impl TrainingPipeline {
         
         let last_hidden = self.config.hidden_layers.last().copied().unwrap_or(self.config.input_size);
         let output_weight = self.varmap.get(
-            "w_out",
             (last_hidden, self.config.num_classes),
+            "w_out",
             candle_nn::Init::Randn { mean: 0.0, stdev: 0.02 },
             DType::F32,
             &self.device
         )?;
         let output_bias = self.varmap.get(
-            "b_out",
             (self.config.num_classes,),
+            "b_out",
             candle_nn::Init::Const(0.0),
             DType::F32,
             &self.device
