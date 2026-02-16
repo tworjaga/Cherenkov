@@ -175,8 +175,8 @@ impl WebSocketState {
         let mut meta = self.connection_meta.write().await;
         let mut conn = ConnectionMeta::new(conn_id.clone());
         conn.client_info = client_info;
-        meta.insert(conn_id, conn);
         debug!("Registered WebSocket connection: {}", conn_id);
+        meta.insert(conn_id.clone(), conn);
     }
 
     /// Unregister connection
@@ -252,7 +252,7 @@ async fn handle_socket(mut socket: WebSocket, state: Arc<WebSocketState>) {
         tokio::select! {
             _ = heartbeat.tick() => {
                 // Send heartbeat ping
-                if socket.send(Message::Ping(vec![])).await.is_err() {
+                if socket.send(Message::Ping(vec![].into())).await.is_err() {
                     break;
                 }
                 
@@ -282,7 +282,7 @@ async fn handle_socket(mut socket: WebSocket, state: Arc<WebSocketState>) {
                             }
                         };
                         
-                        if socket.send(Message::Text(json)).await.is_err() {
+                        if socket.send(Message::Text(json.into())).await.is_err() {
                             break;
                         }
 
@@ -297,7 +297,7 @@ async fn handle_socket(mut socket: WebSocket, state: Arc<WebSocketState>) {
                         // Send lag notification to client
                         let _ = socket.send(Message::Text(format!(
                             r#"{{"type":"lag_notification","missed_messages":{}}}"#, n
-                        ))).await;
+                        ).into())).await;
                     }
                     Err(broadcast::error::RecvError::Closed) => {
                         break;
@@ -309,7 +309,7 @@ async fn handle_socket(mut socket: WebSocket, state: Arc<WebSocketState>) {
                 match result {
                     Some(Ok(Message::Close(_))) | None => break,
                     Some(Ok(Message::Ping(data))) => {
-                        if socket.send(Message::Pong(data)).await.is_err() {
+                        if socket.send(Message::Pong(data.into())).await.is_err() {
                             break;
                         }
                         // Update activity
@@ -332,7 +332,7 @@ async fn handle_socket(mut socket: WebSocket, state: Arc<WebSocketState>) {
                             if !conn.check_rate_limit() {
                                 warn!("Rate limit exceeded for connection {}", conn_id);
                                 let _ = socket.send(Message::Text(
-                                    r#"{"type":"error","message":"Rate limit exceeded"}"#.to_string()
+                                    r#"{"type":"error","message":"Rate limit exceeded"}"#.to_string().into()
                                 )).await;
                                 continue;
                             }
@@ -344,7 +344,7 @@ async fn handle_socket(mut socket: WebSocket, state: Arc<WebSocketState>) {
                             handle_client_command(&mut socket, &conn_id, cmd, &state).await;
                         } else {
                             let _ = socket.send(Message::Text(
-                                r#"{"type":"error","message":"Invalid command format"}"#.to_string()
+                                r#"{"type":"error","message":"Invalid command format"}"#.to_string().into()
                             )).await;
                         }
                     }
@@ -355,7 +355,6 @@ async fn handle_socket(mut socket: WebSocket, state: Arc<WebSocketState>) {
                         error!("WebSocket error on {}: {}", conn_id, e);
                         break;
                     }
-                    _ => {}
                 }
             }
         }
@@ -417,7 +416,7 @@ async fn handle_client_command(
                     r#"{{"type":"subscribed","sensor_id":"{}","status":"ok"}}"#,
                     sensor_id
                 );
-                let _ = socket.send(Message::Text(response)).await;
+                let _ = socket.send(Message::Text(response.into())).await;
             }
         }
         "subscribe_sensors" => {
@@ -436,7 +435,7 @@ async fn handle_client_command(
                     r#"{{"type":"subscribed","sensor_count":{},"status":"ok"}}"#,
                     sensor_ids.len()
                 );
-                let _ = socket.send(Message::Text(response)).await;
+                let _ = socket.send(Message::Text(response.into())).await;
             }
         }
         "subscribe_region" => {
@@ -449,7 +448,7 @@ async fn handle_client_command(
                 }
                 
                 let _ = socket.send(Message::Text(
-                    r#"{"type":"subscribed","region":"active","status":"ok"}"#.to_string()
+                    r#"{"type":"subscribed","region":"active","status":"ok"}"#.to_string().into()
                 )).await;
             }
         }
@@ -462,7 +461,7 @@ async fn handle_client_command(
                 info!("Client {} unsubscribed from sensor: {}", conn_id, sensor_id);
                 
                 let _ = socket.send(Message::Text(
-                    format!(r#"{{"type":"unsubscribed","sensor_id":"{}","status":"ok"}}"#, sensor_id)
+                    format!(r#"{{"type":"unsubscribed","sensor_id":"{}","status":"ok"}}"#, sensor_id).into()
                 )).await;
             }
         }
@@ -475,12 +474,12 @@ async fn handle_client_command(
                     "sensor_count": conn.subscribed_sensors.len(),
                     "region_count": conn.subscribed_regions.len(),
                 });
-                let _ = socket.send(Message::Text(response.to_string())).await;
+                let _ = socket.send(Message::Text(response.to_string().into())).await;
             }
         }
         "ping" => {
-            let _ = socket.send(Message::Text(r#"{"type":"pong","timestamp":""#.to_string() + 
-                &chrono::Utc::now().timestamp_millis().to_string() + r#""}"#)).await;
+            let _ = socket.send(Message::Text((r#"{"type":"pong","timestamp":""#.to_string() + 
+                &chrono::Utc::now().timestamp_millis().to_string() + r#""}"#).into())).await;
         }
         "get_status" => {
             let conn_count = state.connection_count().await;
@@ -489,12 +488,12 @@ async fn handle_client_command(
                 "connections": conn_count,
                 "server_time": chrono::Utc::now().to_rfc3339(),
             });
-            let _ = socket.send(Message::Text(response.to_string())).await;
+            let _ = socket.send(Message::Text(response.to_string().into())).await;
         }
         _ => {
             warn!("Unknown client command from {}: {}", conn_id, cmd.action);
             let _ = socket.send(Message::Text(
-                format!(r#"{{"type":"error","message":"Unknown command: {}"}}"#, cmd.action)
+                format!(r#"{{"type":"error","message":"Unknown command: {}"}}"#, cmd.action).into()
             )).await;
         }
     }

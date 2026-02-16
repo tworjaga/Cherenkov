@@ -22,7 +22,7 @@ thiserror = { workspace = true }
 anyhow = { workspace = true }
 uuid = { version = "1.6", features = ["v4", "serde"] }
 tower = "0.4"
-tower-http = { version = "0.5", features = ["cors", "compression-br", "compression-gzip", "compression-deflate"] }
+tower-http = { version = "0.6", features = ["cors", "compression-br", "compression-gzip", "compression-deflate"] }
 
 
 # Authentication

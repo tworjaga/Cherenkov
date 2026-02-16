@@ -352,20 +352,23 @@ impl SubscriptionRoot {
     /// Subscribe to anomaly alerts, optionally filtered by region
     async fn anomaly_alerts(
         &self,
-        region: Option<GeoRegionInput>,
+        min_lat: Option<f64>,
+        max_lat: Option<f64>,
+        min_lon: Option<f64>,
+        max_lon: Option<f64>,
     ) -> impl Stream<Item = AnomalyAlert> {
         let rx = self.anomaly_tx.subscribe();
 
         BroadcastStream::new(rx)
             .filter_map(move |result| {
-                let region_filter = region.clone();
                 async move {
                     match result {
                         Ok(event) => {
                             // Apply region filter if provided
-                            if let Some(ref reg) = region_filter {
+                            if let (Some(min_lat), Some(max_lat), Some(min_lon), Some(max_lon)) = (min_lat, max_lat, min_lon, max_lon) {
                                 // Simple bounding box check
-                                if !reg.contains(event.latitude, event.longitude) {
+                                if !(event.latitude >= min_lat && event.latitude <= max_lat &&
+                                     event.longitude >= min_lon && event.longitude <= max_lon) {
                                     return None;
                                 }
                             }
@@ -421,19 +424,4 @@ pub struct AnomalyAlert {
     pub z_score: f64,
     pub detected_at: DateTime<Utc>,
     pub message: String,
-}
-
-#[derive(InputObject, Clone)]
-pub struct GeoRegionInput {
-    pub min_lat: f64,
-    pub max_lat: f64,
-    pub min_lon: f64,
-    pub max_lon: f64,
-}
-
-impl GeoRegionInput {
-    fn contains(&self, lat: f64, lon: f64) -> bool {
-        lat >= self.min_lat && lat <= self.max_lat &&
-        lon >= self.min_lon && lon <= self.max_lon
-    }
 }

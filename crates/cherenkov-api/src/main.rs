@@ -75,10 +75,10 @@ async fn main() -> anyhow::Result<()> {
         .route("/graphql", get(graphql::handler).post(graphql::handler))
         
         // REST API v1
-        .nest("/v1", rest::create_router(db.clone()))
+        .nest("/v1", rest::create_router())
         
         // WebSocket
-        .nest("/ws", create_websocket_router(ws_state.clone()))
+        .nest("/ws", create_websocket_router((ws_state.clone(), db.clone(), auth_state.clone())))
         
         // Layers
         .layer(middleware::from_fn_with_state(
