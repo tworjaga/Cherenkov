@@ -5,6 +5,9 @@ pub mod sqlite;
 pub mod cache;
 pub mod storage;
 
+pub use sqlite::{SensorInfo, AnomalyRecord};
+
+
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 use chrono::{DateTime, Utc, Duration};
@@ -233,10 +236,15 @@ impl RadiationDatabase {
     pub async fn query_range(
         &self,
         sensor_ids: &[String],
-        start: DateTime<Utc>,
-        end: DateTime<Utc>,
+        start_ts: i64,
+        end_ts: i64,
         aggregation: AggregationLevel,
     ) -> Result<Vec<TimeSeriesPoint>, DatabaseError> {
+        let start = DateTime::from_timestamp(start_ts, 0)
+            .unwrap_or_else(|| Utc::now());
+        let end = DateTime::from_timestamp(end_ts, 0)
+            .unwrap_or_else(|| Utc::now());
+
         // Check cache first
         let cache_key = format!("query_range:{:?}:{:?}:{:?}", sensor_ids, start, end);
         if let Some(cached) = self.cache.get_query_result(&cache_key).await
