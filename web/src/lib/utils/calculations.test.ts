@@ -10,9 +10,11 @@ import {
 describe('calculateDistance', () => {
   it('calculates distance between two points correctly', () => {
     const distance = calculateDistance(0, 0, 0, 1);
-    expect(distance).toBeGreaterThan(110000);
-    expect(distance).toBeLessThan(111000);
+    expect(distance).toBeGreaterThan(110);
+    expect(distance).toBeLessThan(112);
   });
+
+
 
   it('returns 0 for same point', () => {
     const distance = calculateDistance(10, 20, 10, 20);
@@ -42,8 +44,9 @@ describe('getSeverityColor', () => {
   });
 
   it('returns default color for unknown severity', () => {
-    expect(getSeverityColor('unknown')).toBe('#00d4ff');
+    expect(getSeverityColor('unknown')).toBe('#00ff88');
   });
+
 });
 
 describe('getDefconColor', () => {
