@@ -54,6 +54,11 @@ impl RadiationGlobe {
     pub fn set_layer_visibility(&mut self, layer: &str, visible: bool) {
         self.inner.set_layer_visibility(layer, visible);
     }
+    
+    pub fn set_time(&mut self, time: f64) {
+        self.inner.set_time(time);
+    }
+
 }
 
 #[wasm_bindgen]

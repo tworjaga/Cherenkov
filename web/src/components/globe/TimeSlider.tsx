@@ -155,6 +155,43 @@ export const TimeSlider: React.FC = () => {
           ref={trackRef}
           className="flex-1 h-8 relative cursor-pointer group"
           onClick={handleTrackClick}
+          onKeyDown={(e) => {
+            const step = totalWindow / 100; // 1% step
+            let newTime = currentTime.getTime();
+            
+            switch (e.key) {
+              case 'ArrowLeft':
+              case 'ArrowDown':
+                e.preventDefault();
+                newTime = Math.max(windowStart.getTime(), newTime - step);
+                setTimeControl({ mode: 'PAUSED', currentTime: new Date(newTime) });
+                break;
+              case 'ArrowRight':
+              case 'ArrowUp':
+                e.preventDefault();
+                newTime = Math.min(windowEnd.getTime(), newTime + step);
+                setTimeControl({ mode: 'PAUSED', currentTime: new Date(newTime) });
+                break;
+              case 'Home':
+                e.preventDefault();
+                setTimeControl({ mode: 'PAUSED', currentTime: new Date(windowStart) });
+                break;
+              case 'End':
+                e.preventDefault();
+                setTimeControl({ mode: 'PAUSED', currentTime: new Date(windowEnd) });
+                break;
+              case 'PageUp':
+                e.preventDefault();
+                newTime = Math.min(windowEnd.getTime(), newTime + step * 10);
+                setTimeControl({ mode: 'PAUSED', currentTime: new Date(newTime) });
+                break;
+              case 'PageDown':
+                e.preventDefault();
+                newTime = Math.max(windowStart.getTime(), newTime - step * 10);
+                setTimeControl({ mode: 'PAUSED', currentTime: new Date(newTime) });
+                break;
+            }
+          }}
           role="slider"
           aria-valuemin={0}
           aria-valuemax={100}
@@ -163,6 +200,7 @@ export const TimeSlider: React.FC = () => {
           aria-label="Time slider"
           tabIndex={0}
         >
+
 
           {/* Track background */}
           <div className="absolute inset-y-0 left-0 right-0 flex items-center">
