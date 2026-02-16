@@ -45,6 +45,10 @@
 - [x] Add ErrorBoundary component for WASM/WebGL error handling
 - [x] Verify Tailwind CSS custom color configuration
 - [x] Confirm date-fns dependency in package.json
+- [x] Fix ARIA accessibility in TimeSlider (aria-valuetext, tabIndex)
+- [x] Verify WebGL shader programs (globe.vert, globe.frag, sensor.vert, sensor.frag)
+- [x] Confirm facility data rendering in WASM (FacilityData, add_facility, draw_facility)
+- [x] Confirm plume particle system (PlumeParticle, update_plume, draw_plume_particle)
 
 ## In Progress
 
@@ -52,10 +56,11 @@
 ## Pending
 
 ### Critical Fixes Needed
-- [ ] Fix ARIA accessibility warnings in components
-- [ ] Implement actual WebGL shader programs for globe rendering
-- [ ] Add facility data to WASM renderer
-- [ ] Implement plume particle system in WebGL
+- [ ] Add keyboard navigation to TimeSlider slider control
+- [ ] Implement globe geometry buffer for WebGL sphere rendering
+- [ ] Add facility marker textures (diamond shape)
+- [ ] Implement plume particle animation over time
+
 
 
 ### UI/UX Improvements
