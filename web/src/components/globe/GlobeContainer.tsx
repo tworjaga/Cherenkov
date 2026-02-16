@@ -1,6 +1,8 @@
 import React, { useEffect, useRef, useCallback } from 'react';
 import { useAppStore } from '../../stores/useAppStore';
 import type { RadiationGlobe } from '../../../wasm/pkg/cherenkov_web';
+import { TimeSlider } from './TimeSlider';
+
 
 
 const INITIAL_VIEW = {
@@ -205,6 +207,9 @@ export const GlobeContainer: React.FC = () => {
         ))}
       </div>
       
+      {/* Time Slider */}
+      <TimeSlider />
+
       {/* Coordinates display */}
       <div className="absolute bottom-4 right-4 z-10 px-3 py-2 bg-bg-secondary/80 backdrop-blur border border-border-subtle rounded-lg">
         <div className="text-xs text-text-secondary font-mono">
