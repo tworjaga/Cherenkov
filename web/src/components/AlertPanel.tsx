@@ -162,6 +162,7 @@ function AlertPanel() {
         <div class="flex gap-2">
           {(['all', 'critical', 'warning', 'info'] as const).map((f) => (
             <button
+              title={`Filter alerts by ${f} severity`}
               onClick={() => setFilter(f)}
               class={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
                 filter() === f 
@@ -172,9 +173,10 @@ function AlertPanel() {
               {f.charAt(0).toUpperCase() + f.slice(1)}
             </button>
           ))}
+
         </div>
         <div class="flex items-center gap-2">
-          <label class="flex items-center gap-2 text-sm text-gray-400 cursor-pointer">
+          <label title="Toggle display of acknowledged alerts" class="flex items-center gap-2 text-sm text-gray-400 cursor-pointer">
             <input
               type="checkbox"
               checked={showAcknowledged()}
@@ -183,12 +185,15 @@ function AlertPanel() {
             />
             Show acknowledged
           </label>
+
           <button
+            title="Create new alert rule"
             onClick={() => setShowRuleDialog(true)}
             class="px-3 py-1 bg-[#2a2a3a] hover:bg-[#3a3a4a] rounded text-xs transition-colors"
           >
             + Rule
           </button>
+
         </div>
       </div>
 
@@ -227,6 +232,7 @@ function AlertPanel() {
                   <span class="text-xs opacity-60">{formatTimestamp(alert.timestamp)}</span>
                   <Show when={!alert.acknowledged}>
                     <button
+                      title="Acknowledge this alert"
                       onClick={(e) => {
                         e.stopPropagation();
                         handleAcknowledge(alert.id);
@@ -236,6 +242,7 @@ function AlertPanel() {
                       Ack
                     </button>
                   </Show>
+
                 </div>
               </div>
             </div>
@@ -293,13 +300,16 @@ function AlertPanel() {
 
             <div class="flex gap-2">
               <button
+                title="Close alert details"
                 onClick={() => setSelectedAlert(null)}
                 class="flex-1 bg-[#2a2a3a] hover:bg-[#3a3a4a] py-2 rounded-lg transition-colors"
               >
                 Close
               </button>
+
               <Show when={!selectedAlert()!.acknowledged}>
                 <button
+                  title="Acknowledge this alert"
                   onClick={() => {
                     handleAcknowledge(selectedAlert()!.id);
                     setSelectedAlert(null);
@@ -309,6 +319,7 @@ function AlertPanel() {
                   Acknowledge
                 </button>
               </Show>
+
             </div>
           </div>
         </div>
@@ -375,18 +386,20 @@ function AlertPanel() {
 
 
               <div class="flex gap-4">
-                <label class="flex items-center gap-2 text-sm text-gray-400">
+                <label title="Enable email notifications" class="flex items-center gap-2 text-sm text-gray-400">
                   <input name="email" type="checkbox" class="rounded border-[#2a2a3a]" />
                   Email
                 </label>
-                <label class="flex items-center gap-2 text-sm text-gray-400">
+                <label title="Enable push notifications" class="flex items-center gap-2 text-sm text-gray-400">
                   <input name="push" type="checkbox" class="rounded border-[#2a2a3a]" />
                   Push
                 </label>
               </div>
 
+
               <div class="flex gap-2 pt-2">
                 <button
+                  title="Cancel rule creation"
                   type="button"
                   onClick={() => setShowRuleDialog(false)}
                   class="flex-1 bg-[#2a2a3a] hover:bg-[#3a3a4a] py-2 rounded-lg transition-colors"
@@ -394,12 +407,14 @@ function AlertPanel() {
                   Cancel
                 </button>
                 <button
+                  title="Create alert rule"
                   type="submit"
                   class="flex-1 bg-[#00d4ff] text-black py-2 rounded-lg font-semibold hover:bg-[#00d4ff]/90 transition-colors"
                 >
                   Create
                 </button>
               </div>
+
             </form>
           </div>
         </div>

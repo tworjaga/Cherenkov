@@ -65,9 +65,10 @@ function Anomalies() {
             <option>Warning</option>
             <option>Info</option>
           </select>
-          <button class="bg-[#00d4ff] text-black px-4 py-2 rounded-lg font-medium hover:bg-[#00d4ff]/90 transition-colors">
+          <button title="Export anomaly report" class="bg-[#00d4ff] text-black px-4 py-2 rounded-lg font-medium hover:bg-[#00d4ff]/90 transition-colors">
             Export Report
           </button>
+
         </div>
       </div>
 
@@ -108,15 +109,16 @@ function Anomalies() {
                 </div>
               </div>
               <div class="mt-4 pt-4 border-t border-white/10 flex items-center gap-3">
-                <button class="px-4 py-2 bg-white/10 rounded-lg text-sm hover:bg-white/20 transition-colors">
+                <button title="View anomaly details" class="px-4 py-2 bg-white/10 rounded-lg text-sm hover:bg-white/20 transition-colors">
                   View Details
                 </button>
-                <button class="px-4 py-2 bg-white/10 rounded-lg text-sm hover:bg-white/20 transition-colors">
+                <button title="Run plume simulation" class="px-4 py-2 bg-white/10 rounded-lg text-sm hover:bg-white/20 transition-colors">
                   Run Plume Sim
                 </button>
-                <button class="px-4 py-2 bg-white/10 rounded-lg text-sm hover:bg-white/20 transition-colors">
+                <button title="Acknowledge anomaly" class="px-4 py-2 bg-white/10 rounded-lg text-sm hover:bg-white/20 transition-colors">
                   Acknowledge
                 </button>
+
               </div>
             </div>
           )}

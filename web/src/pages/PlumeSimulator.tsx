@@ -177,23 +177,27 @@ function PlumeSimulator() {
         </div>
         <div class="flex gap-2">
           <button
+            title="View simulation parameters"
             onClick={() => setActiveTab('params')}
             class={`px-4 py-2 rounded-lg transition-colors ${activeTab() === 'params' ? 'bg-[#00d4ff]/20 text-[#00d4ff]' : 'bg-[#2a2a3a] hover:bg-[#3a3a4a]'}`}
           >
             Parameters
           </button>
           <button
+            title="View weather conditions"
             onClick={() => setActiveTab('weather')}
             class={`px-4 py-2 rounded-lg transition-colors ${activeTab() === 'weather' ? 'bg-[#00d4ff]/20 text-[#00d4ff]' : 'bg-[#2a2a3a] hover:bg-[#3a3a4a]'}`}
           >
             Weather
           </button>
           <button
+            title="View simulation results"
             onClick={() => setActiveTab('results')}
             class={`px-4 py-2 rounded-lg transition-colors ${activeTab() === 'results' ? 'bg-[#00d4ff]/20 text-[#00d4ff]' : 'bg-[#2a2a3a] hover:bg-[#3a3a4a]'}`}
           >
             Results
           </button>
+
         </div>
       </div>
 
@@ -310,6 +314,7 @@ function PlumeSimulator() {
 
 
             <button
+              title="Start plume dispersion simulation"
               onClick={handleRunSimulation}
               disabled={simulationStatus() === 'running'}
               class="w-full bg-[#00d4ff] text-black py-3 rounded-lg font-semibold hover:bg-[#00d4ff]/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
@@ -323,6 +328,7 @@ function PlumeSimulator() {
                 'Run Simulation'
               )}
             </button>
+
           </Show>
 
           <Show when={activeTab() === 'weather'}>
@@ -391,18 +397,21 @@ function PlumeSimulator() {
 
                 <div class="flex gap-2">
                   <button
+                    title="Save simulation to library"
                     onClick={() => setShowSaveDialog(true)}
                     class="flex-1 bg-[#2a2a3a] hover:bg-[#3a3a4a] py-2 rounded-lg transition-colors"
                   >
                     Save Simulation
                   </button>
                   <button
+                    title="Export simulation data to CSV"
                     onClick={() => {/* Export to CSV */}}
                     class="flex-1 bg-[#2a2a3a] hover:bg-[#3a3a4a] py-2 rounded-lg transition-colors"
                   >
                     Export Data
                   </button>
                 </div>
+
               </div>
             </Show>
           </Show>
@@ -445,12 +454,14 @@ function PlumeSimulator() {
 
             <div class="flex gap-2">
               <button
+                title="Cancel save operation"
                 onClick={() => setShowSaveDialog(false)}
                 class="flex-1 bg-[#2a2a3a] hover:bg-[#3a3a4a] py-2 rounded-lg transition-colors"
               >
                 Cancel
               </button>
               <button
+                title="Save simulation with name"
                 onClick={handleSaveSimulation}
                 disabled={!simulationName()}
                 class="flex-1 bg-[#00d4ff] text-black py-2 rounded-lg font-semibold hover:bg-[#00d4ff]/90 transition-colors disabled:opacity-50"
@@ -458,6 +469,7 @@ function PlumeSimulator() {
                 Save
               </button>
             </div>
+
           </div>
         </div>
       </Show>

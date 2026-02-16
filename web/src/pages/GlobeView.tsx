@@ -335,11 +335,13 @@ function GlobeView() {
             <span class="text-sm text-gray-400">{'2+ μSv/h Critical'}</span>
           </div>
           <button
+            title="Reset globe view to default"
             onClick={resetView}
             class="px-3 py-1 bg-[#2a2a3a] hover:bg-[#3a3a4a] rounded text-sm transition-colors"
           >
             Reset View
           </button>
+
         </div>
       </div>
       
@@ -363,11 +365,13 @@ function GlobeView() {
             <div class="flex items-center justify-between mb-3">
               <h3 class="font-semibold text-lg">{(selectedSensor() as Sensor).name}</h3>
               <button 
+                title="Close sensor details panel"
                 onClick={() => setSelectedSensor(null)}
                 class="text-gray-400 hover:text-white"
               >
                 ✕
               </button>
+
             </div>
             
             <div class="space-y-2 text-sm">
@@ -405,12 +409,14 @@ function GlobeView() {
             
             <div class="mt-4 flex gap-2">
               <button
+                title="Zoom globe to sensor location"
                 onClick={() => zoomToSensor(selectedSensor() as Sensor)}
                 class="flex-1 px-3 py-2 bg-[#00d4ff]/20 hover:bg-[#00d4ff]/30 text-[#00d4ff] rounded text-sm transition-colors"
               >
                 Zoom to Sensor
               </button>
               <button
+                title="Run plume simulation at sensor location"
                 onClick={() => {
                   setPlumeLocation({
                     lat: (selectedSensor() as Sensor).location.lat,
@@ -422,6 +428,7 @@ function GlobeView() {
               >
                 Simulate Plume
               </button>
+
             </div>
           </div>
         </Show>
@@ -434,6 +441,7 @@ function GlobeView() {
         
         <div class="absolute bottom-4 right-4 flex flex-col gap-2">
           <button
+            title="Zoom in on globe"
             onClick={() => setGlobeState(prev => {
               const newZoom = Math.min(5.0, prev.zoom * 1.2);
               // @ts-ignore - WASM method
@@ -445,6 +453,7 @@ function GlobeView() {
             +
           </button>
           <button
+            title="Zoom out on globe"
             onClick={() => setGlobeState(prev => {
               const newZoom = Math.max(0.5, prev.zoom / 1.2);
               // @ts-ignore - WASM method
@@ -455,6 +464,7 @@ function GlobeView() {
           >
             −
           </button>
+
         </div>
         
         <div class="absolute bottom-4 left-4 text-xs text-gray-500 bg-[#0a0a0f]/80 px-3 py-2 rounded">

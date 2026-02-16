@@ -52,14 +52,17 @@ function Sensors() {
         <div class="flex items-center gap-4">
           <input
             type="text"
+            title="Filter sensors by name, location, or country"
             placeholder="Filter sensors..."
             value={filter()}
             onInput={(e) => setFilter(e.currentTarget.value)}
             class="bg-[#0a0a0f] border border-[#2a2a3a] rounded-lg px-4 py-2 w-64 focus:outline-none focus:border-[#00d4ff]"
           />
-          <button class="bg-[#00d4ff] text-black px-4 py-2 rounded-lg font-medium hover:bg-[#00d4ff]/90 transition-colors">
+
+          <button title="Export sensor data to CSV" class="bg-[#00d4ff] text-black px-4 py-2 rounded-lg font-medium hover:bg-[#00d4ff]/90 transition-colors">
             Export CSV
           </button>
+
         </div>
       </div>
 
@@ -95,8 +98,9 @@ function Sensors() {
                   </td>
                   <td class="px-6 py-4 text-gray-400 text-sm">{sensor.lastReading}</td>
                   <td class="px-6 py-4">
-                    <button class="text-[#00d4ff] hover:underline text-sm">View Details</button>
+                    <button title={`View details for sensor ${sensor.id}`} class="text-[#00d4ff] hover:underline text-sm">View Details</button>
                   </td>
+
                 </tr>
               )}
             </For>

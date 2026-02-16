@@ -20,6 +20,7 @@ function Sidebar() {
         {navItems.map((item) => (
           <A
             href={item.path}
+            title={`Navigate to ${item.label}`}
             class="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-[#2a2a3a] hover:text-white transition-colors"
             activeClass="bg-[#00d4ff]/10 text-[#00d4ff]"
           >
@@ -27,6 +28,7 @@ function Sidebar() {
             <span class="font-medium">{item.label}</span>
           </A>
         ))}
+
       </nav>
       <div class="p-4 border-t border-[#2a2a3a] text-xs text-gray-500">
         <p>v0.1.0-alpha</p>
