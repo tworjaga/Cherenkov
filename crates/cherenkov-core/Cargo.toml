@@ -8,6 +8,7 @@ license.workspace = true
 [dependencies]
 tokio = { workspace = true, features = ["sync"] }
 serde = { workspace = true }
+serde_yaml = { workspace = true }
 chrono = { workspace = true }
 uuid = { workspace = true }
 tracing = { workspace = true }
