@@ -675,7 +675,7 @@ impl DataSource for OpenMeteoSource {
 
         let mut total_weather_readings = 0;
 
-        for (lat, lon) in locations {
+        for (lat, lon) in &locations {
             let response = self.client
                 .get(self.config.url)
                 .query(&[

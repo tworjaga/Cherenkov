@@ -12,7 +12,7 @@ mod pipeline;
 use pipeline::{IngestionPipeline, PipelineConfig};
 use cherenkov_db::{RadiationDatabase, DatabaseConfig, scylla::ScyllaConfig};
 use cherenkov_observability::init_observability;
-use cherenkov_core::{EventBus, CherenkovEvent, NormalizedReading};
+use cherenkov_core::EventBus;
 
 
 #[tokio::main]
@@ -88,7 +88,7 @@ async fn main() -> anyhow::Result<()> {
 
 }
 
-fn create_sources() -> Vec<Box<dyn pipeline::DataSource>> {
+fn create_sources() -> Vec<Box<dyn pipeline::DataSource + Send>> {
     vec![
         Box::new(sources::SafecastSource::new()),
         Box::new(sources::UradmonitorSource::new()),

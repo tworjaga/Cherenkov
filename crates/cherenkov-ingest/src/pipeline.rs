@@ -518,15 +518,16 @@ impl IngestionPipeline {
                             metrics::counter!("cherenkov_ingest_events_published_total").increment(1);
                         }
                     }
-                    Err(e) => {
-                        attempts += 1;
-                        if attempts >= max_attempts {
-                            failed_readings.push((reading, e.to_string()));
-                            circuit_breaker.record_failure().await;
-                        } else {
-                            tokio::time::sleep(Duration::from_millis(100 * attempts as u64)).await;
-                        }
-                    }
+            Err(e) => {
+                attempts += 1;
+                if attempts >= max_attempts {
+                    failed_readings.push((reading.clone(), e.to_string()));
+                    circuit_breaker.record_failure().await;
+                } else {
+                    tokio::time::sleep(Duration::from_millis(100 * attempts as u64)).await;
+                }
+            }
+
                 }
             }
             
