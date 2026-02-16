@@ -144,6 +144,26 @@ impl CorrelationEngine {
         }
     }
     
+    /// Simplified constructor with defaults for stream processor
+    pub fn new_with_db(_db: Arc<cherenkov_db::RadiationDatabase>) -> Self {
+        Self {
+            temporal_window_secs: 3600, // 1 hour
+            spatial_radius_km: 100.0,     // 100 km
+            event_buffer: Arc::new(RwLock::new(Vec::new())),
+            facility_db: Arc::new(RwLock::new(HashMap::new())),
+            seismic_threshold: 4.0,
+            radiation_threshold: 2.0,
+        }
+    }
+    
+    /// Check for correlated events by sensor_id
+    pub async fn check_correlation(&self, sensor_id: &str) -> Vec<super::anomaly::Anomaly> {
+        // For now, return empty - this is a simplified implementation
+        // In production, this would query the database for related anomalies
+        let _ = sensor_id;
+        Vec::new()
+    }
+    
     pub async fn add_event(&self, event: CorrelatedEvent) {
         let mut buffer = self.event_buffer.write().await;
         

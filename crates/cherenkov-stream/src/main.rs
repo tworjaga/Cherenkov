@@ -120,13 +120,14 @@ async fn eventbus_listener(
                     latitude: reading.latitude,
                     longitude: reading.longitude,
                     dose_rate_microsieverts: reading.dose_rate_microsieverts,
-                    uncertainty: reading.uncertainty,
+                    uncertainty: reading.uncertainty as f32,
                     quality_flag: match reading.quality_flag {
                         cherenkov_core::QualityFlag::Valid => cherenkov_db::QualityFlag::Valid,
                         cherenkov_core::QualityFlag::Suspect => cherenkov_db::QualityFlag::Suspect,
                         cherenkov_core::QualityFlag::Invalid => cherenkov_db::QualityFlag::Invalid,
                     },
                     source: reading.source,
+                    cell_id: reading.cell_id,
                 };
                 
                 if let Err(e) = ingest_tx.send(radiation_reading).await {
@@ -167,8 +168,17 @@ async fn anomaly_detection_worker(
         // Get window for this sensor
         let sensor_window = windows.get_window(&reading.sensor_id.to_string());
         
+        // Convert window readings to the format expected by detector
+        let readings: Vec<anomaly::Reading> = sensor_window.iter().map(|r| anomaly::Reading {
+            sensor_id: r.sensor_id.to_string(),
+            timestamp: chrono::DateTime::from_timestamp(r.timestamp, 0).unwrap_or_else(|| chrono::Utc::now()),
+            latitude: r.latitude,
+            longitude: r.longitude,
+            dose_rate: r.dose_rate_microsieverts,
+        }).collect();
+        
         // Run anomaly detection
-        if let Some(anomaly) = detector.detect(sensor_window) {
+        if let Some(anomaly) = detector.detect(&readings) {
             info!("Anomaly detected: {:?}", anomaly);
             
             // Store anomaly in database
@@ -288,7 +298,7 @@ async fn correlation_engine_worker(
     db: Arc<RadiationDatabase>,
 ) {
 
-    let mut correlation_engine = CorrelationEngine::new(db.clone());
+    let mut correlation_engine = CorrelationEngine::new_with_db(db.clone());
     
     info!("Correlation engine worker started");
     
