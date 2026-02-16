@@ -29,7 +29,61 @@ pub enum UpdateType {
 pub struct WebSocketState {
     pub tx: broadcast::Sender<RealTimeUpdate>,
     pub connections: RwLock<u64>,
+    /// Track sensor subscriptions per connection (simplified)
+    pub sensor_subscriptions: RwLock<std::collections::HashMap<String, Vec<String>>>,
 }
+
+impl WebSocketState {
+    /// Broadcast message to all connected clients
+    pub async fn broadcast_all(&self, message: serde_json::Value) -> Result<(), String> {
+        let update = RealTimeUpdate {
+            update_type: UpdateType::Alert,
+            sensor_id: "all".to_string(),
+            timestamp: chrono::Utc::now(),
+            data: message,
+        };
+        
+        match self.tx.send(update) {
+            Ok(n) => {
+                metrics::counter!("cherenkov_websocket_broadcast_all_total").increment(1);
+                tracing::debug!("Broadcasted to {} receivers", n);
+                Ok(())
+            }
+            Err(e) => {
+                warn!("Failed to broadcast to all: {}", e);
+                Err("Broadcast failed".to_string())
+            }
+        }
+    }
+    
+    /// Broadcast message to clients subscribed to a specific sensor
+    pub async fn broadcast(&self, sensor_id: &str, message: serde_json::Value) -> Result<(), String> {
+        let update = RealTimeUpdate {
+            update_type: UpdateType::Reading,
+            sensor_id: sensor_id.to_string(),
+            timestamp: chrono::Utc::now(),
+            data: message,
+        };
+        
+        match self.tx.send(update) {
+            Ok(n) => {
+                metrics::counter!("cherenkov_websocket_broadcast_sensor_total", "sensor_id" => sensor_id.to_string()).increment(1);
+                tracing::debug!("Broadcasted sensor {} update to {} receivers", sensor_id, n);
+                Ok(())
+            }
+            Err(e) => {
+                warn!("Failed to broadcast to sensor {}: {}", sensor_id, e);
+                Err("Broadcast failed".to_string())
+            }
+        }
+    }
+    
+    /// Get current connection count
+    pub async fn connection_count(&self) -> u64 {
+        *self.connections.read().await
+    }
+}
+
 
 pub async fn ws_handler(
     ws: WebSocketUpgrade,
@@ -146,5 +200,6 @@ pub fn create_websocket_state() -> Arc<WebSocketState> {
     Arc::new(WebSocketState {
         tx,
         connections: RwLock::new(0),
+        sensor_subscriptions: RwLock::new(std::collections::HashMap::new()),
     })
 }
