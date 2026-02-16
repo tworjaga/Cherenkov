@@ -266,3 +266,174 @@ pub struct GlobalStatus {
 }
 
 use async_graphql::SimpleObject;
+use async_graphql::Subscription;
+use futures_util::stream::Stream;
+use std::pin::Pin;
+use tokio::sync::broadcast;
+use tokio_stream::wrappers::BroadcastStream;
+
+/// Subscription root for real-time updates
+pub struct SubscriptionRoot {
+    sensor_tx: broadcast::Sender<SensorReading>,
+    anomaly_tx: broadcast::Sender<AnomalyEvent>,
+}
+
+impl SubscriptionRoot {
+    pub fn new() -> Self {
+        let (sensor_tx, _) = broadcast::channel(1000);
+        let (anomaly_tx, _) = broadcast::channel(100);
+        Self {
+            sensor_tx,
+            anomaly_tx,
+        }
+    }
+
+    pub fn get_sensor_sender(&self) -> broadcast::Sender<SensorReading> {
+        self.sensor_tx.clone()
+    }
+
+    pub fn get_anomaly_sender(&self) -> broadcast::Sender<AnomalyEvent> {
+        self.anomaly_tx.clone()
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct SensorReading {
+    pub sensor_id: String,
+    pub timestamp: DateTime<Utc>,
+    pub dose_rate: f64,
+    pub latitude: f64,
+    pub longitude: f64,
+}
+
+#[derive(Clone, Debug)]
+pub struct AnomalyEvent {
+    pub anomaly_id: String,
+    pub sensor_id: String,
+    pub severity: String,
+    pub z_score: f64,
+    pub detected_at: DateTime<Utc>,
+    pub message: String,
+    pub latitude: f64,
+    pub longitude: f64,
+}
+
+
+#[Subscription]
+impl SubscriptionRoot {
+    /// Subscribe to real-time sensor updates for a specific sensor
+    async fn sensor_updates(
+        &self,
+        sensor_id: ID,
+    ) -> impl Stream<Item = SensorUpdate> {
+        let rx = self.sensor_tx.subscribe();
+        let target_id = sensor_id.to_string();
+
+        BroadcastStream::new(rx)
+            .filter_map(move |result| {
+                let target = target_id.clone();
+                async move {
+                    match result {
+                        Ok(reading) if reading.sensor_id == target => {
+                            Some(SensorUpdate {
+                                sensor_id: ID::from(reading.sensor_id),
+                                timestamp: reading.timestamp,
+                                dose_rate: reading.dose_rate,
+                                latitude: reading.latitude,
+                                longitude: reading.longitude,
+                            })
+                        }
+                        _ => None,
+                    }
+                }
+            })
+    }
+
+    /// Subscribe to anomaly alerts, optionally filtered by region
+    async fn anomaly_alerts(
+        &self,
+        region: Option<GeoRegionInput>,
+    ) -> impl Stream<Item = AnomalyAlert> {
+        let rx = self.anomaly_tx.subscribe();
+
+        BroadcastStream::new(rx)
+            .filter_map(move |result| {
+                let region_filter = region.clone();
+                async move {
+                    match result {
+                        Ok(event) => {
+                            // Apply region filter if provided
+                            if let Some(ref reg) = region_filter {
+                                // Simple bounding box check
+                                if !reg.contains(event.latitude, event.longitude) {
+                                    return None;
+                                }
+                            }
+                            Some(AnomalyAlert {
+                                anomaly_id: ID::from(event.anomaly_id),
+                                sensor_id: ID::from(event.sensor_id),
+                                severity: event.severity,
+                                z_score: event.z_score,
+                                detected_at: event.detected_at,
+                                message: event.message,
+                            })
+                        }
+                        _ => None,
+                    }
+                }
+            })
+    }
+
+    /// Subscribe to all sensor readings (broadcast)
+    async fn all_sensor_updates(&self) -> impl Stream<Item = SensorUpdate> {
+        let rx = self.sensor_tx.subscribe();
+
+        BroadcastStream::new(rx)
+            .filter_map(|result| async move {
+                match result {
+                    Ok(reading) => Some(SensorUpdate {
+                        sensor_id: ID::from(reading.sensor_id),
+                        timestamp: reading.timestamp,
+                        dose_rate: reading.dose_rate,
+                        latitude: reading.latitude,
+                        longitude: reading.longitude,
+                    }),
+                    _ => None,
+                }
+            })
+    }
+}
+
+#[derive(SimpleObject, Clone)]
+pub struct SensorUpdate {
+    pub sensor_id: ID,
+    pub timestamp: DateTime<Utc>,
+    pub dose_rate: f64,
+    pub latitude: f64,
+    pub longitude: f64,
+}
+
+#[derive(SimpleObject, Clone)]
+pub struct AnomalyAlert {
+    pub anomaly_id: ID,
+    pub sensor_id: ID,
+    pub severity: String,
+    pub z_score: f64,
+    pub detected_at: DateTime<Utc>,
+    pub message: String,
+}
+
+#[derive(InputObject, Clone)]
+pub struct GeoRegionInput {
+    pub min_lat: f64,
+    pub max_lat: f64,
+    pub min_lon: f64,
+    pub max_lon: f64,
+}
+
+impl GeoRegionInput {
+    fn contains(&self, lat: f64, lon: f64) -> bool {
+        lat >= self.min_lat && lat <= self.max_lat &&
+        lon >= self.min_lon && lon <= self.max_lon
+    }
+}
