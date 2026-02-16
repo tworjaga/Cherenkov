@@ -61,4 +61,4 @@
 
 - GitHub: tworjaga
 - Telegram: @al7exy
-- License: AGPL-3.0
+- License: MIT

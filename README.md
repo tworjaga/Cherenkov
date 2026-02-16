@@ -3,7 +3,8 @@
 > Real-time global radiological intelligence platform
 
 ![Build](https://github.com/tworjaga/cherenkov/workflows/ci/badge.svg)
-![License](https://img.shields.io/badge/license-AGPL-blue.svg)
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
+
 
 The blue glow of nuclear reactors, made visible.
 
@@ -53,4 +54,4 @@ See DATA_SOURCES.md for complete list.
 
 ## License
 
-AGPL-3.0 — Free for non-commercial use. Commercial licensing available.
+MIT — See [LICENSE](LICENSE) for details.
