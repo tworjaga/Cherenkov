@@ -11,8 +11,10 @@ import { useEffect, useState } from 'react';
 export const Header = () => {
   const { toggleSidebar, globalStatus } = useAppStore();
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     const interval = setInterval(() => {
       setCurrentTime(new Date());
     }, 1000);
@@ -20,6 +22,7 @@ export const Header = () => {
   }, []);
 
   const defconLevel = globalStatus?.defcon || 5;
+
 
   return (
     <motion.header
@@ -59,9 +62,10 @@ export const Header = () => {
               className="text-mono-sm text-text-primary"
               style={{ fontFamily: 'JetBrains Mono, monospace' }}
             >
-              {formatUTCTime(currentTime)}
+              {mounted ? formatUTCTime(currentTime) : '--:--:--'}
             </span>
           </div>
+
 
           <ConnectionStatus />
         </div>
