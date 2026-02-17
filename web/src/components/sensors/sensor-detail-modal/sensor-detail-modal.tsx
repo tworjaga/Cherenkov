@@ -9,11 +9,12 @@ import { Separator } from '@/components/ui/separator';
 
 interface SensorDetailModalProps {
   sensor: Sensor | null;
-  isOpen: boolean;
-  onClose: () => void;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 }
 
-export function SensorDetailModal({ sensor, isOpen, onClose }: SensorDetailModalProps) {
+export function SensorDetailModal({ sensor, open, onOpenChange }: SensorDetailModalProps) {
+
   if (!sensor) return null;
 
   const statusColors = {
@@ -24,7 +25,8 @@ export function SensorDetailModal({ sensor, isOpen, onClose }: SensorDetailModal
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={sensor.name}>
+    <Modal open={open} onOpenChange={onOpenChange}>
+
       <div className="space-y-4">
         <Card>
           <CardHeader>
@@ -81,12 +83,13 @@ export function SensorDetailModal({ sensor, isOpen, onClose }: SensorDetailModal
 
         <div className="flex justify-end gap-2">
           <button
-            onClick={onClose}
+            onClick={() => onOpenChange(false)}
             className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
           >
             Close
           </button>
         </div>
+
       </div>
     </Modal>
   );
