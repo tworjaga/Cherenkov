@@ -1,1 +1,1 @@
-export { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from './table';
+export { Table, TableHeader, TableBody, TableRow, TableHead, TableCell, TableFooter, TableCaption } from './table';

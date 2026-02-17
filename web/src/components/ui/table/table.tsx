@@ -108,3 +108,37 @@ export const TableCell = React.forwardRef<HTMLTableCellElement, TableCellProps>(
   )
 );
 TableCell.displayName = 'TableCell';
+
+interface TableFooterProps extends React.HTMLAttributes<HTMLTableSectionElement> {
+  children: React.ReactNode;
+}
+
+export const TableFooter = React.forwardRef<HTMLTableSectionElement, TableFooterProps>(
+  ({ className, children, ...props }, ref) => (
+    <tfoot
+      ref={ref}
+      className={cn('border-t border-border-subtle bg-bg-secondary font-medium', className)}
+      {...props}
+    >
+      {children}
+    </tfoot>
+  )
+);
+TableFooter.displayName = 'TableFooter';
+
+interface TableCaptionProps extends React.HTMLAttributes<HTMLTableCaptionElement> {
+  children: React.ReactNode;
+}
+
+export const TableCaption = React.forwardRef<HTMLTableCaptionElement, TableCaptionProps>(
+  ({ className, children, ...props }, ref) => (
+    <caption
+      ref={ref}
+      className={cn('mt-4 text-sm text-text-secondary', className)}
+      {...props}
+    >
+      {children}
+    </caption>
+  )
+);
+TableCaption.displayName = 'TableCaption';
