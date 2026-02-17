@@ -6,10 +6,11 @@ interface AuthState {
   error: string | null;
   user: { id: string; email: string; name: string } | null;
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, name: string) => Promise<void>;
+  register: (email: string, password: string, name?: string) => Promise<void>;
   logout: () => void;
   clearError: () => void;
 }
+
 
 
 export const useAuthStore = create<AuthState>((set) => ({
@@ -57,20 +58,20 @@ export const useAuthStore = create<AuthState>((set) => ({
     });
   },
 
-  register: async (email: string, password: string, name: string) => {
+  register: async (email: string, password: string, name?: string) => {
     set({ isLoading: true, error: null });
     
     try {
       // Simulate API call
       await new Promise((resolve) => setTimeout(resolve, 1000));
       
-      if (email && password && name) {
+      if (email && password) {
         set({
           isAuthenticated: true,
           user: {
             id: '1',
             email,
-            name,
+            name: name || 'New User',
           },
           isLoading: false,
         });
@@ -87,6 +88,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       });
     }
   },
+
 
   clearError: () => {
     set({ error: null });
