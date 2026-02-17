@@ -1,5 +1,5 @@
 # Build stage
-FROM rust:1.75-slim-bookworm as builder
+FROM rust:1.75-slim-bookworm AS builder
 
 WORKDIR /app
 
@@ -9,35 +9,29 @@ RUN apt-get update && apt-get install -y \
     libssl-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy workspace files
+# Copy manifests
 COPY Cargo.toml Cargo.lock ./
+COPY crates/cherenkov-core/Cargo.toml ./crates/cherenkov-core/
 COPY crates/cherenkov-db/Cargo.toml ./crates/cherenkov-db/
 COPY crates/cherenkov-api/Cargo.toml ./crates/cherenkov-api/
-COPY crates/cherenkov-observability/Cargo.toml ./crates/cherenkov-observability/
 COPY crates/cherenkov-ml/Cargo.toml ./crates/cherenkov-ml/
 COPY crates/cherenkov-plume/Cargo.toml ./crates/cherenkov-plume/
+COPY crates/cherenkov-stream/Cargo.toml ./crates/cherenkov-stream/
+COPY crates/cherenkov-ingest/Cargo.toml ./crates/cherenkov-ingest/
+COPY crates/cherenkov-observability/Cargo.toml ./crates/cherenkov-observability/
 
-# Create dummy main files for dependency caching
-RUN mkdir -p crates/cherenkov-db/src crates/cherenkov-api/src crates/cherenkov-observability/src crates/cherenkov-ml/src crates/cherenkov-plume/src && \
-    echo "fn main() {}" > crates/cherenkov-db/src/lib.rs && \
-    echo "fn main() {}" > crates/cherenkov-api/src/main.rs && \
-    echo "fn main() {}" > crates/cherenkov-observability/src/lib.rs && \
-    echo "fn main() {}" > crates/cherenkov-ml/src/lib.rs && \
-    echo "fn main() {}" > crates/cherenkov-plume/src/lib.rs
-
-# Build dependencies
-RUN cargo build --release -p cherenkov-api 2>/dev/null || true
-
-# Copy actual source code
+# Copy source code
+COPY crates/cherenkov-core/src ./crates/cherenkov-core/src
 COPY crates/cherenkov-db/src ./crates/cherenkov-db/src
 COPY crates/cherenkov-api/src ./crates/cherenkov-api/src
-COPY crates/cherenkov-observability/src ./crates/cherenkov-observability/src
 COPY crates/cherenkov-ml/src ./crates/cherenkov-ml/src
 COPY crates/cherenkov-plume/src ./crates/cherenkov-plume/src
-COPY crates/cherenkov-db/migrations ./crates/cherenkov-db/migrations
+COPY crates/cherenkov-stream/src ./crates/cherenkov-stream/src
+COPY crates/cherenkov-ingest/src ./crates/cherenkov-ingest/src
+COPY crates/cherenkov-observability/src ./crates/cherenkov-observability/src
 
-# Build the application
-RUN cargo build --release -p cherenkov-api
+# Build release binary
+RUN cargo build --release --bin cherenkov-api
 
 # Runtime stage
 FROM debian:bookworm-slim
@@ -47,21 +41,18 @@ WORKDIR /app
 # Install runtime dependencies
 RUN apt-get update && apt-get install -y \
     ca-certificates \
-    curl \
+    libssl3 \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy binary from builder
-COPY --from=builder /app/target/release/cherenkov-api /usr/local/bin/
+COPY --from=builder /app/target/release/cherenkov-api /app/cherenkov-api
 
-# Create data directory
-RUN mkdir -p /data
-
-# Expose API port
+# Expose ports
 EXPOSE 8080
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:8080/health || exit 1
 
-# Run the application
-CMD ["cherenkov-api"]
+# Run the binary
+CMD ["./cherenkov-api"]
