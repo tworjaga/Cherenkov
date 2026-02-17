@@ -1,6 +1,7 @@
 use nalgebra::Vector3;
 use rand;
 
+#[allow(dead_code)]
 pub struct RadioactiveParticle {
     pub position: Vector3<f64>,
     pub velocity: Vector3<f64>,
