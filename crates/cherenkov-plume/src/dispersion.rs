@@ -11,8 +11,10 @@ pub struct LagrangianDispersion {
     dt_seconds: f64,
     use_gpu: bool,
     device: Device,
+    #[allow(dead_code)]
     decay_constant: f64,
     dry_deposition_velocity: f64,
+    #[allow(dead_code)]
     wet_deposition_rate: f64,
     /// GPU buffers for particle data
     gpu_positions: Option<Tensor>,
@@ -159,6 +161,7 @@ impl LagrangianDispersion {
     }
     
     /// Synchronize particle data from GPU to CPU
+    #[allow(dead_code)]
     fn sync_from_gpu(&mut self) -> anyhow::Result<()> {
         if !self.use_gpu {
             return Ok(());
