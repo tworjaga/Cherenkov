@@ -6,14 +6,17 @@ export interface RadioProps extends React.InputHTMLAttributes<HTMLInputElement> 
 }
 
 export const Radio = React.forwardRef<HTMLInputElement, RadioProps>(
-  ({ className, label, ...props }, ref) => {
+  ({ className, label, checked, ...props }, ref) => {
     return (
       <label className="flex items-center gap-2 cursor-pointer">
         <div className="relative">
           <input
             type="radio"
+            role="radio"
+            aria-checked={checked ?? false}
             className="peer sr-only"
             ref={ref}
+            checked={checked}
             {...props}
           />
           <div
