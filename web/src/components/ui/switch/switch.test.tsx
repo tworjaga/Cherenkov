@@ -8,15 +8,16 @@ describe('Switch', () => {
     expect(screen.getByRole('switch')).toBeInTheDocument();
   });
 
-  it('calls onChange when clicked', () => {
+  it('calls onCheckedChange when clicked', () => {
     const handleChange = vi.fn();
-    render(<Switch onChange={handleChange} />);
+    render(<Switch onCheckedChange={handleChange} />);
     
     const switchEl = screen.getByRole('switch');
     fireEvent.click(switchEl);
     
     expect(handleChange).toHaveBeenCalled();
   });
+
 
 
   it('displays checked state correctly', () => {
