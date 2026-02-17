@@ -239,7 +239,7 @@ impl RadiationDatabase {
         sensor_ids: &[String],
         start_ts: i64,
         end_ts: i64,
-        _aggregation: AggregationLevel,
+        aggregation: AggregationLevel,
     ) -> Result<Vec<TimeSeriesPoint>, DatabaseError> {
         let start = DateTime::from_timestamp(start_ts, 0)
             .unwrap_or_else(|| Utc::now());
@@ -289,7 +289,7 @@ impl RadiationDatabase {
         sensor_ids: &[String],
         start: DateTime<Utc>,
         end: DateTime<Utc>,
-        aggregation: AggregationLevel,
+        _aggregation: AggregationLevel,
     ) -> Result<Vec<TimeSeriesPoint>, DatabaseError> {
         let mut points = Vec::new();
 
