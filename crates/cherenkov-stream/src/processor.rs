@@ -8,6 +8,7 @@ use crate::anomaly::{Anomaly, AnomalyDetector};
 use crate::window::SlidingWindow;
 
 /// Stream processor coordinating anomaly detection pipeline
+#[allow(dead_code)]
 pub struct StreamProcessor {
     db: Arc<RadiationDatabase>,
     ingest_tx: mpsc::Sender<RadiationReading>,
@@ -17,6 +18,7 @@ pub struct StreamProcessor {
     windows: Arc<RwLock<HashMap<String, SlidingWindow>>>,
 }
 
+#[allow(dead_code)]
 impl StreamProcessor {
     pub fn new(
         db: Arc<RadiationDatabase>,
