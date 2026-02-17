@@ -1,7 +1,6 @@
 use serde_json::{json, Value};
 use chrono::Utc;
 use std::collections::HashMap;
-use std::sync::Arc;
 use tokio::sync::mpsc;
 use tracing::{info, warn, error, debug};
 use std::fs::OpenOptions;

@@ -46,13 +46,13 @@ impl Default for TraceConfig {
 }
 
 impl TracingService {
-    pub fn new(config: TraceConfig) -> Result<Self> {
-        Ok(Self {
+    pub fn new(config: TraceConfig) -> Self {
+        Self {
             active_spans: Arc::new(RwLock::new(HashMap::new())),
             service_name: config.service_name.clone(),
             service_version: config.service_version.clone(),
             deployment_environment: config.environment.clone(),
-        })
+        }
     }
     
     pub fn init_subscriber(&self) {
