@@ -30,6 +30,12 @@ export const Progress = React.forwardRef<HTMLDivElement, ProgressProps>(
     return (
       <div
         ref={ref}
+        role="progressbar"
+        aria-valuenow={indeterminate ? undefined : value}
+        aria-valuemin={0}
+        aria-valuemax={max}
+        aria-valuetext={indeterminate ? undefined : `${Math.round(percentage)}%`}
+        data-state={indeterminate ? 'indeterminate' : value === max ? 'complete' : 'loading'}
         className={cn(
           'w-full rounded-full bg-[#1f1f2e] overflow-hidden',
           sizeClasses[size],
