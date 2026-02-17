@@ -50,7 +50,9 @@ node_modules/
 dist/
 dist-ssr/
 build/
+.next/
 *.local
+
 
 # TypeScript
 *.tsbuildinfo
