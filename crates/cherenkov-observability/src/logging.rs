@@ -9,6 +9,7 @@ use std::path::PathBuf;
 
 pub struct StructuredLogger {
     sender: mpsc::Sender<LogEntry>,
+    #[allow(dead_code)]
     config: LogConfig,
 }
 
