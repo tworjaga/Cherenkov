@@ -1,10 +1,10 @@
 use std::sync::Arc;
 use tokio::sync::{mpsc, broadcast, RwLock};
-use tracing::{info, debug, warn, error, instrument};
+use tracing::{info, debug, warn, instrument};
 use std::collections::HashMap;
 
 use cherenkov_db::{RadiationDatabase, RadiationReading};
-use crate::anomaly::{Anomaly, AnomalyDetector, Severity};
+use crate::anomaly::{Anomaly, AnomalyDetector};
 use crate::window::SlidingWindow;
 
 /// Stream processor coordinating anomaly detection pipeline

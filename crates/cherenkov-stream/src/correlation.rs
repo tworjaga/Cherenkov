@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use chrono::{DateTime, Utc, Duration};
-use tracing::{info, debug, warn};
+use tracing::info;
 use serde::{Serialize, Deserialize};
 
 pub struct CorrelationEngine {
