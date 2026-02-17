@@ -30,13 +30,14 @@ describe('calculations', () => {
 
   describe('interpolatePosition', () => {
     it('interpolates between two positions', () => {
-      const pos = interpolatePosition(0, 0, 1, 1, 0.5);
+      const pos = interpolatePosition({ lat: 0, lon: 0 }, { lat: 1, lon: 1 }, 0.5);
       expect(pos.lat).toBeGreaterThan(0);
       expect(pos.lat).toBeLessThan(1);
       expect(pos.lon).toBeGreaterThan(0);
       expect(pos.lon).toBeLessThan(1);
     });
   });
+
 
   describe('calculateBoundingBox', () => {
     it('calculates bounding box for points', () => {
