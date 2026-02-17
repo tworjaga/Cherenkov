@@ -24,7 +24,25 @@ interface PickingInfo {
 }
 
 
-const _INITIAL_VIEW_STATE: MapViewState = {
+interface GlobeProps {
+  sensors?: Sensor[];
+  facilities?: Facility[];
+  anomalies?: Anomaly[];
+  plumes?: PlumeSimulation[];
+  selectedSensorId?: string | null;
+  viewport?: Viewport;
+  layers?: {
+    sensors: boolean;
+    facilities: boolean;
+    anomalies: boolean;
+    plumes: boolean;
+    heatmap: boolean;
+  };
+  onViewportChange?: (viewport: Viewport) => void;
+  onSensorSelect?: (sensorId: string) => void;
+}
+
+const DEFAULT_VIEWPORT: Viewport = {
   longitude: 0,
   latitude: 20,
   zoom: 2,
@@ -32,36 +50,26 @@ const _INITIAL_VIEW_STATE: MapViewState = {
   bearing: 0,
 };
 
-interface GlobeProps {
-
-  sensors: Sensor[];
-  facilities: Facility[];
-  anomalies: Anomaly[];
-  plumes: PlumeSimulation[];
-  selectedSensorId: string | null;
-  viewport: Viewport;
-  layers: {
-    sensors: boolean;
-    facilities: boolean;
-    anomalies: boolean;
-    plumes: boolean;
-    heatmap: boolean;
-  };
-  onViewportChange: (viewport: Viewport) => void;
-  onSensorSelect: (sensorId: string) => void;
-}
+const DEFAULT_LAYERS = {
+  sensors: true,
+  facilities: false,
+  anomalies: true,
+  plumes: false,
+  heatmap: false,
+};
 
 export const Globe = ({ 
-  sensors, 
-  facilities: _facilities, 
-  anomalies, 
-  plumes: _plumes,
-  selectedSensorId: _selectedSensorId,
-  viewport,
-  layers: layerVisibility,
-  onViewportChange,
-  onSensorSelect
+  sensors = [], 
+  facilities: _facilities = [], 
+  anomalies = [], 
+  plumes: _plumes = [],
+  selectedSensorId: _selectedSensorId = null,
+  viewport = DEFAULT_VIEWPORT,
+  layers: layerVisibility = DEFAULT_LAYERS,
+  onViewportChange = () => {},
+  onSensorSelect = () => {}
 }: GlobeProps) => {
+
 
 
   const { setHoveredFeature } = useGlobeStore();
