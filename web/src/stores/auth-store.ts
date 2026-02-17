@@ -6,9 +6,11 @@ interface AuthState {
   error: string | null;
   user: { id: string; email: string; name: string } | null;
   login: (email: string, password: string) => Promise<void>;
+  register: (email: string, password: string, name: string) => Promise<void>;
   logout: () => void;
   clearError: () => void;
 }
+
 
 export const useAuthStore = create<AuthState>((set) => ({
   isAuthenticated: false,
@@ -53,6 +55,37 @@ export const useAuthStore = create<AuthState>((set) => ({
       user: null,
       error: null,
     });
+  },
+
+  register: async (email: string, password: string, name: string) => {
+    set({ isLoading: true, error: null });
+    
+    try {
+      // Simulate API call
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      
+      if (email && password && name) {
+        set({
+          isAuthenticated: true,
+          user: {
+            id: '1',
+            email,
+            name,
+          },
+          isLoading: false,
+        });
+      } else {
+        set({
+          error: 'Invalid registration data',
+          isLoading: false,
+        });
+      }
+    } catch {
+      set({
+        error: 'Registration failed',
+        isLoading: false,
+      });
+    }
   },
 
   clearError: () => {
