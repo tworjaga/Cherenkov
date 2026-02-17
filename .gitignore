@@ -203,7 +203,9 @@ terraform.rc
 
 # Docker
 .dockerignore
+!web/.dockerignore
 docker-compose.override.yml
+
 
 # Kubernetes
 kubeconfig
