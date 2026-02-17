@@ -23,3 +23,11 @@ export const isValidSensorId = (id: string): boolean => {
 export const isValidDoseRate = (value: number): boolean => {
   return !isNaN(value) && value >= 0 && value < 1000000;
 };
+
+export const isValidPassword = (password: string): boolean => {
+  return password.length >= 8 && /[A-Z]/.test(password) && /[0-9]/.test(password);
+};
+
+export const isValidCoordinate = (lat: number, lon: number): boolean => {
+  return isValidLatitude(lat) && isValidLongitude(lon);
+};

@@ -83,3 +83,37 @@ export const getDefconColor = (level: number): string => {
       return '#00ff88';
   }
 };
+
+export const calculateBoundingBox = (
+  points: { lat: number; lon: number }[]
+): { minLat: number; maxLat: number; minLon: number; maxLon: number } => {
+  if (points.length === 0) {
+    return { minLat: 0, maxLat: 0, minLon: 0, maxLon: 0 };
+  }
+  
+  const lats = points.map(p => p.lat);
+  const lons = points.map(p => p.lon);
+  
+  return {
+    minLat: Math.min(...lats),
+    maxLat: Math.max(...lats),
+    minLon: Math.min(...lons),
+    maxLon: Math.max(...lons),
+  };
+};
+
+export const calculateCentroid = (
+  points: { lat: number; lon: number }[]
+): { lat: number; lon: number } => {
+  if (points.length === 0) {
+    return { lat: 0, lon: 0 };
+  }
+  
+  const sumLat = points.reduce((sum, p) => sum + p.lat, 0);
+  const sumLon = points.reduce((sum, p) => sum + p.lon, 0);
+  
+  return {
+    lat: sumLat / points.length,
+    lon: sumLon / points.length,
+  };
+};

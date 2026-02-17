@@ -107,6 +107,15 @@ export interface Viewport {
   bearing: number;
 }
 
+export interface GlobeViewport {
+  latitude: number;
+  longitude: number;
+  zoom: number;
+  pitch: number;
+  bearing: number;
+}
+
 export type ViewType = 'dashboard' | 'globe' | 'sensors' | 'anomalies' | 'plume' | 'settings';
+
 export type TimeMode = 'live' | 'paused' | 'replay';
 export type ConnectionStatus = 'connected' | 'connecting' | 'disconnected';

@@ -1,38 +1,51 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { Switch } from './toggle';
+import { Toggle } from './toggle';
 
-describe('Switch', () => {
-  it('renders switch in off state by default', () => {
-    render(<Switch />);
-    const switchElement = screen.getByRole('switch');
-    expect(switchElement).toBeInTheDocument();
-    expect(switchElement).toHaveAttribute('data-state', 'unchecked');
+describe('Toggle', () => {
+  it('renders with children', () => {
+    render(<Toggle>Toggle Button</Toggle>);
+    expect(screen.getByText('Toggle Button')).toBeInTheDocument();
   });
 
-  it('renders switch in on state when checked', () => {
-    render(<Switch checked={true} onCheckedChange={vi.fn()} />);
-    const switchElement = screen.getByRole('switch');
-    expect(switchElement).toHaveAttribute('data-state', 'checked');
+  it('toggles pressed state on click', () => {
+    render(<Toggle>Toggle</Toggle>);
+    const button = screen.getByRole('button');
+    
+    expect(button).toHaveAttribute('aria-pressed', 'false');
+    fireEvent.click(button);
+    expect(button).toHaveAttribute('aria-pressed', 'true');
   });
 
-  it('calls onCheckedChange when clicked', () => {
-    const handleCheckedChange = vi.fn();
-    render(<Switch onCheckedChange={handleCheckedChange} />);
-    const switchElement = screen.getByRole('switch');
-    fireEvent.click(switchElement);
-    expect(handleCheckedChange).toHaveBeenCalledWith(true);
+  it('calls onPressedChange when toggled', () => {
+    const onPressedChange = vi.fn();
+    render(<Toggle onPressedChange={onPressedChange}>Toggle</Toggle>);
+    
+    fireEvent.click(screen.getByRole('button'));
+    expect(onPressedChange).toHaveBeenCalledWith(true);
+    
+    fireEvent.click(screen.getByRole('button'));
+    expect(onPressedChange).toHaveBeenCalledWith(false);
   });
 
-  it('can be disabled', () => {
-    render(<Switch disabled />);
-    const switchElement = screen.getByRole('switch');
-    expect(switchElement).toBeDisabled();
+  it('respects controlled pressed prop', () => {
+    const { rerender } = render(<Toggle pressed={true}>Toggle</Toggle>);
+    expect(screen.getByRole('button')).toHaveAttribute('aria-pressed', 'true');
+    
+    rerender(<Toggle pressed={false}>Toggle</Toggle>);
+    expect(screen.getByRole('button')).toHaveAttribute('aria-pressed', 'false');
   });
 
-  it('applies custom className', () => {
-    render(<Switch className="custom-switch" />);
-    const switchElement = screen.getByRole('switch');
-    expect(switchElement.className).toContain('custom-switch');
+  it('does not toggle when disabled', () => {
+    const onPressedChange = vi.fn();
+    render(<Toggle disabled onPressedChange={onPressedChange}>Toggle</Toggle>);
+    
+    fireEvent.click(screen.getByRole('button'));
+    expect(onPressedChange).not.toHaveBeenCalled();
+  });
+
+  it('applies data-state attribute', () => {
+    render(<Toggle pressed>Toggle</Toggle>);
+    expect(screen.getByRole('button')).toHaveAttribute('data-state', 'on');
   });
 });

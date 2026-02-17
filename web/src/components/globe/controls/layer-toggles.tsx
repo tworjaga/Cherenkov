@@ -1,7 +1,8 @@
 'use client';
 
 import { useGlobeStore } from '@/stores';
-import { Switch } from '@/components/ui/toggle';
+import { Switch } from '@/components/ui/switch';
+
 import { Layers, Radio, Building2, AlertTriangle, Wind, Hexagon } from 'lucide-react';
 
 interface LayerTogglesProps {
@@ -36,8 +37,9 @@ export function LayerToggles({ className }: LayerTogglesProps) {
             </div>
             <Switch
               checked={layers[id as keyof typeof layers]}
-              onCheckedChange={() => toggleLayer(id as keyof typeof layers)}
+              onChange={() => toggleLayer(id as keyof typeof layers)}
             />
+
           </div>
         ))}
       </div>
