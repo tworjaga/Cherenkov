@@ -179,6 +179,7 @@ impl StructuredLogger {
 
 pub struct LogEntryBuilder {
     sender: mpsc::Sender<LogEntry>,
+    #[allow(dead_code)]
     config: LogConfig,
     level: Option<LogLevel>,
     target: Option<String>,
