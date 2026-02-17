@@ -1,6 +1,13 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { useState } from 'react';
-import { Modal } from './modal';
+import {
+  Modal,
+  ModalContent,
+  ModalHeader,
+  ModalTitle,
+  ModalDescription,
+  ModalFooter,
+} from './modal';
 import { Button } from '../button';
 
 const meta: Meta<typeof Modal> = {
@@ -14,70 +21,75 @@ const meta: Meta<typeof Modal> = {
   },
 };
 
-
 export default meta;
 type Story = StoryObj<typeof Modal>;
 
-export const Default: Story = {
-  render: () => {
-    const [open, setOpen] = useState(false);
-    return (
-      <>
-        <Button onClick={() => setOpen(true)}>Open Modal</Button>
-        <Modal open={open} onOpenChange={setOpen} title="Modal Title">
-          <p className="text-[#a0a0b0]">Modal content goes here.</p>
-        </Modal>
-      </>
-    );
-  },
+const DefaultModalExample = () => {
+  const [open, setOpen] = useState(false);
+  return (
+    <Modal open={open} onOpenChange={setOpen}>
+      <Button onClick={() => setOpen(true)}>Open Modal</Button>
+      <ModalContent>
+        <ModalHeader>
+          <ModalTitle>Modal Title</ModalTitle>
+          <ModalDescription>
+            Modal content goes here.
+          </ModalDescription>
+        </ModalHeader>
+      </ModalContent>
+    </Modal>
+  );
 };
 
+export const Default: Story = {
+  render: () => <DefaultModalExample />,
+};
+
+const WithFooterModalExample = () => {
+  const [open, setOpen] = useState(false);
+  return (
+    <Modal open={open} onOpenChange={setOpen}>
+      <Button onClick={() => setOpen(true)}>Open Modal with Footer</Button>
+      <ModalContent>
+        <ModalHeader>
+          <ModalTitle>Confirm Action</ModalTitle>
+          <ModalDescription>
+            Are you sure you want to proceed?
+          </ModalDescription>
+        </ModalHeader>
+        <ModalFooter>
+          <Button variant="ghost" onClick={() => setOpen(false)}>
+            Cancel
+          </Button>
+          <Button onClick={() => setOpen(false)}>Confirm</Button>
+        </ModalFooter>
+      </ModalContent>
+    </Modal>
+  );
+};
 
 export const WithFooter: Story = {
-  render: () => {
-    const [open, setOpen] = useState(false);
-    return (
-      <>
-        <Button onClick={() => setOpen(true)}>Open Modal with Footer</Button>
-        <Modal
-          open={open}
-          onOpenChange={setOpen}
-          title="Confirm Action"
-          footer={
-            <div className="flex justify-end gap-2">
-              <Button variant="ghost" onClick={() => setOpen(false)}>
-                Cancel
-              </Button>
-              <Button onClick={() => setOpen(false)}>Confirm</Button>
-            </div>
-          }
-        >
-          <p className="text-[#a0a0b0]">Are you sure you want to proceed?</p>
-        </Modal>
-      </>
-    );
-  },
+  render: () => <WithFooterModalExample />,
 };
 
+const LargeModalExample = () => {
+  const [open, setOpen] = useState(false);
+  return (
+    <Modal open={open} onOpenChange={setOpen}>
+      <Button onClick={() => setOpen(true)}>Open Large Modal</Button>
+      <ModalContent className="max-w-2xl">
+        <ModalHeader>
+          <ModalTitle>Large Modal</ModalTitle>
+          <ModalDescription>
+            This is a large modal with more content.
+            Additional content can go here.
+          </ModalDescription>
+        </ModalHeader>
+      </ModalContent>
+    </Modal>
+  );
+};
 
 export const Large: Story = {
-  render: () => {
-    const [open, setOpen] = useState(false);
-    return (
-      <>
-        <Button onClick={() => setOpen(true)}>Open Large Modal</Button>
-        <Modal
-          open={open}
-          onOpenChange={setOpen}
-          title="Large Modal"
-          size="lg"
-        >
-          <div className="space-y-4">
-            <p className="text-[#a0a0b0]">This is a large modal with more content.</p>
-            <p className="text-[#a0a0b0]">Additional content can go here.</p>
-          </div>
-        </Modal>
-      </>
-    );
-  },
+  render: () => <LargeModalExample />,
 };
