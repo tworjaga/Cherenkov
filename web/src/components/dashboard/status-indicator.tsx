@@ -27,9 +27,11 @@ export const StatusIndicator = ({ defcon, level, activeAlerts }: StatusIndicator
         />
         {defcon <= 3 && (
           <motion.div
+            data-testid="pulse"
             className="absolute inset-0 rounded-full"
             style={{ backgroundColor: color }}
             animate={{
+
               scale: [1, 1.5, 1],
               opacity: [0.5, 0, 0.5],
             }}
@@ -42,15 +44,10 @@ export const StatusIndicator = ({ defcon, level, activeAlerts }: StatusIndicator
         )}
       </div>
       <div className="flex flex-col">
-        <span className="text-heading-xs text-text-secondary">DEFCON</span>
-        <span className="text-display-md font-mono" style={{ color }}>
-          {defcon}
-        </span>
-      </div>
-      <div className="flex flex-col ml-4 border-l border-border-subtle pl-4">
-        <span className="text-heading-xs text-text-secondary">STATUS</span>
+        <span className="text-heading-xs text-text-secondary">DEFCON {defcon}</span>
         <span className="text-body-sm text-text-primary uppercase">{level}</span>
       </div>
+
       <div className="flex flex-col ml-4 border-l border-border-subtle pl-4">
         <span className="text-heading-xs text-text-secondary">ALERTS</span>
         <span className="text-body-sm text-alert-critical font-mono">
