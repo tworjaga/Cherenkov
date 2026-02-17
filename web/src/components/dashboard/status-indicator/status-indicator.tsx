@@ -31,7 +31,6 @@ export const StatusIndicator = ({ defcon, level, activeAlerts }: StatusIndicator
             className="absolute inset-0 rounded-full"
             style={{ backgroundColor: color }}
             animate={{
-
               scale: [1, 1.5, 1],
               opacity: [0.5, 0, 0.5],
             }}
