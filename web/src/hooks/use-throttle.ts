@@ -12,19 +12,23 @@ export function useThrottle<T>(value: T, interval: number): T {
   useEffect(() => {
     const now = Date.now();
     const timeElapsed = now - lastExecuted.current;
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
 
     if (timeElapsed >= interval) {
       setThrottledValue(value);
       lastExecuted.current = now;
     } else {
-      const timeoutId = setTimeout(() => {
+      timeoutId = setTimeout(() => {
         setThrottledValue(value);
         lastExecuted.current = Date.now();
       }, interval - timeElapsed);
-
-      return () => clearTimeout(timeoutId);
     }
+
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+    };
   }, [value, interval]);
+
 
   return throttledValue;
 }
