@@ -35,6 +35,7 @@ export function ZoomControls({ className }: ZoomControlsProps) {
         variant="outline"
         size="icon"
         onClick={handleZoomIn}
+        aria-label="Zoom in"
         className="bg-bg-secondary/90 backdrop-blur-sm border-border-subtle hover:bg-bg-hover"
       >
         <Plus className="w-4 h-4" />
@@ -43,6 +44,7 @@ export function ZoomControls({ className }: ZoomControlsProps) {
         variant="outline"
         size="icon"
         onClick={handleZoomOut}
+        aria-label="Zoom out"
         className="bg-bg-secondary/90 backdrop-blur-sm border-border-subtle hover:bg-bg-hover"
       >
         <Minus className="w-4 h-4" />
@@ -51,10 +53,12 @@ export function ZoomControls({ className }: ZoomControlsProps) {
         variant="outline"
         size="icon"
         onClick={handleReset}
+        aria-label="Reset view"
         className="bg-bg-secondary/90 backdrop-blur-sm border-border-subtle hover:bg-bg-hover"
       >
         <Maximize className="w-4 h-4" />
       </Button>
+
     </div>
   );
 }
