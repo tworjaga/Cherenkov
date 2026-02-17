@@ -1,0 +1,37 @@
+{
+  "readings": [
+    {
+      "sensorId": "sensor-001",
+      "timestamp": "2024-01-15T10:30:00Z",
+      "value": 0.15,
+      "unit": "uSv/h",
+      "quality": "good",
+      "metadata": {
+        "temperature": 22.5,
+        "humidity": 45
+      }
+    },
+    {
+      "sensorId": "sensor-001",
+      "timestamp": "2024-01-15T10:15:00Z",
+      "value": 0.14,
+      "unit": "uSv/h",
+      "quality": "good",
+      "metadata": {
+        "temperature": 22.3,
+        "humidity": 46
+      }
+    },
+    {
+      "sensorId": "sensor-002",
+      "timestamp": "2024-01-15T10:25:00Z",
+      "value": 0.02,
+      "unit": "cps",
+      "quality": "good",
+      "metadata": {
+        "temperature": 18.0,
+        "humidity": 55
+      }
+    }
+  ]
+}

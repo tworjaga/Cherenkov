@@ -1,0 +1,35 @@
+{
+  "anomalies": [
+    {
+      "id": "anomaly-001",
+      "type": "radiation_spike",
+      "severity": "critical",
+      "sensorId": "sensor-001",
+      "timestamp": "2024-01-15T10:30:00Z",
+      "location": {
+        "lat": 51.5074,
+        "lng": -0.1278
+      },
+      "description": "Radiation level exceeded threshold",
+      "value": 5.5,
+      "threshold": 1.0,
+      "unit": "uSv/h",
+      "status": "unacknowledged"
+    },
+    {
+      "id": "anomaly-002",
+      "type": "sensor_offline",
+      "severity": "warning",
+      "sensorId": "sensor-003",
+      "timestamp": "2024-01-15T09:00:00Z",
+      "location": {
+        "lat": 40.7128,
+        "lng": -74.006
+      },
+      "description": "Sensor has not reported for 30 minutes",
+      "status": "acknowledged",
+      "acknowledgedBy": "operator-001",
+      "acknowledgedAt": "2024-01-15T09:15:00Z"
+    }
+  ]
+}

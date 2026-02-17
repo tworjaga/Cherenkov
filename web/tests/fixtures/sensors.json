@@ -1,0 +1,57 @@
+{
+  "sensors": [
+    {
+      "id": "sensor-001",
+      "name": "Radiation Monitor - Site A",
+      "type": "gamma",
+      "location": {
+        "lat": 51.5074,
+        "lng": -0.1278,
+        "elevation": 45
+      },
+      "status": "active",
+      "lastReading": "2024-01-15T10:30:00Z",
+      "readings": [
+        {
+          "timestamp": "2024-01-15T10:30:00Z",
+          "value": 0.15,
+          "unit": "uSv/h",
+          "quality": "good"
+        }
+      ]
+    },
+    {
+      "id": "sensor-002",
+      "name": "Neutron Detector - Site B",
+      "type": "neutron",
+      "location": {
+        "lat": 48.8566,
+        "lng": 2.3522,
+        "elevation": 35
+      },
+      "status": "active",
+      "lastReading": "2024-01-15T10:25:00Z",
+      "readings": [
+        {
+          "timestamp": "2024-01-15T10:25:00Z",
+          "value": 0.02,
+          "unit": "cps",
+          "quality": "good"
+        }
+      ]
+    },
+    {
+      "id": "sensor-003",
+      "name": "Alpha Monitor - Site C",
+      "type": "alpha",
+      "location": {
+        "lat": 40.7128,
+        "lng": -74.006,
+        "elevation": 10
+      },
+      "status": "maintenance",
+      "lastReading": "2024-01-15T09:00:00Z",
+      "readings": []
+    }
+  ]
+}
