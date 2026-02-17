@@ -21,16 +21,17 @@ import {
 } from 'recharts';
 
 interface BottomPanelProps {
-  globalTimeSeries: TimeSeriesPoint[];
-  regionalStats: RegionalStat[];
-  recentEvents: Alert[];
+  globalTimeSeries?: TimeSeriesPoint[];
+  regionalStats?: RegionalStat[];
+  recentEvents?: Alert[];
 }
 
 export const BottomPanel = ({
-  globalTimeSeries,
-  regionalStats,
-  recentEvents,
+  globalTimeSeries = [],
+  regionalStats = [],
+  recentEvents = [],
 }: BottomPanelProps) => {
+
   const { bottomPanelOpen, toggleBottomPanel } = useAppStore();
   const [activeTab, setActiveTab] = useState<'chart' | 'regions' | 'events'>('chart');
 
