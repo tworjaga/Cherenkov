@@ -8,24 +8,30 @@ const mockSensors: Sensor[] = [
     id: 'sensor-1',
     name: 'Tokyo Sensor',
     location: { lat: 35.6762, lon: 139.6503 },
+    latitude: 35.6762,
+    longitude: 139.6503,
     status: 'active',
     source: 'safecast',
     lastReading: {
       timestamp: Date.now(),
       doseRate: 0.15,
       unit: 'uSv/h',
+      qualityFlag: 'good',
     },
   },
   {
     id: 'sensor-2',
     name: 'Fukushima Sensor',
     location: { lat: 37.4215, lon: 141.0328 },
+    latitude: 37.4215,
+    longitude: 141.0328,
     status: 'active',
     source: 'uRadMonitor',
     lastReading: {
       timestamp: Date.now(),
       doseRate: 0.45,
       unit: 'uSv/h',
+      qualityFlag: 'good',
     },
   },
 ];
@@ -33,8 +39,7 @@ const mockSensors: Sensor[] = [
 describe('SensorList', () => {
   const defaultProps = {
     sensors: mockSensors,
-    selectedId: null as string | null,
-    onSelect: vi.fn(),
+    onSensorClick: vi.fn(),
   };
 
   it('renders sensor list', () => {
@@ -49,25 +54,22 @@ describe('SensorList', () => {
     expect(screen.getByText('0.450 μSv/h')).toBeInTheDocument();
   });
 
-
   it('shows sensor sources', () => {
     render(<SensorList {...defaultProps} />);
     expect(screen.getByText(/safecast/i)).toBeInTheDocument();
     expect(screen.getByText(/uRadMonitor/i)).toBeInTheDocument();
   });
 
-  it('calls onSelect when sensor clicked', () => {
+  it('calls onSensorClick when sensor clicked', () => {
     render(<SensorList {...defaultProps} />);
     fireEvent.click(screen.getByText(/Tokyo Sensor/i));
-    expect(defaultProps.onSelect).toHaveBeenCalledWith(mockSensors[0]);
+    expect(defaultProps.onSensorClick).toHaveBeenCalledWith(mockSensors[0]);
   });
 
-  it('shows selected state for selected sensor', () => {
-    render(<SensorList {...defaultProps} selectedId="sensor-1" />);
-    const tokyoButton = screen.getByText(/Tokyo Sensor/i).closest('button');
-    expect(tokyoButton).toHaveClass('bg-bg-active');
+  it('shows selected state when sensor is clicked', () => {
+    render(<SensorList {...defaultProps} />);
+    const tokyoElement = screen.getByText(/Tokyo Sensor/i).closest('div[class*="cursor-pointer"]');
+    fireEvent.click(tokyoElement!);
+    expect(tokyoElement).toHaveClass('border-accent-primary');
   });
-
-
-
 });
