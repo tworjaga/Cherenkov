@@ -27,7 +27,7 @@ deadpool-redis = "0.14"
 # Storage and serialization
 aws-sdk-s3 = { version = "1.15", optional = true }
 parquet = { version = "52.0", optional = true }
-arrow = { version = "52.0", optional = true }
+arrow = { version = "57.3", optional = true }
 
 # Retry and backoff
 backoff = { version = "0.4", features = ["tokio"] }
