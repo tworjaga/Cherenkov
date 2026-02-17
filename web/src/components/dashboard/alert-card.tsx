@@ -8,20 +8,25 @@ import { getSeverityColor, formatTimestamp } from '@/lib/utils';
 interface AlertCardProps {
   alert: Alert;
   onAcknowledge: (id: string) => void;
+  isSelected?: boolean;
+  onClick?: () => void;
 }
 
-export const AlertCard = ({ alert, onAcknowledge }: AlertCardProps) => {
+export const AlertCard = ({ alert, onAcknowledge, isSelected, onClick }: AlertCardProps) => {
+
   const severityColor = getSeverityColor(alert.severity);
   
   return (
     <motion.div
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
-      className={`p-3 border-l-2 bg-bg-secondary mb-2 rounded-r-lg ${
+      onClick={onClick}
+      className={`p-3 border-l-2 bg-bg-secondary mb-2 rounded-r-lg cursor-pointer ${
         alert.acknowledged ? 'opacity-50' : ''
-      }`}
+      } ${isSelected ? 'ring-1 ring-accent-primary bg-bg-tertiary' : ''}`}
       style={{ borderLeftColor: severityColor }}
     >
+
       <div className="flex items-start justify-between">
         <div className="flex items-start gap-2">
           <AlertTriangle 
