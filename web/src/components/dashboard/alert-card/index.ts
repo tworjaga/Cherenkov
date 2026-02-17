@@ -1,1 +1,1 @@
-export { AlertCard } from './alert-card';
+export { AlertCard, type AlertCardProps } from './alert-card';

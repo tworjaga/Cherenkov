@@ -22,6 +22,8 @@ export interface Reading {
 
 export interface Anomaly {
   id: string;
+  type: string;
+  description: string;
   sensorId: string;
   severity: 'low' | 'medium' | 'high' | 'critical';
   zScore: number;
@@ -33,6 +35,7 @@ export interface Anomaly {
   location: GeoLocation;
   message: string;
 }
+
 
 export interface Facility {
   id: string;

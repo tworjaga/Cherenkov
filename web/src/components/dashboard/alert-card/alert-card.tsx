@@ -5,13 +5,17 @@ import { Alert } from '@/types';
 import { formatTimestamp } from '@/lib/utils';
 import { cn } from '@/lib/utils';
 
-interface AlertCardProps {
+export interface AlertCardProps {
   alert: Alert;
   onClick?: () => void;
+  onAcknowledge?: () => void;
+  isSelected?: boolean;
   className?: string;
 }
 
-export const AlertCard = ({ alert, onClick, className }: AlertCardProps) => {
+
+export const AlertCard = ({ alert, onClick, onAcknowledge, isSelected, className }: AlertCardProps) => {
+
   const getSeverityIcon = () => {
     switch (alert.severity) {
       case 'critical':
@@ -48,9 +52,11 @@ export const AlertCard = ({ alert, onClick, className }: AlertCardProps) => {
       className={cn(
         'p-3 rounded-lg border cursor-pointer transition-all hover:shadow-md',
         getSeverityStyles(),
+        isSelected && 'ring-2 ring-accent-primary',
         className
       )}
     >
+
       <div className="flex items-start gap-3">
         {getSeverityIcon()}
         <div className="flex-1 min-w-0">
@@ -65,8 +71,20 @@ export const AlertCard = ({ alert, onClick, className }: AlertCardProps) => {
           <p className="text-body-xs text-text-secondary mt-1 line-clamp-2">
             {alert.message}
           </p>
+          {onAcknowledge && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onAcknowledge();
+              }}
+              className="mt-2 text-xs text-accent-primary hover:text-accent-secondary transition-colors"
+            >
+              Acknowledge
+            </button>
+          )}
         </div>
       </div>
     </div>
+
   );
 };
