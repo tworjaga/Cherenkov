@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { ChevronDown, ChevronUp, Activity, MapPin, Clock } from 'lucide-react';
-import { useAppStore, useDataStore } from '@/stores';
+import { useAppStore } from '@/stores';
 import { TimeSeriesPoint, RegionalStat, Alert } from '@/types';
 import { formatTimestamp, formatDoseRate } from '@/lib/utils/formatters';
 import { getSeverityColor } from '@/lib/utils/calculations';
@@ -107,7 +107,7 @@ export const BottomPanel = ({
                 <CartesianGrid strokeDasharray="3 3" stroke="#1f1f2e" />
                 <XAxis
                   dataKey="timestamp"
-                  tickFormatter={(value) => {
+                  tickFormatter={(value: number) => {
                     const date = new Date(value * 1000);
                     return `${date.getHours()}:${date.getMinutes().toString().padStart(2, '0')}`;
                   }}
@@ -117,7 +117,7 @@ export const BottomPanel = ({
                 <YAxis
                   stroke="#606070"
                   tick={{ fill: '#606070', fontSize: 11 }}
-                  tickFormatter={(value) => `${value.toFixed(2)} μSv/h`}
+                  tickFormatter={(value: number) => `${value.toFixed(2)} μSv/h`}
                 />
                 <Tooltip
                   contentStyle={{
@@ -128,7 +128,7 @@ export const BottomPanel = ({
                   labelStyle={{ color: '#a0a0b0' }}
                   itemStyle={{ color: '#00d4ff' }}
                   formatter={(value: number) => [formatDoseRate(value), 'Dose Rate']}
-                  labelFormatter={(label) => formatTimestamp(label as number)}
+                  labelFormatter={(label: number) => formatTimestamp(label)}
                 />
                 <Area
                   type="monotone"
@@ -152,7 +152,7 @@ export const BottomPanel = ({
                   type="number"
                   stroke="#606070"
                   tick={{ fill: '#606070', fontSize: 11 }}
-                  tickFormatter={(value) => `${value.toFixed(1)} μSv/h`}
+                  tickFormatter={(value: number) => `${value.toFixed(1)} μSv/h`}
                 />
                 <YAxis
                   type="category"

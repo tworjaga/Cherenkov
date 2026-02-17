@@ -80,7 +80,7 @@ declare module 'recharts' {
   export interface XAxisProps {
     dataKey?: string;
     type?: 'number' | 'category';
-    tickFormatter?: (value: unknown) => string;
+    tickFormatter?: (value: number) => string;
     stroke?: string;
     tick?: { fill?: string; fontSize?: number };
   }
@@ -88,7 +88,7 @@ declare module 'recharts' {
   export interface YAxisProps {
     dataKey?: string;
     type?: 'number' | 'category';
-    tickFormatter?: (value: unknown) => string;
+    tickFormatter?: (value: number) => string;
     stroke?: string;
     tick?: { fill?: string; fontSize?: number };
     width?: number;
@@ -105,8 +105,8 @@ declare module 'recharts' {
     contentStyle?: React.CSSProperties;
     labelStyle?: React.CSSProperties;
     itemStyle?: React.CSSProperties;
-    formatter?: (value: unknown, name: string) => [string, string];
-    labelFormatter?: (label: unknown) => string;
+    formatter?: (value: number, name: string) => [string, string];
+    labelFormatter?: (label: number) => string;
     cursor?: { fill?: string };
   }
   

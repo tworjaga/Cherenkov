@@ -36,8 +36,8 @@ interface GlobeProps {
 }
 
 export const Globe = ({ sensors, anomalies }: GlobeProps) => {
-  const { viewport, layers, setViewport, hoveredFeature, setHoveredFeature } = useGlobeStore();
-  const { selectedSensorId, selectSensor } = useAppStore();
+  const { layers, setViewport, setHoveredFeature } = useGlobeStore();
+  const { selectSensor } = useAppStore();
   const [viewState, setViewState] = useState<MapViewState>(INITIAL_VIEW_STATE);
 
   const handleViewStateChange = useCallback((params: { viewState: MapViewState }) => {
