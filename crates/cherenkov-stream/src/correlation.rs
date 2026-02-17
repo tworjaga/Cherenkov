@@ -5,6 +5,7 @@ use chrono::{DateTime, Utc, Duration};
 use tracing::info;
 use serde::{Serialize, Deserialize};
 
+#[allow(dead_code)]
 pub struct CorrelationEngine {
     temporal_window_secs: u64,
     spatial_radius_km: f64,
@@ -15,6 +16,7 @@ pub struct CorrelationEngine {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct CorrelatedEvent {
     pub id: String,
     pub timestamp: DateTime<Utc>,
@@ -27,6 +29,7 @@ pub struct CorrelatedEvent {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub enum EventType {
     Seismic,
     RadiationAnomaly,
@@ -37,6 +40,7 @@ pub enum EventType {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct GeoPoint {
     pub lat: f64,
     pub lon: f64,
@@ -44,6 +48,7 @@ pub struct GeoPoint {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct NuclearFacility {
     pub id: String,
     pub name: String,
@@ -59,6 +64,7 @@ pub struct NuclearFacility {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub enum FacilityType {
     PowerReactor,
     ResearchReactor,
@@ -69,6 +75,7 @@ pub enum FacilityType {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub enum OperationalStatus {
     Operational,
     Shutdown,
@@ -79,6 +86,7 @@ pub enum OperationalStatus {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct FacilityAnomaly {
     pub timestamp: DateTime<Utc>,
     pub anomaly_type: String,
@@ -87,6 +95,7 @@ pub struct FacilityAnomaly {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct EventCluster {
     pub id: String,
     pub events: Vec<CorrelatedEvent>,
@@ -99,6 +108,7 @@ pub struct EventCluster {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub enum ClusterType {
     SeismicRadiation,
     FacilityIncident,
@@ -108,6 +118,7 @@ pub enum ClusterType {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct SeismicRadiationCorrelation {
     pub seismic_event: CorrelatedEvent,
     pub radiation_events: Vec<CorrelatedEvent>,
@@ -118,6 +129,7 @@ pub struct SeismicRadiationCorrelation {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct FacilityStatusInference {
     pub facility_id: String,
     pub inferred_status: OperationalStatus,
@@ -127,6 +139,7 @@ pub struct FacilityStatusInference {
     pub last_updated: DateTime<Utc>,
 }
 
+#[allow(dead_code)]
 impl CorrelationEngine {
     pub fn new(
         temporal_window_secs: u64,
@@ -494,6 +507,7 @@ impl CorrelationEngine {
     }
 }
 
+#[allow(dead_code)]
 impl EventCluster {
     pub fn new(event: CorrelatedEvent) -> Self {
         Self {
