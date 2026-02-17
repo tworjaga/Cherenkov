@@ -1,4 +1,3 @@
-use anyhow::{Result, anyhow};
 use tracing_subscriber::fmt::format::FmtSpan;
 use std::collections::HashMap;
 use std::sync::Arc;
