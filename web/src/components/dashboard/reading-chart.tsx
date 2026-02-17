@@ -11,22 +11,32 @@ import {
 } from 'recharts';
 import { useDataStore } from '@/stores';
 import { formatTimestamp } from '@/lib/utils';
-import { Reading } from '@/types';
+import { Reading, TimeSeriesPoint } from '@/types';
+
 
 interface ReadingChartProps {
-  sensorId: string;
+  sensorId?: string;
 }
 
 export const ReadingChart = ({ sensorId }: ReadingChartProps) => {
-  const { readings } = useDataStore();
+  const { readings, globalTimeSeries } = useDataStore();
   
   const data = useMemo(() => {
-    const sensorReadings: Reading[] = readings[sensorId] || [];
-    return sensorReadings.slice(-24).map((r: Reading) => ({
-      time: r.timestamp,
-      value: r.doseRate,
+    if (sensorId) {
+      const sensorReadings: Reading[] = readings[sensorId] || [];
+      return sensorReadings.slice(-24).map((r: Reading) => ({
+        time: r.timestamp,
+        value: r.doseRate,
+      }));
+    }
+    // Global view - use global time series or aggregate all readings
+    return globalTimeSeries.slice(-24).map((p: TimeSeriesPoint) => ({
+      time: p.timestamp,
+      value: p.value,
     }));
-  }, [readings, sensorId]);
+
+  }, [readings, sensorId, globalTimeSeries]);
+
 
   if (data.length === 0) {
     return (
@@ -40,11 +50,12 @@ export const ReadingChart = ({ sensorId }: ReadingChartProps) => {
     <ResponsiveContainer width="100%" height="100%">
       <AreaChart data={data}>
         <defs>
-          <linearGradient id={`gradient-${sensorId}`} x1="0" y1="0" x2="0" y2="1">
+          <linearGradient id={`gradient-${sensorId || 'global'}`} x1="0" y1="0" x2="0" y2="1">
             <stop offset="5%" stopColor="#00d4ff" stopOpacity={0.3} />
             <stop offset="95%" stopColor="#00d4ff" stopOpacity={0} />
           </linearGradient>
         </defs>
+
         <XAxis
           dataKey="time"
           tickFormatter={(value: number) => {
@@ -74,9 +85,10 @@ export const ReadingChart = ({ sensorId }: ReadingChartProps) => {
           type="monotone"
           dataKey="value"
           stroke="#00d4ff"
-          fill={`url(#gradient-${sensorId})`}
+          fill={`url(#gradient-${sensorId || 'global'})`}
           strokeWidth={2}
         />
+
       </AreaChart>
     </ResponsiveContainer>
   );

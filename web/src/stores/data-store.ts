@@ -1,5 +1,6 @@
 import { create } from 'zustand';
-import { Sensor, Anomaly, Facility, Alert, GlobalStatus, Reading } from '@/types';
+import { Sensor, Anomaly, Facility, Alert, GlobalStatus, Reading, TimeSeriesPoint } from '@/types';
+
 
 interface DataState {
   sensors: Sensor[];
@@ -9,7 +10,9 @@ interface DataState {
   globalStatus: GlobalStatus | null;
   recentReadings: Map<string, Reading>;
   readings: Record<string, Reading[]>;
+  globalTimeSeries: TimeSeriesPoint[];
   unreadAlertCount: number;
+
 
 
   setSensors: (sensors: Sensor[]) => void;
@@ -21,7 +24,9 @@ interface DataState {
   addAlert: (alert: Alert) => void;
   acknowledgeAlert: (id: string) => void;
   setGlobalStatus: (status: GlobalStatus) => void;
+  setGlobalTimeSeries: (data: TimeSeriesPoint[]) => void;
   updateReading: (sensorId: string, reading: Reading) => void;
+
   addHistoricalReading: (sensorId: string, reading: Reading) => void;
   getSensorById: (id: string) => Sensor | undefined;
 
@@ -48,7 +53,9 @@ export const useDataStore = create<DataState>()((set, get) => ({
   globalStatus: defaultGlobalStatus,
   recentReadings: new Map(),
   readings: {},
+  globalTimeSeries: [],
   unreadAlertCount: 0,
+
 
 
   setSensors: (sensors) => set({ sensors }),
@@ -111,7 +118,10 @@ export const useDataStore = create<DataState>()((set, get) => ({
 
   setGlobalStatus: (status) => set({ globalStatus: status }),
 
+  setGlobalTimeSeries: (data) => set({ globalTimeSeries: data }),
+
   updateReading: (sensorId, reading) =>
+
     set((state) => {
       const newReadings = new Map(state.recentReadings);
       newReadings.set(sensorId, reading);
