@@ -1,6 +1,7 @@
 #!/usr/bin/env ts-node
 import { generate } from '@graphql-codegen/cli';
-import { config } from '../codegen';
+import config from '../codegen';
+
 
 async function main() {
   try {
