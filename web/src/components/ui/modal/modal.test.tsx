@@ -37,7 +37,7 @@ describe('Modal', () => {
     expect(container.textContent).not.toContain('Hidden content');
   });
 
-  it('calls onOpenChange when closed', () => {
+  it('calls onOpenChange when close button clicked', () => {
     const handleOpenChange = vi.fn();
     render(
       <Modal open={true} onOpenChange={handleOpenChange}>
@@ -47,10 +47,9 @@ describe('Modal', () => {
       </Modal>
     );
 
-    const overlay = document.querySelector('[data-state="open"]');
-    if (overlay) {
-      fireEvent.click(overlay);
-      expect(handleOpenChange).toHaveBeenCalled();
-    }
+    const closeButton = screen.getByRole('button', { name: /close/i });
+    fireEvent.click(closeButton);
+    expect(handleOpenChange).toHaveBeenCalledWith(false);
   });
+
 });

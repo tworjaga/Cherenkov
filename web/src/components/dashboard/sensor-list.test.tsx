@@ -45,9 +45,10 @@ describe('SensorList', () => {
 
   it('displays sensor readings', () => {
     render(<SensorList {...defaultProps} />);
-    expect(screen.getByText('0.15')).toBeInTheDocument();
-    expect(screen.getByText('0.45')).toBeInTheDocument();
+    expect(screen.getByText('0.150 μSv/h')).toBeInTheDocument();
+    expect(screen.getByText('0.450 μSv/h')).toBeInTheDocument();
   });
+
 
   it('shows sensor sources', () => {
     render(<SensorList {...defaultProps} />);
@@ -63,7 +64,10 @@ describe('SensorList', () => {
 
   it('shows selected state for selected sensor', () => {
     render(<SensorList {...defaultProps} selectedId="sensor-1" />);
-    const buttons = screen.getAllByRole('button');
-    expect(buttons[0]).toHaveClass('bg-bg-active');
+    const tokyoButton = screen.getByText(/Tokyo Sensor/i).closest('button');
+    expect(tokyoButton).toHaveClass('bg-bg-active');
   });
+
+
+
 });
