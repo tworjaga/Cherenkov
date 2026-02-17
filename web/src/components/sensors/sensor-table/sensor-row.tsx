@@ -3,7 +3,8 @@
 import React from 'react';
 import { Sensor } from '@/types/models';
 import { Badge } from '@/components/ui/badge';
-import { formatDistanceToNow } from '@/lib/utils/dates';
+import { getRelativeTime } from '@/lib/utils/dates';
+
 
 interface SensorRowProps {
   sensor: Sensor;
@@ -28,13 +29,13 @@ export function SensorRow({ sensor, isSelected, onClick }: SensorRowProps) {
     >
       <td className="px-4 py-3 font-medium">{sensor.name}</td>
       <td className="px-4 py-3 text-muted-foreground">
-        {typeof sensor.location === 'string' 
-          ? sensor.location 
-          : `${sensor.location.lat.toFixed(4)}, ${sensor.location.lng.toFixed(4)}`}
+        {`${sensor.location.lat.toFixed(4)}, ${sensor.location.lon.toFixed(4)}`}
       </td>
       <td className="px-4 py-3">
-        <Badge variant="secondary">{sensor.type || 'Unknown'}</Badge>
+        <Badge variant="outline">{sensor.source}</Badge>
       </td>
+
+
       <td className="px-4 py-3">
         <div className="flex items-center gap-2">
           <div className={`h-2 w-2 rounded-full ${statusColors[sensor.status as keyof typeof statusColors] || 'bg-gray-500'}`} />
@@ -42,15 +43,16 @@ export function SensorRow({ sensor, isSelected, onClick }: SensorRowProps) {
         </div>
       </td>
       <td className="px-4 py-3 font-mono text-sm">
-        {sensor.lastReading?.value !== undefined 
-          ? `${sensor.lastReading.value} ${sensor.unit || ''}`
+        {sensor.lastReading?.doseRate !== undefined 
+          ? `${sensor.lastReading.doseRate} ${sensor.lastReading.unit || ''}`
           : 'N/A'}
       </td>
       <td className="px-4 py-3 text-xs text-muted-foreground">
         {sensor.lastReading?.timestamp 
-          ? formatDistanceToNow(new Date(sensor.lastReading.timestamp))
+          ? getRelativeTime(sensor.lastReading.timestamp)
           : 'Never'}
       </td>
+
     </tr>
   );
 }
