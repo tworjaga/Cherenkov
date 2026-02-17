@@ -68,10 +68,12 @@ pub struct WeatherIngestService {
     http_client: reqwest::Client,
     cache: WeatherCache,
     base_urls: HashMap<WeatherSource, String>,
+    #[allow(dead_code)]
     api_keys: HashMap<String, String>,
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct GfsConfig {
     pub resolution: String, // "0p25" or "0p50"
     pub levels: Vec<u32>,   // Pressure levels in hPa
@@ -79,6 +81,7 @@ pub struct GfsConfig {
     pub forecast_hours: Vec<u32>,
 }
 
+#[allow(dead_code)]
 impl Default for GfsConfig {
     fn default() -> Self {
         Self {
@@ -386,6 +389,7 @@ impl LocalWeather {
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub enum StabilityClass {
     Unstable,
     Neutral,
