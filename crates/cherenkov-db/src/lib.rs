@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 use chrono::{DateTime, Utc, Duration};
 use std::sync::Arc;
-use tracing::{info, warn, error, instrument};
+use tracing::{info, warn, instrument};
 use thiserror::Error;
 use backoff::{ExponentialBackoff, future::retry};
 
