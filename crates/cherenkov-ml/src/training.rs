@@ -483,6 +483,7 @@ impl TrainingPipeline {
         })
     }
 
+    #[allow(dead_code)]
     fn augment_sample(&self, tensor: &Tensor, label: usize) -> anyhow::Result<AugmentedSample> {
         if !self.config.augmentation.enabled {
             return Ok(AugmentedSample {
