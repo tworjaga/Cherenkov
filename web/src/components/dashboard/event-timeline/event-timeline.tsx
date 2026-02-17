@@ -57,7 +57,8 @@ export const EventTimeline = ({ events, onEventClick, className }: EventTimeline
       </CardHeader>
       <CardContent>
         <div className="space-y-2 max-h-64 overflow-y-auto">
-          {sortedEvents.map((event, index) => (
+          {sortedEvents.map((event) => (
+
             <div
               key={event.id}
               onClick={() => onEventClick?.(event)}
