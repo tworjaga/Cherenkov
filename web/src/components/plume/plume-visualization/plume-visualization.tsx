@@ -12,7 +12,7 @@ export interface PlumeVisualizationProps {
   };
 }
 
-export function PlumeVisualization({ simulationData }: PlumeVisualizationProps) {
+export function PlumeVisualization({ simulationData: _simulationData }: PlumeVisualizationProps) {
   return (
     <Card className="h-full">
       <CardHeader>
@@ -20,8 +20,13 @@ export function PlumeVisualization({ simulationData }: PlumeVisualizationProps) 
       </CardHeader>
       <CardContent className="h-[500px]">
         <Globe
-          showPlumeLayer={true}
-          selectedSensorId={null}
+          layers={{
+            sensors: true,
+            facilities: false,
+            anomalies: false,
+            plumes: true,
+            heatmap: false,
+          }}
           onSensorSelect={() => {}}
         />
       </CardContent>

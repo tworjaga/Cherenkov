@@ -118,7 +118,8 @@ export function NotificationConfig() {
                   </div>
                   <div className="flex gap-1 flex-wrap">
                     {channel.events.map((event) => (
-                      <Badge key={event} variant="secondary" className="text-xs">
+                    <Badge key={event} variant="default" className="text-xs">
+
                         {eventTypes.find((e) => e.value === event)?.label || event}
                       </Badge>
                     ))}

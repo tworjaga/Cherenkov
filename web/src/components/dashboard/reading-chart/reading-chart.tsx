@@ -6,18 +6,20 @@ import { formatTimestamp, formatDoseRate } from '@/lib/utils';
 import { Activity, TrendingUp, TrendingDown } from 'lucide-react';
 
 interface ReadingChartProps {
-  data: TimeSeriesPoint[];
+  data?: TimeSeriesPoint[];
   title?: string;
   unit?: string;
   className?: string;
 }
 
+
 export const ReadingChart = ({ 
-  data, 
+  data = [], 
   title = 'Dose Rate History', 
   unit = 'µSv/h',
   className 
 }: ReadingChartProps) => {
+
   if (data.length === 0) {
     return (
       <Card className={className}>

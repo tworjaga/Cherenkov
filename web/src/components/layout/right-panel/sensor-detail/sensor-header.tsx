@@ -4,7 +4,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { CardTitle } from '@/components/ui/card';
 import { Sensor } from '@/types/models';
-import { Activity, Settings, Bell } from 'lucide-react';
+import { Settings, Bell } from 'lucide-react';
+
 
 interface SensorHeaderProps {
   sensor: Sensor;

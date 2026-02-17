@@ -2,20 +2,26 @@
 
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Activity } from 'lucide-react';
-import { useAppStore } from '@/stores';
+import { useAppStore, useDataStore } from '@/stores';
 
 import { SensorDetail } from '@/components/dashboard';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { animations } from '@/styles/theme';
 
-export function SensorDetailPanel(): JSX.Element {
-  const { selectedSensorId, selectSensor, sensors } = useAppStore();
-  const selectedSensor = sensors.find(s => s.id === selectedSensorId);
+export function SensorDetailPanel(): JSX.Element | null {
+
+  const { selectedSensorId, selectSensor } = useAppStore();
+  const { sensors } = useDataStore();
+  const selectedSensor = sensors.find((s: { id: string }) => s.id === selectedSensorId);
+
+  if (!selectedSensor) {
+    return null;
+  }
 
   return (
-
     <AnimatePresence>
       {selectedSensorId && (
+
         <motion.div
           initial={{ x: '100%', opacity: 0 }}
           animate={{ x: 0, opacity: 1 }}

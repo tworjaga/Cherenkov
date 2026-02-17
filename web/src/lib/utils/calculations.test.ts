@@ -1,11 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import {
-  calculateDistance,
   calculateBearing,
   interpolatePosition,
   calculateBoundingBox,
   calculateCentroid,
 } from './calculations';
+import { calculateDistance } from './geo-helpers';
+
 
 describe('calculations', () => {
   describe('calculateDistance', () => {

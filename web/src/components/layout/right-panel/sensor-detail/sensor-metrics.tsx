@@ -1,7 +1,8 @@
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Sensor, Reading } from '@/types/models';
+import { Sensor } from '@/types/models';
+
 import { Activity, TrendingUp, AlertTriangle, Clock } from 'lucide-react';
 
 interface SensorMetricsProps {

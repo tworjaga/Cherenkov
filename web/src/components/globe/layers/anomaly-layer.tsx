@@ -5,7 +5,6 @@ import { ScatterplotLayer } from '@deck.gl/layers';
 import { useDataStore } from '@/stores';
 import type { Anomaly } from '@/types';
 
-
 interface AnomalyLayerProps {
   onAnomalyClick?: (anomalyId: string) => void;
 }
@@ -13,7 +12,7 @@ interface AnomalyLayerProps {
 export function AnomalyLayer({ onAnomalyClick }: AnomalyLayerProps) {
   const { anomalies } = useDataStore();
 
-  const _layer = useMemo(() => {
+  useMemo(() => {
     return new ScatterplotLayer({
       id: 'anomaly-layer',
       data: anomalies,
@@ -21,13 +20,11 @@ export function AnomalyLayer({ onAnomalyClick }: AnomalyLayerProps) {
       opacity: 0.9,
       stroked: true,
       filled: true,
-      radiusScale: 1,
       radiusMinPixels: 8,
       radiusMaxPixels: 32,
       lineWidthMinPixels: 2,
-      getPosition: (d: Anomaly) => [d.longitude, d.latitude],
+      getPosition: (d: Anomaly) => [d.location.lon, d.location.lat],
       getRadius: (d: Anomaly) => {
-
         // Size based on severity
         switch (d.severity) {
           case 'critical':
@@ -42,8 +39,7 @@ export function AnomalyLayer({ onAnomalyClick }: AnomalyLayerProps) {
             return 12;
         }
       },
-      getFillColor: (d: Anomaly) => {
-
+      getFillColor: (d: Anomaly): [number, number, number, number] => {
         switch (d.severity) {
           case 'critical':
             return [255, 51, 102, 200]; // alert.critical with alpha
@@ -57,16 +53,15 @@ export function AnomalyLayer({ onAnomalyClick }: AnomalyLayerProps) {
             return [160, 160, 176, 200];
         }
       },
-      getLineColor: [255, 255, 255, 255],
+      getLineColor: (): [number, number, number, number] => [255, 255, 255, 255],
       getLineWidth: 2,
-      onClick: (info: { object: Anomaly | null }) => {
+      onClick: (info: { object?: Anomaly | null; x: number; y: number }) => {
         if (info.object && onAnomalyClick) {
           onAnomalyClick(info.object.id);
         }
       },
     });
   }, [anomalies, onAnomalyClick]);
-
 
   return null;
 }

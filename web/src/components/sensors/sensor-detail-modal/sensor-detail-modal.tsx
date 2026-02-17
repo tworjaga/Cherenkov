@@ -45,9 +45,10 @@ export function SensorDetailModal({ sensor, open, onOpenChange }: SensorDetailMo
               <span>
                 {typeof sensor.location === 'string'
                   ? sensor.location
-                  : `${sensor.location.lat.toFixed(4)}, ${sensor.location.lng.toFixed(4)}`}
+                  : `${sensor.location.lat?.toFixed(4) ?? 'N/A'}, ${sensor.location.lon?.toFixed(4) ?? 'N/A'}`}
               </span>
             </div>
+
             <div className="flex justify-between">
               <span className="text-muted-foreground">Unit</span>
               <span>{sensor.unit || 'N/A'}</span>

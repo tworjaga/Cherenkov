@@ -1,7 +1,8 @@
 'use client';
 
 import { useMemo } from 'react';
-import { Layer, HeatmapLayer } from 'deck.gl';
+import { HeatmapLayer } from 'deck.gl';
+
 
 interface HeatmapData {
   coordinates: [number, number];
@@ -20,7 +21,8 @@ export function HeatmapLayerComponent({
   visible = true,
   intensity = 1,
   radius = 50,
-}: HeatmapLayerProps): Layer {
+}: HeatmapLayerProps): HeatmapLayer<{ position: [number, number]; weight: number }> {
+
   const processedData = useMemo(() => {
     return data.map((point) => ({
       position: point.coordinates,

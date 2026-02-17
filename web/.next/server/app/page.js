@@ -77,4 +77,4 @@
       createdAt
     }
   }
-`},51136:(e,t,s)=>{"use strict";s.r(t),s.d(t,{$$typeof:()=>n,__esModule:()=>o,default:()=>a});let r=(0,s(86843).createProxy)(String.raw`C:\Users\User\Downloads\pythonprojects\cherenkov\web\src\app\page.tsx`),{__esModule:o,$$typeof:n}=r,a=r.default}};var t=require("../webpack-runtime.js");t.C(e);var s=e=>t(t.s=e),r=t.X(0,[638,327,476,987,475],()=>s(95777));module.exports=r})();
+`},51136:(e,t,s)=>{"use strict";s.r(t),s.d(t,{$$typeof:()=>n,__esModule:()=>o,default:()=>a});let r=(0,s(86843).createProxy)(String.raw`C:\Users\User\Downloads\pythonprojects\cherenkov\web\src\app\page.tsx`),{__esModule:o,$$typeof:n}=r,a=r.default}};var t=require("../webpack-runtime.js");t.C(e);var s=e=>t(t.s=e),r=t.X(0,[638,150,476,987,475],()=>s(95777));module.exports=r})();

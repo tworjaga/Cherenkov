@@ -1,4 +1,4 @@
-use redis::{AsyncCommands, Client, aio::MultiplexedConnection};
+use redis::{Client, aio::MultiplexedConnection};
 use serde::{Serialize, de::DeserializeOwned};
 use std::sync::Arc;
 use tokio::sync::RwLock;
@@ -9,6 +9,7 @@ use crate::RadiationReading;
 
 #[derive(Debug)]
 pub struct RedisCache {
+    #[allow(dead_code)]
     client: Client,
     connection: Arc<RwLock<MultiplexedConnection>>,
 }

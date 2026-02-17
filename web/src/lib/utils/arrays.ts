@@ -23,8 +23,9 @@ export function groupBy<T, K extends string | number>(
  * Removes duplicates from an array
  */
 export function unique<T>(array: T[]): T[] {
-  return [...new Set(array)];
+  return Array.from(new Set(array));
 }
+
 
 /**
  * Removes duplicates by a key function

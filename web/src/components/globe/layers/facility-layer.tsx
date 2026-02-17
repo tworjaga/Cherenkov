@@ -5,7 +5,6 @@ import { IconLayer } from '@deck.gl/layers';
 import { useDataStore } from '@/stores';
 import type { Facility } from '@/types';
 
-
 interface FacilityLayerProps {
   onFacilityClick?: (facilityId: string) => void;
   selectedFacilityId?: string | null;
@@ -14,7 +13,7 @@ interface FacilityLayerProps {
 export function FacilityLayer({ onFacilityClick, selectedFacilityId }: FacilityLayerProps) {
   const { facilities } = useDataStore();
 
-  const _layer = useMemo(() => {
+  useMemo(() => {
     return new IconLayer({
       id: 'facility-layer',
       data: facilities,
@@ -27,9 +26,9 @@ export function FacilityLayer({ onFacilityClick, selectedFacilityId }: FacilityL
       },
       getIcon: (d: Facility) => d.type,
       sizeScale: 1,
-      getPosition: (d: Facility) => [d.longitude, d.latitude],
+      getPosition: (d: Facility) => [d.location.lon, d.location.lat],
       getSize: (d: Facility) => (d.id === selectedFacilityId ? 24 : 16),
-      getColor: (d: Facility) => {
+      getColor: (d: Facility): [number, number, number] => {
         if (d.id === selectedFacilityId) {
           return [0, 212, 255]; // accent.primary
         }
@@ -44,14 +43,13 @@ export function FacilityLayer({ onFacilityClick, selectedFacilityId }: FacilityL
             return [160, 160, 176];
         }
       },
-      onClick: (info: { object: Facility | null }) => {
+      onClick: (info: { object?: Facility | null; x: number; y: number }) => {
         if (info.object && onFacilityClick) {
           onFacilityClick(info.object.id);
         }
       },
     });
   }, [facilities, selectedFacilityId, onFacilityClick]);
-
 
   return null;
 }

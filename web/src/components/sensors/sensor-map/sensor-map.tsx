@@ -11,16 +11,27 @@ interface SensorMapProps {
 }
 
 export function SensorMap({ sensors, selectedSensorId, onSensorSelect }: SensorMapProps) {
+  const handleSensorSelect = (sensorId: string) => {
+    const sensor = sensors.find(s => s.id === sensorId);
+    if (sensor && onSensorSelect) {
+      onSensorSelect(sensor);
+    }
+  };
+
   return (
     <div className="h-full w-full">
       <Globe
         sensors={sensors}
         selectedSensorId={selectedSensorId ?? null}
-        onSensorClick={onSensorSelect}
-        showFacilities={false}
-        showAnomalies={false}
+        onSensorSelect={handleSensorSelect}
+        layers={{
+          sensors: true,
+          facilities: false,
+          anomalies: false,
+          plumes: false,
+          heatmap: false,
+        }}
       />
-
     </div>
   );
 }

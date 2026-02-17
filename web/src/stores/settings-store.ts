@@ -115,7 +115,8 @@ export const useSettingsStore = create<SettingsState>()(
         }
       },
 
-      resetSettings: () => set({ settings: null, error: null }),
+      resetSettings: () => set({ settings: defaultSettings as UserSettings, error: null }),
+
     }),
     {
       name: 'cherenkov-settings',

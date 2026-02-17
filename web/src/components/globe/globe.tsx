@@ -10,21 +10,14 @@ import { useGlobeStore } from '@/stores';
 import { Sensor, Anomaly, Facility, PlumeSimulation, Viewport } from '@/types';
 import { getSeverityColor } from '@/lib/utils/calculations';
 
-
 // Type declarations for deck.gl modules
 declare module '@deck.gl/react';
 declare module '@deck.gl/layers';
 declare module '@deck.gl/aggregation-layers';
 declare module '@deck.gl/core';
 
-interface PickingInfo {
-  object?: unknown;
-  x: number;
-  y: number;
-}
-
-
 interface GlobeProps {
+
   sensors?: Sensor[];
   facilities?: Facility[];
   anomalies?: Anomaly[];
@@ -70,15 +63,13 @@ export const Globe = ({
   onSensorSelect = () => {}
 }: GlobeProps) => {
 
-
-
-  const { setHoveredFeature } = useGlobeStore();
   const [viewState, setViewState] = useState<MapViewState>({
+
     longitude: viewport.longitude,
     latitude: viewport.latitude,
     zoom: viewport.zoom,
-    pitch: viewport.pitch,
-    bearing: viewport.bearing,
+    pitch: viewport.pitch ?? 30,
+    bearing: viewport.bearing ?? 0,
   });
 
   const handleViewStateChange = useCallback((params: { viewState: MapViewState }) => {
@@ -87,128 +78,115 @@ export const Globe = ({
       longitude: params.viewState.longitude,
       latitude: params.viewState.latitude,
       zoom: params.viewState.zoom,
-      pitch: params.viewState.pitch,
-      bearing: params.viewState.bearing,
+      pitch: params.viewState.pitch ?? 30,
+      bearing: params.viewState.bearing ?? 0,
     });
   }, [onViewportChange]);
 
-
-  const sensorLayer = useMemo(() => {
-    if (!layerVisibility.sensors) return null;
-
-    
-    return new ScatterplotLayer({
-      id: 'sensor-layer',
-      data: sensors,
-      getPosition: (d: Sensor) => [d.location.lon, d.location.lat],
-
-      getRadius: (d: Sensor) => {
-        const reading = d.lastReading?.doseRate || 0;
-        return Math.max(8, Math.min(16, reading * 2));
-      },
-      getFillColor: (d: Sensor) => {
-        const reading = d.lastReading?.doseRate || 0;
-        if (reading > 10) return [255, 51, 102]; // critical
-        if (reading > 5) return [255, 107, 53]; // high
-        if (reading > 2) return [255, 184, 0]; // medium
-        if (reading > 0.5) return [0, 212, 255]; // low
-        return [0, 255, 136]; // normal
-      },
-      getLineColor: [0, 212, 255],
-      lineWidthMinPixels: 1,
-      stroked: true,
-      filled: true,
-      pickable: true,
-      onHover: (info: PickingInfo) => {
-        if (info.object) {
-          setHoveredFeature({ type: 'sensor', id: (info.object as Sensor).id });
-        } else {
-          setHoveredFeature(null);
-        }
-      },
-      onClick: (info: PickingInfo) => {
-        if (info.object) {
-          onSensorSelect((info.object as Sensor).id);
-        }
-      },
-
-
-      updateTriggers: {
-        getFillColor: [sensors],
-        getRadius: [sensors],
-      },
-      transitions: {
-        getFillColor: 300,
-        getRadius: 300,
-      },
-    });
-  }, [sensors, layerVisibility.sensors, setHoveredFeature, onSensorSelect]);
-
-
-  const anomalyLayer = useMemo(() => {
-    if (!layerVisibility.anomalies) return null;
-
-    
-    return new ScatterplotLayer({
-      id: 'anomaly-layer',
-      data: anomalies,
-      getPosition: (d: Anomaly) => [d.location.lon, d.location.lat],
-
-      getRadius: 20,
-      getFillColor: (d: Anomaly) => {
-        const color = getSeverityColor(d.severity);
-        const hex = color.replace('#', '');
-        const r = parseInt(hex.slice(0, 2), 16);
-        const g = parseInt(hex.slice(2, 4), 16);
-        const b = parseInt(hex.slice(4, 6), 16);
-        return [r, g, b, 200];
-      },
-      getLineColor: [255, 255, 255],
-      lineWidthMinPixels: 2,
-      stroked: true,
-      filled: true,
-      pickable: true,
-      onHover: (info: PickingInfo) => {
-        if (info.object) {
-          setHoveredFeature({ type: 'anomaly', id: (info.object as Anomaly).id });
-        } else {
-          setHoveredFeature(null);
-        }
-      },
-    });
-  }, [anomalies, layerVisibility.anomalies, setHoveredFeature]);
-
-
-
   const heatmapLayer = useMemo(() => {
-    if (!layerVisibility.heatmap) return null;
-
+    if (!layerVisibility.heatmap || sensors.length === 0) return null;
     
     return new HeatmapLayer({
       id: 'heatmap-layer',
       data: sensors,
       getPosition: (d: Sensor) => [d.location.lon, d.location.lat],
-
-      getWeight: (d: Sensor) => d.lastReading?.doseRate || 0,
+      getWeight: (d: Sensor) => d.lastReading?.doseRate ?? 0,
       radiusPixels: 50,
       intensity: 1,
       threshold: 0.05,
-      colorRange: [
-        [0, 255, 136],
-        [0, 212, 255],
-        [255, 184, 0],
-        [255, 107, 53],
-        [255, 51, 102],
-      ],
     });
   }, [sensors, layerVisibility.heatmap]);
 
+  const sensorLayer = useMemo(() => {
+    if (!layerVisibility.sensors) return null;
+
+    return new ScatterplotLayer({
+      id: 'sensor-layer',
+      data: sensors,
+      pickable: true,
+      opacity: 0.8,
+      stroked: true,
+      filled: true,
+      radiusMinPixels: 4,
+      radiusMaxPixels: 16,
+      lineWidthMinPixels: 1,
+      getPosition: (d: Sensor) => [d.location.lon, d.location.lat],
+      getRadius: (d: Sensor) => {
+        if (d.id === _selectedSensorId) return 12;
+        return d.status === 'active' ? 8 : 6;
+      },
+      getFillColor: (d: Sensor): [number, number, number, number] => {
+        if (d.id === _selectedSensorId) {
+          return [0, 212, 255, 255];
+        }
+        switch (d.status) {
+          case 'active':
+            return [0, 255, 136, 255];
+          case 'inactive':
+            return [160, 160, 176, 255];
+          case 'maintenance':
+            return [255, 184, 0, 255];
+          case 'offline':
+            return [255, 51, 102, 255];
+          default:
+            return [160, 160, 176, 255];
+        }
+      },
+      getLineColor: (): [number, number, number, number] => [255, 255, 255, 255],
+      getLineWidth: 2,
+      onClick: (info: { object?: Sensor | null; x: number; y: number }) => {
+        if (info.object && onSensorSelect) {
+          onSensorSelect(info.object.id);
+        }
+      },
+      updateTriggers: {
+        getFillColor: [_selectedSensorId],
+        getRadius: [_selectedSensorId],
+      },
+    });
+  }, [sensors, _selectedSensorId, onSensorSelect, layerVisibility.sensors]);
+
+  const anomalyLayer = useMemo(() => {
+    if (!layerVisibility.anomalies) return null;
+
+    return new ScatterplotLayer({
+      id: 'anomaly-layer',
+      data: anomalies,
+      pickable: true,
+      opacity: 0.9,
+      stroked: false,
+      filled: true,
+      radiusMinPixels: 6,
+      radiusMaxPixels: 20,
+      getPosition: (d: Anomaly) => [d.location.lon, d.location.lat],
+      getRadius: (d: Anomaly) => {
+        switch (d.severity) {
+          case 'critical':
+            return 16;
+          case 'high':
+            return 12;
+          case 'medium':
+            return 10;
+          case 'low':
+          default:
+            return 8;
+        }
+      },
+      getFillColor: (d: Anomaly): [number, number, number, number] => {
+        const color = getSeverityColor(d.severity);
+        const hex = color.replace('#', '');
+        const r = parseInt(hex.substring(0, 2), 16);
+        const g = parseInt(hex.substring(2, 4), 16);
+        const b = parseInt(hex.substring(4, 6), 16);
+        return [r, g, b, 200];
+      },
+    });
+  }, [anomalies, layerVisibility.anomalies]);
 
   const deckLayers = [heatmapLayer, sensorLayer, anomalyLayer].filter(Boolean);
 
   return (
     <div data-testid="globe-container" className="relative w-full h-full bg-bg-primary">
-
       <DeckGL
         viewState={viewState}
         onViewStateChange={handleViewStateChange}
@@ -230,7 +208,6 @@ export const Globe = ({
           }
           return null;
         }}
-
         style={{ background: '#050508' }}
       />
       
@@ -254,7 +231,6 @@ export const Globe = ({
           </button>
         ))}
       </div>
-
 
       {/* Viewport Info */}
       <div className="absolute bottom-4 left-4 bg-bg-secondary/90 backdrop-blur-md px-3 py-2 rounded-md border border-border-subtle">

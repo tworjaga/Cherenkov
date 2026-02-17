@@ -29,8 +29,10 @@ describe('LayerToggles', () => {
 
   it('renders with custom className', () => {
     const { container } = render(<LayerToggles className="custom-class" />);
-    expect(container.firstChild?.className).toContain('custom-class');
+    const firstElement = container.firstChild as Element | null;
+    expect(firstElement?.className).toContain('custom-class');
   });
+
 
   it('reflects correct toggle states from store', () => {
     render(<LayerToggles />);

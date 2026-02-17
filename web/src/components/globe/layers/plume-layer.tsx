@@ -1,7 +1,8 @@
 'use client';
 
 import { useMemo } from 'react';
-import { Layer, ScatterplotLayer } from 'deck.gl';
+import { ScatterplotLayer } from 'deck.gl';
+
 import { useGlobeStore } from '@/stores/globe-store';
 
 interface PlumeData {
@@ -15,10 +16,12 @@ interface PlumeData {
 interface PlumeLayerProps {
   data?: PlumeData[];
   visible?: boolean;
-  onClick?: (info: { object: PlumeData | null }) => void;
+  onClick?: (info: { object?: PlumeData; x: number; y: number }) => void;
 }
 
-export function PlumeLayer({ data = [], visible = true, onClick }: PlumeLayerProps): Layer {
+
+export function PlumeLayer({ data = [], visible = true, onClick }: PlumeLayerProps): ScatterplotLayer<PlumeData> {
+
   const { timeRange } = useGlobeStore();
 
   const filteredData = useMemo(() => {
@@ -39,7 +42,9 @@ export function PlumeLayer({ data = [], visible = true, onClick }: PlumeLayerPro
       const intensity = Math.min(d.concentration / 100, 1);
       return [255, 100 + intensity * 100, 50, 150 + intensity * 105];
     },
-    getLineColor: [255, 200, 50, 200],
+    getLineColor: () => [255, 200, 50, 200],
+
+
     lineWidthMinPixels: 1,
     stroked: true,
     filled: true,
@@ -47,6 +52,6 @@ export function PlumeLayer({ data = [], visible = true, onClick }: PlumeLayerPro
     onClick,
     radiusMinPixels: 5,
     radiusMaxPixels: 100,
-    radiusScale: 1,
   });
+
 }

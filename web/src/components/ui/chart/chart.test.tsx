@@ -27,7 +27,8 @@ describe('Chart', () => {
     render(
       <ChartTooltip
         active={true}
-        payload={[{ value: 100, name: 'Test' }]}
+        payload={[{ value: 100, name: 'Test', color: '#00ff88' }]}
+
         label="Test Label"
       />
     );

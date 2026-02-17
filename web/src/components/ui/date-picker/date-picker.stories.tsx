@@ -9,11 +9,9 @@ const meta: Meta<typeof DatePicker> = {
     date: {
       control: 'date',
     },
-    disabled: {
-      control: 'boolean',
-    },
   },
 };
+
 
 
 export default meta;
@@ -28,22 +26,7 @@ export const Default: Story = {
 
 export const WithPlaceholder: Story = {
   args: {
+    date: new Date(),
     placeholder: 'Select a date',
-  },
-};
-
-export const Disabled: Story = {
-  args: {
-    date: new Date(),
-    disabled: true,
-  },
-};
-
-
-export const WithMinMax: Story = {
-  args: {
-    date: new Date(),
-    minDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
-    maxDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
   },
 };

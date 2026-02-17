@@ -22,10 +22,11 @@ export function SensorTable({ sensors, onSensorSelect, selectedSensorId }: Senso
     return sensors.filter((sensor) => {
       const matchesStatus = filters.status === 'all' || sensor.status === filters.status;
       const matchesType = filters.type === 'all' || sensor.type === filters.type;
+      const locationString = `${sensor.location.lat}, ${sensor.location.lon}`;
       const matchesSearch = 
         filters.search === '' ||
         sensor.name.toLowerCase().includes(filters.search.toLowerCase()) ||
-        sensor.location.toLowerCase().includes(filters.search.toLowerCase());
+        locationString.toLowerCase().includes(filters.search.toLowerCase());
 
       return matchesStatus && matchesType && matchesSearch;
     });
