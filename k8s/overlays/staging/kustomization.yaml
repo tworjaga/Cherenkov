@@ -1,36 +1,32 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
-namespace: cherenkov-production
+namespace: cherenkov-staging
 
 resources:
   - ../../base
 
-namePrefix: production-
+namePrefix: staging-
 
 commonLabels:
-  environment: production
+  environment: staging
 
 images:
   - name: cherenkov-api
-    newTag: v1.0.0
+    newTag: staging
   - name: cherenkov-ingest
-    newTag: v1.0.0
+    newTag: staging
   - name: cherenkov-stream
-    newTag: v1.0.0
+    newTag: staging
   - name: cherenkov-web
-    newTag: v1.0.0
+    newTag: staging
 
 replicas:
   - name: api-deployment
-    count: 3
+    count: 1
   - name: ingest-deployment
-    count: 2
+    count: 1
   - name: stream-deployment
-    count: 2
+    count: 1
   - name: web-deployment
-    count: 3
-
-patchesStrategicMerge:
-  - hpa.yaml
-  - pdb.yaml
+    count: 1
