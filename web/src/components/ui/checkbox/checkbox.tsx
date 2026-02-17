@@ -5,10 +5,17 @@ import { cn } from '@/lib/utils';
 export interface CheckboxProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string;
   error?: boolean;
+  onCheckedChange?: (checked: boolean) => void;
 }
 
+
 export const Checkbox = React.forwardRef<HTMLInputElement, CheckboxProps>(
-  ({ className, label, error, ...props }, ref) => {
+  ({ className, label, error, onCheckedChange, onChange, ...props }, ref) => {
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      onCheckedChange?.(e.target.checked);
+      onChange?.(e);
+    };
+
     return (
       <label className="flex items-center gap-2 cursor-pointer">
         <div className="relative">
@@ -16,8 +23,10 @@ export const Checkbox = React.forwardRef<HTMLInputElement, CheckboxProps>(
             type="checkbox"
             className="peer sr-only"
             ref={ref}
+            onChange={handleChange}
             {...props}
           />
+
           <div
             className={cn(
               'w-4 h-4 rounded border border-[#2a2a3d] bg-[#0a0a10] transition-colors',
