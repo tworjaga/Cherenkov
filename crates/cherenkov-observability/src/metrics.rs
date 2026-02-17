@@ -230,6 +230,7 @@ impl PlumeMetrics {
 pub struct Timer {
     start: Instant,
     name: &'static str,
+    #[allow(dead_code)]
     labels: Vec<(String, String)>,
 }
 

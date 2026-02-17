@@ -7,7 +7,9 @@ use uuid::Uuid;
 pub struct TracingService {
     active_spans: Arc<RwLock<HashMap<String, SpanContext>>>,
     service_name: String,
+    #[allow(dead_code)]
     service_version: String,
+    #[allow(dead_code)]
     deployment_environment: String,
 }
 
