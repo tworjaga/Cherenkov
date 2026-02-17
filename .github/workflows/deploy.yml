@@ -46,7 +46,7 @@ jobs:
             --name ${{ secrets.EKS_CLUSTER_NAME }}
 
       - name: Install Helm
-        uses: azure/setup-helm@v3
+        uses: azure/setup-helm@v4
         with:
           version: 'v3.13.0'
 
