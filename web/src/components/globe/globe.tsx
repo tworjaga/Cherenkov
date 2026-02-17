@@ -6,8 +6,9 @@ import { ScatterplotLayer } from '@deck.gl/layers';
 import { HeatmapLayer } from '@deck.gl/aggregation-layers';
 import type { MapViewState } from '@deck.gl/core';
 import { useGlobeStore, useAppStore } from '@/stores';
-import { Sensor, Anomaly } from '@/types';
+import { Sensor, Anomaly, Facility, PlumeSimulation, Viewport } from '@/types';
 import { getSeverityColor } from '@/lib/utils/calculations';
+
 
 // Type declarations for deck.gl modules
 declare module '@deck.gl/react';
@@ -32,27 +33,58 @@ const INITIAL_VIEW_STATE: MapViewState = {
 
 interface GlobeProps {
   sensors: Sensor[];
+  facilities: Facility[];
   anomalies: Anomaly[];
+  plumes: PlumeSimulation[];
+  selectedSensorId: string | null;
+  viewport: Viewport;
+  layers: {
+    sensors: boolean;
+    facilities: boolean;
+    anomalies: boolean;
+    plumes: boolean;
+    heatmap: boolean;
+  };
+  onViewportChange: (viewport: Viewport) => void;
+  onSensorSelect: (sensorId: string) => void;
 }
 
-export const Globe = ({ sensors, anomalies }: GlobeProps) => {
-  const { layers, setViewport, setHoveredFeature } = useGlobeStore();
-  const { selectSensor } = useAppStore();
-  const [viewState, setViewState] = useState<MapViewState>(INITIAL_VIEW_STATE);
+export const Globe = ({ 
+  sensors, 
+  facilities, 
+  anomalies, 
+  plumes,
+  selectedSensorId,
+  viewport,
+  layers: layerVisibility,
+  onViewportChange,
+  onSensorSelect
+}: GlobeProps) => {
+
+  const { setHoveredFeature } = useGlobeStore();
+  const [viewState, setViewState] = useState<MapViewState>({
+    longitude: viewport.longitude,
+    latitude: viewport.latitude,
+    zoom: viewport.zoom,
+    pitch: viewport.pitch,
+    bearing: viewport.bearing,
+  });
 
   const handleViewStateChange = useCallback((params: { viewState: MapViewState }) => {
     setViewState(params.viewState);
-    setViewport({
+    onViewportChange({
       longitude: params.viewState.longitude,
       latitude: params.viewState.latitude,
       zoom: params.viewState.zoom,
       pitch: params.viewState.pitch,
       bearing: params.viewState.bearing,
     });
-  }, [setViewport]);
+  }, [onViewportChange]);
+
 
   const sensorLayer = useMemo(() => {
-    if (!layers.sensors) return null;
+    if (!layerVisibility.sensors) return null;
+
     
     return new ScatterplotLayer({
       id: 'sensor-layer',
@@ -85,9 +117,10 @@ export const Globe = ({ sensors, anomalies }: GlobeProps) => {
       },
       onClick: (info: PickingInfo) => {
         if (info.object) {
-          selectSensor((info.object as Sensor).id);
+          onSensorSelect((info.object as Sensor).id);
         }
       },
+
 
       updateTriggers: {
         getFillColor: [sensors],
@@ -98,10 +131,12 @@ export const Globe = ({ sensors, anomalies }: GlobeProps) => {
         getRadius: 300,
       },
     });
-  }, [sensors, layers.sensors, setHoveredFeature, selectSensor]);
+  }, [sensors, layerVisibility.sensors, setHoveredFeature, onSensorSelect]);
+
 
   const anomalyLayer = useMemo(() => {
-    if (!layers.anomalies) return null;
+    if (!layerVisibility.anomalies) return null;
+
     
     return new ScatterplotLayer({
       id: 'anomaly-layer',
@@ -130,11 +165,13 @@ export const Globe = ({ sensors, anomalies }: GlobeProps) => {
         }
       },
     });
-  }, [anomalies, layers.anomalies, setHoveredFeature]);
+  }, [anomalies, layerVisibility.anomalies, setHoveredFeature]);
+
 
 
   const heatmapLayer = useMemo(() => {
-    if (!layers.heatmap) return null;
+    if (!layerVisibility.heatmap) return null;
+
     
     return new HeatmapLayer({
       id: 'heatmap-layer',
@@ -153,7 +190,8 @@ export const Globe = ({ sensors, anomalies }: GlobeProps) => {
         [255, 51, 102],
       ],
     });
-  }, [sensors, layers.heatmap]);
+  }, [sensors, layerVisibility.heatmap]);
+
 
   const deckLayers = [heatmapLayer, sensorLayer, anomalyLayer].filter(Boolean);
 
@@ -188,10 +226,10 @@ export const Globe = ({ sensors, anomalies }: GlobeProps) => {
       {/* Layer Controls */}
       <div className="absolute top-4 left-4 flex flex-col gap-2 bg-bg-secondary/90 backdrop-blur-md p-3 rounded-lg border border-border-subtle">
         <span className="text-heading-xs text-text-secondary mb-2">LAYERS</span>
-        {Object.entries(layers).map(([key, enabled]) => (
+        {Object.entries(layerVisibility).map(([key, enabled]) => (
           <button
             key={key}
-            onClick={() => useGlobeStore.getState().toggleLayer(key as keyof typeof layers)}
+            onClick={() => useGlobeStore.getState().toggleLayer(key as keyof typeof layerVisibility)}
             className={`flex items-center gap-2 px-3 py-2 rounded-md text-body-sm transition-all ${
               enabled 
                 ? 'bg-accent-primary/20 text-accent-primary border border-accent-primary/30' 
@@ -205,6 +243,7 @@ export const Globe = ({ sensors, anomalies }: GlobeProps) => {
           </button>
         ))}
       </div>
+
 
       {/* Viewport Info */}
       <div className="absolute bottom-4 left-4 bg-bg-secondary/90 backdrop-blur-md px-3 py-2 rounded-md border border-border-subtle">
