@@ -29,6 +29,7 @@ pub struct InferenceService {
     models: Arc<RwLock<ModelCache>>,
     device: Device,
     batch_size: usize,
+    #[allow(dead_code)]
     max_batch_wait_ms: u64,
 }
 
