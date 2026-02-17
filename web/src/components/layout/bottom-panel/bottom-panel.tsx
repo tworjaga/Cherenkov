@@ -50,39 +50,45 @@ export const BottomPanel = ({
 
   return (
     <motion.div
+      data-testid="bottom-panel"
       initial={{ height: 0, opacity: 0 }}
       animate={{ height: 200, opacity: 1 }}
       exit={{ height: 0, opacity: 0 }}
       transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
       className="flex flex-col h-bottom-panel bg-bg-secondary border-t border-border-subtle overflow-hidden"
     >
+
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-2 border-b border-border-subtle">
         <div className="flex items-center gap-4">
-          <button
-            onClick={() => setActiveTab('chart')}
-            className={`text-heading-xs transition-colors ${
-              activeTab === 'chart' ? 'text-accent-primary' : 'text-text-secondary hover:text-text-primary'
-            }`}
-          >
-            GLOBAL RADIATION
-          </button>
-          <button
-            onClick={() => setActiveTab('regions')}
-            className={`text-heading-xs transition-colors ${
-              activeTab === 'regions' ? 'text-accent-primary' : 'text-text-secondary hover:text-text-primary'
-            }`}
-          >
-            REGIONAL STATS
-          </button>
-          <button
-            onClick={() => setActiveTab('events')}
-            className={`text-heading-xs transition-colors ${
-              activeTab === 'events' ? 'text-accent-primary' : 'text-text-secondary hover:text-text-primary'
-            }`}
-          >
-            RECENT EVENTS
-          </button>
+        <button
+          data-testid="tab-chart"
+          onClick={() => setActiveTab('chart')}
+          className={`text-heading-xs transition-colors ${
+            activeTab === 'chart' ? 'text-accent-primary' : 'text-text-secondary hover:text-text-primary'
+          }`}
+        >
+          GLOBAL RADIATION
+        </button>
+        <button
+          data-testid="tab-regions"
+          onClick={() => setActiveTab('regions')}
+          className={`text-heading-xs transition-colors ${
+            activeTab === 'regions' ? 'text-accent-primary' : 'text-text-secondary hover:text-text-primary'
+          }`}
+        >
+          REGIONAL STATS
+        </button>
+        <button
+          data-testid="tab-events"
+          onClick={() => setActiveTab('events')}
+          className={`text-heading-xs transition-colors ${
+            activeTab === 'events' ? 'text-accent-primary' : 'text-text-secondary hover:text-text-primary'
+          }`}
+        >
+          RECENT EVENTS
+        </button>
+
         </div>
         <button
           onClick={toggleBottomPanel}

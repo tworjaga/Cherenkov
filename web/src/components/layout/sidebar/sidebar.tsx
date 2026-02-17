@@ -26,12 +26,14 @@ export const Sidebar = () => {
 
   return (
     <motion.aside
+      data-testid="sidebar"
       initial={{ x: -64, opacity: 0 }}
       animate={{ x: 0, opacity: 1 }}
       transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
       className="fixed left-0 top-header h-[calc(100vh-56px)] bg-bg-secondary border-r border-border-subtle z-40"
       style={{ width: sidebarCollapsed ? 64 : 240 }}
     >
+
       <nav className="flex flex-col gap-1 p-2">
         {navItems.map((item) => {
           const Icon = item.icon;
@@ -40,6 +42,7 @@ export const Sidebar = () => {
           return (
             <motion.button
               key={item.id}
+              data-testid={`nav-${item.id}`}
               onClick={() => setView(item.id)}
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
@@ -51,6 +54,7 @@ export const Sidebar = () => {
                 }
               `}
             >
+
               <Icon className="w-6 h-6" strokeWidth={1.5} />
               {!sidebarCollapsed && (
                 <span className="text-body-sm font-medium">{item.label}</span>

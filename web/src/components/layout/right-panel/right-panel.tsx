@@ -159,7 +159,8 @@ export const RightPanel = () => {
   }, [alerts, isPaused]);
 
   return (
-    <div className="flex flex-col w-right-panel h-full bg-bg-secondary border-l border-border-subtle">
+    <div data-testid="right-panel" className="flex flex-col w-right-panel h-full bg-bg-secondary border-l border-border-subtle">
+
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-border-subtle">
         <div className="flex items-center gap-2">
@@ -183,7 +184,8 @@ export const RightPanel = () => {
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto p-3 space-y-3 scrollbar-thin scrollbar-thumb-border-active scrollbar-track-transparent">
+      <div data-testid="alert-feed" className="flex-1 overflow-y-auto p-3 space-y-3 scrollbar-thin scrollbar-thumb-border-active scrollbar-track-transparent">
+
         <AnimatePresence mode="popLayout">
           {selectedSensor ? (
             <SensorDetail 

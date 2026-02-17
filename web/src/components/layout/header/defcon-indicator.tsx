@@ -13,7 +13,9 @@ export const DefconIndicator = ({ level }: DefconIndicatorProps) => {
 
   return (
     <motion.div
+      data-testid="defcon-indicator"
       className="flex items-center gap-2 px-3 py-1.5 rounded-md border border-border-subtle bg-bg-tertiary"
+
       animate={shouldPulse ? {
         boxShadow: [
           `0 0 0px ${color}40`,

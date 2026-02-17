@@ -158,7 +158,8 @@ export const Globe = ({ sensors, anomalies }: GlobeProps) => {
   const deckLayers = [heatmapLayer, sensorLayer, anomalyLayer].filter(Boolean);
 
   return (
-    <div className="relative w-full h-full bg-bg-primary">
+    <div data-testid="globe-container" className="relative w-full h-full bg-bg-primary">
+
       <DeckGL
         viewState={viewState}
         onViewStateChange={handleViewStateChange}

@@ -26,11 +26,13 @@ export const Header = () => {
 
   return (
     <motion.header
+      data-testid="header"
       initial={{ y: -56, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
       className="fixed top-0 left-0 right-0 h-header bg-bg-secondary/80 backdrop-blur-md border-b border-border-subtle z-50"
     >
+
       <div className="h-full flex items-center justify-between px-4">
         <div className="flex items-center gap-4">
           <motion.button
@@ -56,7 +58,7 @@ export const Header = () => {
         <div className="flex items-center gap-6">
           <DefconIndicator level={defconLevel} />
           
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-bg-tertiary rounded-md border border-border-subtle">
+          <div data-testid="utc-clock" className="flex items-center gap-2 px-3 py-1.5 bg-bg-tertiary rounded-md border border-border-subtle">
             <span className="text-mono-xs text-text-tertiary">UTC</span>
             <span
               className="text-mono-sm text-text-primary"
@@ -65,6 +67,7 @@ export const Header = () => {
               {mounted ? formatUTCTime(currentTime) : '--:--:--'}
             </span>
           </div>
+
 
 
           <ConnectionStatus />
