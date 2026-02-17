@@ -2,14 +2,25 @@
 
 import { motion } from 'framer-motion';
 import { getDefconColor } from '@/lib/utils/calculations';
+import { useDataStore } from '@/stores';
 
 interface StatusIndicatorProps {
-  defcon: number;
-  level: string;
-  activeAlerts: number;
+  defcon?: number;
+  level?: string;
+  activeAlerts?: number;
 }
 
-export const StatusIndicator = ({ defcon, level, activeAlerts }: StatusIndicatorProps) => {
+export const StatusIndicator = ({ 
+  defcon: defconProp, 
+  level: levelProp, 
+  activeAlerts: activeAlertsProp 
+}: StatusIndicatorProps) => {
+  const { globalStatus, alerts } = useDataStore();
+  
+  const defcon = defconProp ?? globalStatus?.defcon ?? 5;
+  const level = levelProp ?? globalStatus?.status ?? 'NORMAL';
+  const activeAlerts = activeAlertsProp ?? alerts.filter(a => !a.acknowledged).length ?? 0;
+
   const color = getDefconColor(defcon);
   
   const getPulseSpeed = () => {

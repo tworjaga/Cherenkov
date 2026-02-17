@@ -5,7 +5,8 @@ import { DeckGL } from '@deck.gl/react';
 import { ScatterplotLayer } from '@deck.gl/layers';
 import { HeatmapLayer } from '@deck.gl/aggregation-layers';
 import type { MapViewState } from '@deck.gl/core';
-import { useGlobeStore, useAppStore } from '@/stores';
+import { useGlobeStore } from '@/stores';
+
 import { Sensor, Anomaly, Facility, PlumeSimulation, Viewport } from '@/types';
 import { getSeverityColor } from '@/lib/utils/calculations';
 
@@ -23,7 +24,7 @@ interface PickingInfo {
 }
 
 
-const INITIAL_VIEW_STATE: MapViewState = {
+const _INITIAL_VIEW_STATE: MapViewState = {
   longitude: 0,
   latitude: 20,
   zoom: 2,
@@ -32,6 +33,7 @@ const INITIAL_VIEW_STATE: MapViewState = {
 };
 
 interface GlobeProps {
+
   sensors: Sensor[];
   facilities: Facility[];
   anomalies: Anomaly[];
@@ -51,15 +53,16 @@ interface GlobeProps {
 
 export const Globe = ({ 
   sensors, 
-  facilities, 
+  facilities: _facilities, 
   anomalies, 
-  plumes,
-  selectedSensorId,
+  plumes: _plumes,
+  selectedSensorId: _selectedSensorId,
   viewport,
   layers: layerVisibility,
   onViewportChange,
   onSensorSelect
 }: GlobeProps) => {
+
 
   const { setHoveredFeature } = useGlobeStore();
   const [viewState, setViewState] = useState<MapViewState>({

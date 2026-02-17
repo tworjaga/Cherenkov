@@ -1,24 +1,36 @@
 export interface GeoLocation {
   lat: number;
   lon: number;
+  latitude?: number;
+  longitude?: number;
+  lng?: number;
 }
+
 
 export interface Sensor {
   id: string;
   name: string;
+  type?: string;
   location: GeoLocation;
+  longitude: number;
+  latitude: number;
   status: 'active' | 'inactive' | 'maintenance' | 'offline';
   source: string;
+  unit?: string;
   lastReading: Reading | null;
 }
+
+
 
 export interface Reading {
   timestamp: number;
   doseRate: number;
+  value?: number;
   unit: string;
   qualityFlag: 'good' | 'suspect' | 'bad';
   uncertainty?: number;
 }
+
 
 export interface Anomaly {
   id: string;
@@ -33,8 +45,11 @@ export interface Anomaly {
   algorithm: string;
   acknowledged: boolean;
   location: GeoLocation;
+  longitude: number;
+  latitude: number;
   message: string;
 }
+
 
 
 export interface Facility {
@@ -42,12 +57,15 @@ export interface Facility {
   name: string;
   type: 'nuclear' | 'research' | 'medical' | 'industrial';
   location: GeoLocation;
+  longitude: number;
+  latitude: number;
   status: 'operating' | 'shutdown' | 'incident' | 'decommissioned';
   reactorType?: string;
   capacity?: number;
   reactorCount?: number;
   currentOutput?: number;
 }
+
 
 export interface PlumeSimulation {
   id: string;

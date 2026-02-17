@@ -3,7 +3,7 @@
 import { useMemo } from 'react';
 import { ScatterplotLayer } from '@deck.gl/layers';
 import { useDataStore } from '@/stores';
-import { colors } from '@/styles/theme';
+import type { Sensor } from '@/types';
 
 interface SensorLayerProps {
   onSensorClick?: (sensorId: string) => void;
@@ -13,7 +13,7 @@ interface SensorLayerProps {
 export function SensorLayer({ onSensorClick, selectedSensorId }: SensorLayerProps) {
   const { sensors } = useDataStore();
 
-  const layer = useMemo(() => {
+  const _layer = useMemo(() => {
     return new ScatterplotLayer({
       id: 'sensor-layer',
       data: sensors,
@@ -25,12 +25,12 @@ export function SensorLayer({ onSensorClick, selectedSensorId }: SensorLayerProp
       radiusMinPixels: 4,
       radiusMaxPixels: 16,
       lineWidthMinPixels: 1,
-      getPosition: (d) => [d.longitude, d.latitude],
-      getRadius: (d) => {
+      getPosition: (d: Sensor) => [d.longitude, d.latitude],
+      getRadius: (d: Sensor) => {
         if (d.id === selectedSensorId) return 12;
         return d.status === 'active' ? 8 : 6;
       },
-      getFillColor: (d) => {
+      getFillColor: (d: Sensor) => {
         if (d.id === selectedSensorId) {
           return [0, 212, 255]; // accent.primary
         }
@@ -47,7 +47,7 @@ export function SensorLayer({ onSensorClick, selectedSensorId }: SensorLayerProp
       },
       getLineColor: [255, 255, 255],
       getLineWidth: 2,
-      onClick: (info) => {
+      onClick: (info: { object: Sensor | null }) => {
         if (info.object && onSensorClick) {
           onSensorClick(info.object.id);
         }
@@ -60,6 +60,7 @@ export function SensorLayer({ onSensorClick, selectedSensorId }: SensorLayerProp
   }, [sensors, selectedSensorId, onSensorClick]);
 
   return null; // Layer is managed by parent DeckGL component
+
 }
 
 export default SensorLayer;

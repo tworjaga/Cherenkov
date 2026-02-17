@@ -20,6 +20,7 @@ interface GlobeState {
   layers: GlobeLayers;
   hoveredFeature: HoveredFeature | null;
   isFlying: boolean;
+  timeRange: [number, number] | null;
 
   setViewport: (viewport: Partial<Viewport>) => void;
   setViewportComplete: (viewport: Viewport) => void;
@@ -27,7 +28,9 @@ interface GlobeState {
   setHoveredFeature: (feature: HoveredFeature | null) => void;
   flyTo: (location: { lat: number; lon: number }, zoom?: number) => void;
   resetView: () => void;
+  setTimeRange: (range: [number, number] | null) => void;
 }
+
 
 const defaultViewport: Viewport = {
   latitude: 20,
@@ -50,8 +53,10 @@ export const useGlobeStore = create<GlobeState>()(
       },
       hoveredFeature: null,
       isFlying: false,
+      timeRange: null,
 
       setViewport: (viewport) =>
+
         set((state) => ({
           viewport: { ...state.viewport, ...viewport },
         })),
@@ -90,7 +95,10 @@ export const useGlobeStore = create<GlobeState>()(
           viewport: defaultViewport,
           isFlying: false,
         }),
+
+      setTimeRange: (range) => set({ timeRange: range }),
     }),
+
     {
       name: 'cherenkov-globe-storage',
       partialize: (state) => ({

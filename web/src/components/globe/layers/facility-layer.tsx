@@ -3,7 +3,8 @@
 import { useMemo } from 'react';
 import { IconLayer } from '@deck.gl/layers';
 import { useDataStore } from '@/stores';
-import { Diamond } from 'lucide-react';
+import type { Facility } from '@/types';
+
 
 interface FacilityLayerProps {
   onFacilityClick?: (facilityId: string) => void;
@@ -13,7 +14,7 @@ interface FacilityLayerProps {
 export function FacilityLayer({ onFacilityClick, selectedFacilityId }: FacilityLayerProps) {
   const { facilities } = useDataStore();
 
-  const layer = useMemo(() => {
+  const _layer = useMemo(() => {
     return new IconLayer({
       id: 'facility-layer',
       data: facilities,
@@ -24,11 +25,11 @@ export function FacilityLayer({ onFacilityClick, selectedFacilityId }: FacilityL
         research: { x: 128, y: 0, width: 128, height: 128, mask: true },
         medical: { x: 0, y: 128, width: 128, height: 128, mask: true },
       },
-      getIcon: (d) => d.type,
+      getIcon: (d: Facility) => d.type,
       sizeScale: 1,
-      getPosition: (d) => [d.longitude, d.latitude],
-      getSize: (d) => (d.id === selectedFacilityId ? 24 : 16),
-      getColor: (d) => {
+      getPosition: (d: Facility) => [d.longitude, d.latitude],
+      getSize: (d: Facility) => (d.id === selectedFacilityId ? 24 : 16),
+      getColor: (d: Facility) => {
         if (d.id === selectedFacilityId) {
           return [0, 212, 255]; // accent.primary
         }
@@ -43,13 +44,14 @@ export function FacilityLayer({ onFacilityClick, selectedFacilityId }: FacilityL
             return [160, 160, 176];
         }
       },
-      onClick: (info) => {
+      onClick: (info: { object: Facility | null }) => {
         if (info.object && onFacilityClick) {
           onFacilityClick(info.object.id);
         }
       },
     });
   }, [facilities, selectedFacilityId, onFacilityClick]);
+
 
   return null;
 }
