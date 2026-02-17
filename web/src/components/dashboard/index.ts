@@ -1,6 +1,6 @@
 export { StatusIndicator } from './status-indicator';
 export { AlertCard } from './alert-card';
-export { AlertFeed } from './alert-feed';
+export { AlertList, AlertFilters } from './alert-feed';
 export { SensorList } from './sensor-list';
 export { SensorDetail } from './sensor-detail';
 export { FacilityList } from './facility-list';

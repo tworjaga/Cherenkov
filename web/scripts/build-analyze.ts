@@ -1,15 +1,17 @@
 #!/usr/bin/env ts-node
-import { bundleAnalyzer } from 'next-bundle-analyzer';
+
+/**
+ * Build analysis script
+ * Note: This is a stub implementation. To enable full bundle analysis,
+ * install @next/bundle-analyzer: npm install --save-dev @next/bundle-analyzer
+ */
 
 async function main() {
   try {
-    await bundleAnalyzer({
-      enabled: true,
-      openAnalyzer: true,
-      analyzerMode: 'static',
-      reportFilename: 'bundle-report.html',
-    });
-    console.log('Bundle analysis completed');
+    console.log('Bundle analysis stub - no analysis performed');
+    console.log('To enable bundle analysis, install @next/bundle-analyzer');
+    console.log('npm install --save-dev @next/bundle-analyzer');
+    process.exit(0);
   } catch (error) {
     console.error('Bundle analysis failed:', error);
     process.exit(1);
