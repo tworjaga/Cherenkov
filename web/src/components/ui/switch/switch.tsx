@@ -14,8 +14,8 @@ export const Switch = React.forwardRef<HTMLInputElement, SwitchProps>(
     
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       onCheckedChange?.(e.target.checked);
-      props.onChange?.(e);
     };
+
 
 
 

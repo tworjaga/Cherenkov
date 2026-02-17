@@ -37,8 +37,9 @@ export function LayerToggles({ className }: LayerTogglesProps) {
             </div>
             <Switch
               checked={layers[id as keyof typeof layers]}
-              onChange={() => toggleLayer(id as keyof typeof layers)}
+              onCheckedChange={() => toggleLayer(id as keyof typeof layers)}
             />
+
 
           </div>
         ))}
