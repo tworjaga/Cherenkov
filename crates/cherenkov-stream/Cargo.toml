@@ -33,7 +33,7 @@ async-trait = "0.1"
 redis = { workspace = true }
 
 # Statistical processing
-statrs = "0.16"
+statrs = "0.18"
 rand = "0.8"
 
 [dev-dependencies]
