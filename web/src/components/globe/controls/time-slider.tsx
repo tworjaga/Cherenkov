@@ -22,17 +22,18 @@ export function TimeSlider({ className }: TimeSliderProps) {
   };
 
   const handleStepBack = () => {
-    const newTime = new Date(currentTime.getTime() - 5 * 60 * 1000); // 5 minutes back
+    const newTime = currentTime - 5 * 60 * 1000; // 5 minutes back
     setCurrentTime(newTime);
   };
 
   const handleStepForward = () => {
-    const newTime = new Date(currentTime.getTime() + 5 * 60 * 1000); // 5 minutes forward
+    const newTime = currentTime + 5 * 60 * 1000; // 5 minutes forward
     setCurrentTime(newTime);
   };
 
-  const formatTime = (date: Date) => {
-    return date.toLocaleTimeString('en-US', {
+  const formatTime = (timestamp: number) => {
+    return new Date(timestamp).toLocaleTimeString('en-US', {
+
       hour12: false,
       hour: '2-digit',
       minute: '2-digit',
