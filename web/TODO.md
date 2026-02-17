@@ -1,123 +1,106 @@
-# Cherenkov Frontend Implementation TODO
+# 100% File Coverage Implementation TODO
 
-## Phase 1: Project Initialization - COMPLETE
-- [x] Initialize Next.js 14 project with TypeScript
-- [x] Install all dependencies (React 18, Tailwind, Framer Motion, Zustand, deck.gl, etc.)
-- [x] Configure TypeScript strict mode
-- [x] Set up Tailwind with custom design tokens
-- [x] Configure ESLint and Prettier
+## Component Directories (Missing Entire Directories)
 
-## Phase 2: Design System Foundation - COMPLETE
-- [x] Create color system constants (exact values from spec)
-- [x] Create typography system (Inter, JetBrains Mono)
-- [x] Create spacing system (4pt grid)
-- [x] Create animation presets (Framer Motion)
-- [x] Set up global CSS variables
+### 1. src/components/sensors/
+- [ ] sensor-table/sensor-table.tsx
+- [ ] sensor-table/sensor-row.tsx
+- [ ] sensor-table/sensor-filters.tsx
+- [ ] sensor-table/index.ts
+- [ ] sensor-map/sensor-map.tsx
+- [ ] sensor-map/index.ts
+- [ ] sensor-detail-modal/sensor-detail-modal.tsx
+- [ ] sensor-detail-modal/index.ts
+- [ ] index.ts (main sensors export)
 
-## Phase 3: GraphQL Infrastructure - COMPLETE
-- [x] Set up GraphQL client with graphql-request
-- [x] Create schema file matching backend API
-- [x] Create queries, mutations, subscriptions
-- [x] Set up WebSocket client structure
+### 2. src/components/anomalies/
+- [ ] anomaly-list/anomaly-list.tsx
+- [ ] anomaly-list/anomaly-item.tsx
+- [ ] anomaly-list/index.ts
+- [ ] anomaly-filters/anomaly-filters.tsx
+- [ ] anomaly-filters/index.ts
+- [ ] anomaly-timeline/anomaly-timeline.tsx
+- [ ] anomaly-timeline/index.ts
+- [ ] index.ts (main anomalies export)
 
-## Phase 4: State Management (Zustand) - COMPLETE
-- [x] Create AppStore (view state, UI state, time control, connection)
-- [x] Create GlobeStore (viewport, layers, hovered features)
-- [x] Create DataStore (alerts, readings, global status)
+### 3. src/components/plume/
+- [ ] plume-simulator/plume-simulator.tsx
+- [ ] plume-simulator/release-params.tsx
+- [ ] plume-simulator/weather-conditions.tsx
+- [ ] plume-simulator/index.ts
+- [ ] plume-visualization/plume-visualization.tsx
+- [ ] plume-visualization/index.ts
+- [ ] evacuation-zones/evacuation-zones.tsx
+- [ ] evacuation-zones/index.ts
+- [ ] index.ts (main plume export)
 
-## Phase 5: Core Layout Components - COMPLETE
-- [x] Header component (56px, DEFCON indicator, UTC clock, connection status)
-- [x] Sidebar component (64px icon-only, navigation)
-- [x] RightPanel component (320px, alert feed, sensor detail)
-- [x] BottomPanel component (200px, charts, stats, events)
+## Settings Sub-components (Missing)
 
-## Phase 6: 3D Globe Implementation - COMPLETE
-- [x] Set up deck.gl with MapLibre base map
-- [x] Create globe container component
-- [x] Implement sensor layer (ScatterplotLayer)
-- [x] Implement anomaly layer (markers)
-- [x] Implement heatmap layer (HeatmapLayer)
-- [x] Add layer toggle controls
-- [x] Add zoom and viewport controls
+### 4. src/components/settings/
+- [ ] data-source-config/data-source-config.tsx
+- [ ] data-source-config/index.ts
+- [ ] notification-config/notification-config.tsx
+- [ ] notification-config/index.ts
+- [ ] Update settings/index.ts with new exports
 
-## Phase 7: Dashboard Components - COMPLETE
-- [x] DefconIndicator component (levels with animations)
-- [x] AlertCard component (severity colors)
-- [x] AlertFeed component (scrolling list)
-- [x] SensorDetail component (current reading, metadata)
-- [x] ReadingChart component (Recharts area chart)
-- [x] RegionalStats component (horizontal bar chart)
-- [x] Event feed component
+## Library Files (Missing)
 
-## Phase 8: Real-time Features - COMPLETE
-- [x] WebSocket hook structure
-- [x] useWebSocket hook for subscriptions
-- [x] Connection status management
+### 5. src/lib/graphql/
+- [ ] fragments.ts
 
-## Phase 9: Interactions & Animations - COMPLETE
-- [x] Keyboard shortcuts hook (1-5 views, G, T, Space, arrows)
-- [x] Framer Motion animations structure
-- [x] Hover states and transitions
+### 6. src/lib/websocket/
+- [ ] client.ts
+- [ ] heartbeat.ts
+- [ ] Update websocket/index.ts with new exports
 
-## Phase 10: Testing - COMPLETE
-- [x] Vitest configuration
-- [x] Test setup with jsdom
-- [x] Unit tests for formatters
-- [x] Unit tests for calculations
-- [x] Unit tests for app store
+## Configuration Files (Missing)
 
-## P0 Implementation Summary
+### 7. src/config/
+- [ ] routes.ts
+- [ ] Update config/index.ts with routes export
 
-All Priority 0 components have been implemented:
+### 8. Environment Files
+- [ ] .env.example
+- [ ] .env.local
+- [ ] .env.production
 
-1. **3D WebGL Globe** (deck.gl 8.9.0)
-   - ScatterplotLayer for sensors
-   - HeatmapLayer for aggregate data
-   - Anomaly markers with severity colors
-   - Layer toggle controls
-   - Viewport controls
+## Public Assets (Missing Content)
 
-2. **Real-time Alert Feed**
-   - Alert cards with severity-based colors
-   - Acknowledge functionality
-   - Auto-scrolling with pause on hover
-   - Framer Motion animations
+### 9. public/fonts/
+- [ ] Inter-Variable.woff2 (placeholder)
+- [ ] Inter-VariableItalic.woff2 (placeholder)
+- [ ] JetBrainsMono-Variable.woff2 (placeholder)
+- [ ] JetBrainsMono-VariableItalic.woff2 (placeholder)
 
-3. **Sensor Detail Panel**
-   - Current dose rate display
-   - Location metadata
-   - Status indicators
-   - Selection integration with globe
+### 10. public/icons/
+- [ ] favicon.svg (placeholder)
+- [ ] favicon-dark.svg (placeholder)
+- [ ] favicon-16x16.png (placeholder)
+- [ ] favicon-32x32.png (placeholder)
+- [ ] apple-touch-icon.png (placeholder)
+- [ ] android-chrome-192x192.png (placeholder)
+- [ ] android-chrome-512x512.png (placeholder)
 
-4. **Analytics Charts** (recharts 2.10.0)
-   - AreaChart for global radiation time-series
-   - BarChart for regional statistics
-   - Tabbed interface (chart/regions/events)
-   - Responsive container
+### 11. public/images/
+- [ ] logo-dark.svg (placeholder)
+- [ ] logo-light.svg (placeholder)
+- [ ] placeholder-sensor.jpg (placeholder)
 
-5. **Layout System**
-   - Header with DEFCON indicator
-   - Sidebar navigation
-   - Right panel (alerts + sensor detail)
-   - Bottom panel (analytics)
+## Test Content (Missing Content)
 
-6. **State Management**
-   - Zustand stores (app, globe, data)
-   - TypeScript strict mode compliance
-   - Persistent state where needed
+### 12. tests/unit/
+- [ ] components/placeholder.test.ts
+- [ ] hooks/placeholder.test.ts
+- [ ] utils/placeholder.test.ts
+- [ ] stores/placeholder.test.ts
 
-7. **Type Declarations**
-   - deckgl.d.ts for WebGL components
-   - Full TypeScript coverage
+### 13. tests/integration/
+- [ ] api/placeholder.test.ts
+- [ ] websocket/placeholder.test.ts
+- [ ] stores/placeholder.test.ts
 
-## Next Steps (P1/P2)
-- [ ] GraphQL Code Generator setup
-- [ ] WebSocket subscription implementation
-- [ ] Plume simulation layer
-- [ ] Facility markers layer
-- [ ] Time slider component
-- [ ] Search functionality
-- [ ] Settings panels
-- [ ] E2E tests with Playwright
-- [ ] Storybook documentation
-- [ ] Production Docker build
+## Progress Tracking
+- Total Tasks: 60+
+- Completed: 0
+- In Progress: 0
+- Remaining: 60+

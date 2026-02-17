@@ -3,6 +3,12 @@ export { useTimeControl } from './use-time-control';
 export { useMediaQuery, useBreakpoint } from './use-media-query';
 export { useLocalStorage } from './use-local-storage';
 export { useKeyboardShortcuts } from './use-keyboard-shortcuts';
+export { useGlobe } from './use-globe';
+
+export { useDebounce, useDebouncedCallback } from './use-debounce';
+export { useThrottle, useThrottledCallback } from './use-throttle';
+export { useIntersectionObserver, useInView } from './use-intersection-observer';
+export { usePrevious, usePreviousDistinct } from './use-previous';
 export {
   useSensors,
   useReadings,

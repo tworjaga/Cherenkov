@@ -1,3 +1,4 @@
 export { LayerToggles } from './layer-toggles';
 export { ZoomControls } from './zoom-controls';
 export { TimeSlider } from './time-slider';
+export { RotationControls } from './rotation-controls';
