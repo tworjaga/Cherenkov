@@ -239,7 +239,7 @@ impl RadiationDatabase {
         sensor_ids: &[String],
         start_ts: i64,
         end_ts: i64,
-        aggregation: AggregationLevel,
+        _aggregation: AggregationLevel,
     ) -> Result<Vec<TimeSeriesPoint>, DatabaseError> {
         let start = DateTime::from_timestamp(start_ts, 0)
             .unwrap_or_else(|| Utc::now());

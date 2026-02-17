@@ -105,7 +105,7 @@ impl ScyllaStorage {
         
         let mut batch = scylla::batch::Batch::new(scylla::batch::BatchType::Unlogged);
         
-        for reading in readings {
+        for _reading in readings {
             batch.append_statement(prepared.clone());
         }
         
