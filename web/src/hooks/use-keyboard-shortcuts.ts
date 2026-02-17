@@ -3,8 +3,9 @@ import { useAppStore } from '@/stores';
 import { useGlobeStore } from '@/stores';
 
 export const useKeyboardShortcuts = () => {
-  const { setView, toggleRightPanel, toggleBottomPanel, setTimeMode, stepTime, selectSensor } =
+  const { setView, toggleBottomPanel, setTimeMode, stepTime, selectSensor } =
     useAppStore();
+
   const { resetView } = useGlobeStore();
 
   // Use resetView for 'g' key to center on selected sensor
@@ -47,8 +48,9 @@ export const useKeyboardShortcuts = () => {
 
         case 't':
         case 'T':
-          toggleRightPanel();
+          toggleBottomPanel();
           break;
+
         case ' ':
           event.preventDefault();
           setTimeMode('live');
@@ -77,7 +79,8 @@ export const useKeyboardShortcuts = () => {
           break;
       }
     },
-    [setView, toggleRightPanel, toggleBottomPanel, setTimeMode, stepTime, selectSensor, centerOnSensor]
+    [setView, toggleBottomPanel, setTimeMode, stepTime, selectSensor, centerOnSensor]
+
 
   );
 
