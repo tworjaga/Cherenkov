@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
@@ -11,20 +11,24 @@ import { ROUTES } from '@/config/routes';
 
 export default function RegisterPage() {
   const router = useRouter();
-  const { register, isLoading, error } = useAuthStore();
+  const { register, isLoading, error, isAuthenticated } = useAuthStore();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.push(ROUTES.DASHBOARD);
+    }
+  }, [isAuthenticated, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (password !== confirmPassword) return;
     
-    const success = await register(email, password);
-    if (success) {
-      router.push(ROUTES.DASHBOARD);
-    }
+    await register(email, password);
   };
+
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#050508] p-4">
