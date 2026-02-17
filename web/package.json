@@ -55,7 +55,7 @@
     "typescript": "^5.3.3",
     "use-sound": "^4.0.1",
     "zod": "^3.22.0",
-    "zustand": "^4.4.7"
+    "zustand": "^5.0.11"
   },
   "devDependencies": {
     "@graphql-codegen/cli": "^5.0.0",
