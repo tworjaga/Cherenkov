@@ -1,13 +1,23 @@
 import * as React from 'react';
 import { cn } from '@/lib/utils';
 
-export interface SwitchProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size'> {
+export interface SwitchProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size' | 'onChange'> {
   label?: string;
   switchSize?: 'sm' | 'md' | 'lg';
+  checked?: boolean;
+  onCheckedChange?: (checked: boolean) => void;
 }
 
+
 export const Switch = React.forwardRef<HTMLInputElement, SwitchProps>(
-  ({ className, label, switchSize: size = 'md', ...props }, ref) => {
+  ({ className, label, switchSize: size = 'md', checked, onCheckedChange, ...props }, ref) => {
+    
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      onCheckedChange?.(e.target.checked);
+      props.onChange?.(e);
+    };
+
+
 
     const sizeClasses = {
       sm: { track: 'w-8 h-4', thumb: 'w-3 h-3', translate: 'translate-x-4' },
@@ -24,8 +34,11 @@ export const Switch = React.forwardRef<HTMLInputElement, SwitchProps>(
             type="checkbox"
             className="peer sr-only"
             ref={ref}
+            checked={checked}
+            onChange={handleChange}
             {...props}
           />
+
           <div
             className={cn(
               'rounded-full bg-[#2a2a3d] transition-colors duration-200',
