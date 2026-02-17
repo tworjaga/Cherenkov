@@ -3,7 +3,6 @@ use std::time::Duration;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use chrono::{DateTime, Utc};
-use tracing::debug;
 
 use cherenkov_db::RadiationReading;
 

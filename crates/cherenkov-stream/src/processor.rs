@@ -43,7 +43,7 @@ impl StreamProcessor {
     }
 
     /// Start the processor pipeline with multiple workers
-    pub async fn run(mut self) -> anyhow::Result<()> {
+    pub async fn run(self) -> anyhow::Result<()> {
         info!("Stream processor starting with anomaly detection");
 
         let db = self.db.clone();
@@ -146,7 +146,7 @@ impl StreamProcessor {
 
 /// Store anomaly in database
 async fn store_anomaly(
-    db: &Arc<RadiationDatabase>,
+    _db: &Arc<RadiationDatabase>,
     anomaly: &Anomaly,
 ) -> anyhow::Result<()> {
     // For now, just log the anomaly
