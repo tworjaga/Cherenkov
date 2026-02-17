@@ -12,7 +12,6 @@ use std::time::{Duration, Instant};
 use tokio::sync::{broadcast, RwLock, mpsc};
 use serde::{Serialize, Deserialize};
 use tracing::{info, warn, error, debug};
-use futures_util::stream::StreamExt;
 
 /// Maximum messages per second per connection (rate limiting)
 const MAX_MESSAGES_PER_SECOND: u32 = 100;

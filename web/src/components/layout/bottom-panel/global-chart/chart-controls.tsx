@@ -3,7 +3,8 @@
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
-import { Play, Pause, SkipBack, SkipForward } from 'lucide-react';
+import { Play, Pause, SkipBack } from 'lucide-react';
+
 
 interface ChartControlsProps {
   isPlaying: boolean;

@@ -1,5 +1,4 @@
 use async_trait::async_trait;
-use serde::{Deserialize, Serialize};
 use reqwest::Client;
 use std::time::Duration;
 use tracing::{info, warn, instrument};

@@ -5,11 +5,13 @@ import { useDataStore, useAppStore } from '@/stores';
 import { animations } from '@/styles/theme';
 import { formatTimestamp, getSeverityColor } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { AlertTriangle, Radio, Wind, Activity } from 'lucide-react';
+import { AlertTriangle, Wind, Activity } from 'lucide-react';
+
 
 export const RecentEventsPanel = () => {
   const { alerts, anomalies } = useDataStore();
-  const { setSelectedSensorId, setView } = useAppStore();
+  const { setView } = useAppStore();
+
 
   // Combine alerts and anomalies into events
   const events = [
@@ -39,12 +41,9 @@ export const RecentEventsPanel = () => {
       // This would trigger a fly-to animation
     }
     if (event.type === 'anomaly') {
-      const anomaly = anomalies.find(a => a.id === event.id);
-      if (anomaly) {
-        setSelectedSensorId(anomaly.sensorId);
-        setView('sensors');
-      }
+      setView('sensors');
     }
+
   };
 
   return (

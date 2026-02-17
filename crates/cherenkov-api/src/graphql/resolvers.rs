@@ -2,7 +2,6 @@ use async_graphql::{Object, ID, Context, Result};
 use chrono::{DateTime, Utc};
 use uuid::Uuid;
 use std::sync::Arc;
-use tracing::{info, error};
 
 use cherenkov_db::{RadiationDatabase, AggregationLevel};
 
@@ -212,7 +211,6 @@ pub struct GlobalStatus {
 use async_graphql::SimpleObject;
 use async_graphql::Subscription;
 use futures_util::stream::Stream;
-use std::pin::Pin;
 use tokio::sync::broadcast;
 
 /// Subscription root for real-time updates

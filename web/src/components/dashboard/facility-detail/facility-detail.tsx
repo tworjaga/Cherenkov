@@ -6,11 +6,23 @@ import { Badge } from '@/components/ui/badge';
 import { MapPin, Zap, Factory, Info, Gauge } from 'lucide-react';
 
 interface FacilityDetailProps {
-  facility: Facility;
+  facility?: Facility;
   className?: string;
 }
 
+
 export const FacilityDetail = ({ facility, className }: FacilityDetailProps) => {
+  if (!facility) {
+    return (
+      <Card className={className}>
+        <CardContent className="p-6">
+          <p className="text-body-sm text-text-tertiary">No facility selected</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+
   const getStatusVariant = (status: Facility['status']) => {
     switch (status) {
       case 'operating':

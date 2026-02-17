@@ -809,7 +809,7 @@ impl EurdepSource {
         if let Some(re) = measurement_regex {
             for cap in re.captures_iter(xml_data) {
                 let station_code = cap.get(1).map(|m| m.as_str()).unwrap_or("unknown");
-                let station_name = cap.get(2).map(|m| m.as_str()).unwrap_or("Unknown");
+                let _station_name = cap.get(2).map(|m| m.as_str()).unwrap_or("Unknown");
                 let country_code = cap.get(3).map(|m| m.as_str()).unwrap_or("XX");
                 
                 let latitude = cap.get(4)

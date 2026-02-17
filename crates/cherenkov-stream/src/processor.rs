@@ -145,7 +145,6 @@ impl StreamProcessor {
 }
 
 /// Store anomaly in database
-#[instrument(skip(db, anomaly))]
 async fn store_anomaly(
     db: &Arc<RadiationDatabase>,
     anomaly: &Anomaly,

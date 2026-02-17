@@ -1,9 +1,8 @@
 use crate::{ReleaseParameters, PlumeSimulation, ConcentrationGrid, ArrivalTime};
-use nalgebra::{Vector3, DVector};
+use nalgebra::Vector3;
 use tracing::{info, debug, warn};
 use std::time::Instant;
 use candle_core::{Device, Tensor, DType};
-use std::sync::Arc;
 
 
 pub struct LagrangianDispersion {
@@ -259,7 +258,7 @@ impl LagrangianDispersion {
         let isotope = release.isotope.clone();
         let half_life = get_half_life_hours(&isotope);
         
-        for i in 0..num_particles {
+        for _i in 0..num_particles {
             let random_offset = Vector3::new(
                 (rand::random::<f64>() - 0.5) * 0.01,
                 (rand::random::<f64>() - 0.5) * 0.01,
@@ -421,7 +420,7 @@ impl LagrangianDispersion {
         let activities = self.gpu_activities.as_mut()
             .ok_or_else(|| anyhow::anyhow!("Activity buffer not initialized"))?;
         
-        let n = activities.dims()[0];
+        let _n = activities.dims()[0];
         
         // decay_factor = exp(-0.693 * elapsed_hours / half_life)
         let decay_constant = -0.693f32 * elapsed_hours as f32;

@@ -2,7 +2,7 @@ use candle_core::{Device, Tensor};
 use std::sync::Arc;
 use std::collections::HashMap;
 use tokio::sync::RwLock;
-use tracing::{info, warn, error};
+use tracing::{info, warn};
 use std::time::Instant;
 
 use crate::{Classification, IsotopePrediction, Spectrum};

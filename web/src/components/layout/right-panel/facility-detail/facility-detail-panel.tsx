@@ -1,7 +1,8 @@
 'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Building2, MapPin, Activity, Clock } from 'lucide-react';
+import { X, Building2 } from 'lucide-react';
+
 import { useAppStore } from '@/stores';
 import { FacilityDetail } from '@/components/dashboard';
 import { ScrollArea } from '@/components/ui/scroll-area';

@@ -9,7 +9,7 @@ use std::sync::Arc;
 use tracing::{info, debug, error};
 use uuid::Uuid;
 
-use cherenkov_db::{RadiationDatabase, RadiationReading, AggregationLevel};
+use cherenkov_db::{RadiationDatabase, AggregationLevel};
 use crate::auth::AuthState;
 use crate::websocket::WebSocketState;
 
@@ -27,7 +27,7 @@ pub fn create_router() -> Router<(Arc<WebSocketState>, Arc<RadiationDatabase>, A
 
 /// List all sensors
 async fn list_sensors(
-    State((_, db, _)): State<(Arc<WebSocketState>, Arc<RadiationDatabase>, Arc<AuthState>)>,
+    State((_, _db, _)): State<(Arc<WebSocketState>, Arc<RadiationDatabase>, Arc<AuthState>)>,
 ) -> Json<Vec<SensorResponse>> {
     debug!("Listing all sensors");
     

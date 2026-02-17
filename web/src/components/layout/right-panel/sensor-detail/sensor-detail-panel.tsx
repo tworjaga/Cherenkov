@@ -1,16 +1,19 @@
 'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, MapPin, Activity, Clock, Database } from 'lucide-react';
+import { X, Activity } from 'lucide-react';
 import { useAppStore } from '@/stores';
+
 import { SensorDetail } from '@/components/dashboard';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { animations } from '@/styles/theme';
 
 export function SensorDetailPanel(): JSX.Element {
-  const { selectedSensorId, selectSensor } = useAppStore();
+  const { selectedSensorId, selectSensor, sensors } = useAppStore();
+  const selectedSensor = sensors.find(s => s.id === selectedSensorId);
 
   return (
+
     <AnimatePresence>
       {selectedSensorId && (
         <motion.div
@@ -39,9 +42,10 @@ export function SensorDetailPanel(): JSX.Element {
           {/* Content */}
           <ScrollArea className="flex-1">
             <div className="p-4">
-              <SensorDetail />
+              <SensorDetail sensor={selectedSensor} />
             </div>
           </ScrollArea>
+
         </motion.div>
       )}
     </AnimatePresence>

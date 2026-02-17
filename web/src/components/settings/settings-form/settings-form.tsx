@@ -1,13 +1,9 @@
 'use client';
 
 import * as React from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
+
 
 interface SettingsFormProps {
   className?: string;

@@ -4,7 +4,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { CardTitle } from '@/components/ui/card';
 import { Facility } from '@/types/models';
-import { Building2, Settings, ExternalLink } from 'lucide-react';
+import { Settings, ExternalLink } from 'lucide-react';
+
 
 interface FacilityHeaderProps {
   facility: Facility;

@@ -20,7 +20,7 @@ use websocket::{create_websocket_state, create_websocket_router};
 use graphql::schema::build_schema;
 use cherenkov_db::{RadiationDatabase, DatabaseConfig, scylla::ScyllaConfig};
 use cherenkov_observability::init_observability;
-use cherenkov_core::{EventBus, CherenkovEvent, Anomaly, Alert, SensorStatus};
+use cherenkov_core::{EventBus, CherenkovEvent};
 
 
 #[tokio::main]
@@ -46,14 +46,14 @@ async fn main() -> anyhow::Result<()> {
     let auth_state = Arc::new(AuthState::new(jwt_secret));
     
     // Build GraphQL schema
-    let schema = build_schema(db.clone()).await?;
+    let _schema = build_schema(db.clone()).await?;
     
     // Initialize EventBus for inter-crate communication
     let event_bus = Arc::new(EventBus::new(10000));
     info!("EventBus initialized for API WebSocket broadcasting");
     
     // Subscribe to events from ingest and stream
-    let mut event_rx = event_bus.subscribe();
+    let event_rx = event_bus.subscribe();
     
     // Create WebSocket state
     let ws_state = create_websocket_state();

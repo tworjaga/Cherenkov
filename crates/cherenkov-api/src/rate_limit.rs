@@ -1,5 +1,5 @@
 use axum::{
-    extract::{Request, State},
+    extract::Request,
     http::StatusCode,
     middleware::Next,
     response::Response,
@@ -14,10 +14,9 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 use std::num::NonZeroU32;
 use tower::Layer;
-use tower_http::classify::ServerErrorsFailureClass;
 use tracing::{debug, warn};
 
-use crate::auth::{RateLimitTier, get_tier_from_request};
+use crate::auth::get_tier_from_request;
 
 /// Rate limiter state
 pub type RateLimiterState = Arc<dashmap::DashMap<String, RateLimiter<NotKeyed, InMemoryState, DefaultClock, NoOpMiddleware>>>;
