@@ -60,6 +60,7 @@ declare module 'recharts' {
     data?: unknown[];
     layout?: 'horizontal' | 'vertical';
     children?: React.ReactNode;
+    margin?: { top?: number; right?: number; left?: number; bottom?: number };
   }
   
   export interface AreaProps {
@@ -83,6 +84,9 @@ declare module 'recharts' {
     tickFormatter?: (value: number) => string;
     stroke?: string;
     tick?: { fill?: string; fontSize?: number };
+    hide?: boolean;
+    tickLine?: boolean;
+    axisLine?: boolean;
   }
   
   export interface YAxisProps {
@@ -92,6 +96,9 @@ declare module 'recharts' {
     stroke?: string;
     tick?: { fill?: string; fontSize?: number };
     width?: number;
+    hide?: boolean;
+    tickLine?: boolean;
+    axisLine?: boolean;
   }
   
   export interface CartesianGridProps {
