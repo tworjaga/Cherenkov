@@ -27,22 +27,26 @@ pub enum Algorithm {
     IsolationForest,
 }
 
+#[allow(dead_code)]
 pub struct AnomalyDetector {
     windows: std::collections::HashMap<String, SensorWindow>,
     isolation_forest: IsolationForest,
 }
 
+#[allow(dead_code)]
 pub struct IsolationForest {
     trees: Vec<IsolationTree>,
     num_trees: usize,
     subsample_size: usize,
 }
 
+#[allow(dead_code)]
 struct IsolationTree {
     root: Option<Box<Node>>,
     height_limit: usize,
 }
 
+#[allow(dead_code)]
 struct Node {
     feature: usize,
     split_value: f64,
@@ -51,6 +55,7 @@ struct Node {
     size: usize,
 }
 
+#[allow(dead_code)]
 impl IsolationForest {
     pub fn new(num_trees: usize, subsample_size: usize) -> Self {
         let height_limit = (subsample_size as f64).log2().ceil() as usize;
@@ -90,6 +95,7 @@ impl IsolationTree {
     }
 }
 
+#[allow(dead_code)]
 fn build_tree<R: Rng>(data: &[Vec<f64>], current_height: usize, height_limit: usize, rng: &mut R) -> Node {
     if data.len() <= 1 || current_height >= height_limit {
         return Node {
@@ -122,6 +128,7 @@ fn build_tree<R: Rng>(data: &[Vec<f64>], current_height: usize, height_limit: us
     }
 }
 
+#[allow(dead_code)]
 fn path_length(point: &[f64], node: Option<&Box<Node>>, current_depth: usize) -> f64 {
     match node {
         None => 0.0,
@@ -136,6 +143,7 @@ fn path_length(point: &[f64], node: Option<&Box<Node>>, current_depth: usize) ->
     }
 }
 
+#[allow(dead_code)]
 fn c(n: usize) -> f64 {
     if n <= 1 {
         return 0.0;
@@ -143,6 +151,7 @@ fn c(n: usize) -> f64 {
     2.0 * (n as f64 - 1.0).ln() + 0.5772156649 - 2.0 * (n as f64 - 1.0) / n as f64
 }
 
+#[allow(dead_code)]
 struct SensorWindow {
     readings: VecDeque<f64>,
     capacity: usize,
@@ -150,6 +159,7 @@ struct SensorWindow {
     variance: f64,
 }
 
+#[allow(dead_code)]
 impl AnomalyDetector {
     pub fn new() -> Self {
         Self {
@@ -205,6 +215,7 @@ impl AnomalyDetector {
         })
     }
     
+    #[allow(dead_code)]
     pub fn detect_isolation_forest(&self, point: &[f64]) -> Option<f64> {
         let score = self.isolation_forest.anomaly_score(point);
         if score > 0.6 {
@@ -215,6 +226,7 @@ impl AnomalyDetector {
     }
 }
 
+#[allow(dead_code)]
 impl SensorWindow {
     fn update(&mut self, value: f64) {
         if self.readings.len() >= self.capacity {
@@ -230,6 +242,7 @@ impl SensorWindow {
 }
 
 #[derive(Clone)]
+#[allow(dead_code)]
 pub struct Reading {
     pub sensor_id: String,
     pub dose_rate: f64,
