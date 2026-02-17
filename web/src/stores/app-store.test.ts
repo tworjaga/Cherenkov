@@ -1,6 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useAppStore } from './app-store';
-import { ViewType, TimeMode } from '@/types';
 
 describe('useAppStore', () => {
   beforeEach(() => {
@@ -8,7 +7,8 @@ describe('useAppStore', () => {
     const store = useAppStore.getState();
     store.setView('dashboard');
     store.setTimeMode('live');
-    store.setCurrentTime(new Date());
+    store.setCurrentTime(Date.now());
+
     store.setPlaybackSpeed(1);
     store.selectSensor(null);
     store.setConnectionStatus('disconnected');

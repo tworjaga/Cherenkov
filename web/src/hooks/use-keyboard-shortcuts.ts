@@ -7,6 +7,13 @@ export const useKeyboardShortcuts = () => {
     useAppStore();
   const { resetView } = useGlobeStore();
 
+  // Use resetView for 'g' key to center on selected sensor
+  const centerOnSensor = useCallback(() => {
+    // TODO: Get selected sensor location and fly to it
+    resetView();
+  }, [resetView]);
+
+
   const handleKeyDown = useCallback(
     (event: KeyboardEvent) => {
       // Ignore if typing in input
@@ -35,8 +42,9 @@ export const useKeyboardShortcuts = () => {
           break;
         case 'g':
         case 'G':
-          // Center globe on selected sensor - handled by globe component
+          centerOnSensor();
           break;
+
         case 't':
         case 'T':
           toggleRightPanel();
@@ -69,7 +77,8 @@ export const useKeyboardShortcuts = () => {
           break;
       }
     },
-    [setView, toggleRightPanel, toggleBottomPanel, setTimeMode, stepTime, selectSensor]
+    [setView, toggleRightPanel, toggleBottomPanel, setTimeMode, stepTime, selectSensor, centerOnSensor]
+
   );
 
   useEffect(() => {

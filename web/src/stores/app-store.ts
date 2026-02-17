@@ -15,6 +15,7 @@ interface AppState {
   playbackSpeed: number;
   connectionStatus: ConnectionStatus;
   lastPing: number;
+  globalStatus: { defcon: number; level: string; activeAlerts: number } | null;
 
   setView: (view: ViewType) => void;
   toggleSidebar: () => void;
@@ -27,9 +28,11 @@ interface AppState {
   setCurrentTime: (time: number) => void;
   setPlaybackSpeed: (speed: number) => void;
   setConnectionStatus: (status: ConnectionStatus) => void;
+  setGlobalStatus: (status: { defcon: number; level: string; activeAlerts: number } | null) => void;
   updatePing: () => void;
   stepTime: (direction: 'forward' | 'backward') => void;
 }
+
 
 export const useAppStore = create<AppState>()(
   persist(
@@ -46,6 +49,8 @@ export const useAppStore = create<AppState>()(
       playbackSpeed: 1,
       connectionStatus: 'disconnected',
       lastPing: 0,
+      globalStatus: null,
+
 
       setView: (view) => set({ view }),
       
@@ -81,7 +86,10 @@ export const useAppStore = create<AppState>()(
       
       setConnectionStatus: (status) => set({ connectionStatus: status }),
       
+      setGlobalStatus: (status) => set({ globalStatus: status }),
+      
       updatePing: () => set({ lastPing: Date.now() }),
+
       
       stepTime: (direction) => {
         const { currentTime, playbackSpeed, timeMode } = get();

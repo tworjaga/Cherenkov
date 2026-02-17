@@ -3,9 +3,18 @@ import { getWsClient, closeWsClient } from '@/lib/graphql/client';
 import { useAppStore } from '@/stores';
 import { useDataStore } from '@/stores';
 
+interface SensorUpdate {
+  sensorId: string;
+  timestamp: number;
+  doseRate: number;
+  latitude: number;
+  longitude: number;
+}
+
 export const useWebSocket = () => {
   const { setConnectionStatus, updatePing } = useAppStore();
-  const { addAnomaly, updateReading } = useDataStore();
+  const { updateReading } = useDataStore();
+
   const unsubscribeRef = useRef<(() => void) | null>(null);
 
   const connect = useCallback(() => {
@@ -34,7 +43,7 @@ export const useWebSocket = () => {
             setConnectionStatus('connected');
 
             if (data.data?.allSensorUpdates) {
-              const update = data.data.allSensorUpdates;
+              const update = data.data.allSensorUpdates as SensorUpdate;
               updateReading(update.sensorId, {
                 timestamp: update.timestamp,
                 doseRate: update.doseRate,
@@ -42,6 +51,7 @@ export const useWebSocket = () => {
                 qualityFlag: 'good',
               });
             }
+
           },
           error: (err) => {
             console.error('WebSocket error:', err);

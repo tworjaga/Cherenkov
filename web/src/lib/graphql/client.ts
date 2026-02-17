@@ -5,11 +5,12 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/graphq
 const WS_URL = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8080/ws';
 
 export const graphqlClient = new GraphQLClient(API_URL, {
-  headers: () => {
+  headers: (): Record<string, string> => {
     const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
     return token ? { Authorization: `Bearer ${token}` } : {};
   },
 });
+
 
 let wsClient: Client | null = null;
 
