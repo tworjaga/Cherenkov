@@ -8,7 +8,9 @@ interface DataState {
   alerts: Alert[];
   globalStatus: GlobalStatus | null;
   recentReadings: Map<string, Reading>;
+  readings: Record<string, Reading[]>;
   unreadAlertCount: number;
+
 
   setSensors: (sensors: Sensor[]) => void;
   updateSensor: (sensor: Sensor) => void;
@@ -20,7 +22,9 @@ interface DataState {
   acknowledgeAlert: (id: string) => void;
   setGlobalStatus: (status: GlobalStatus) => void;
   updateReading: (sensorId: string, reading: Reading) => void;
+  addHistoricalReading: (sensorId: string, reading: Reading) => void;
   getSensorById: (id: string) => Sensor | undefined;
+
   getFacilityById: (id: string) => Facility | undefined;
   getAnomalyById: (id: string) => Anomaly | undefined;
   getUnreadAlerts: () => Alert[];
@@ -43,7 +47,9 @@ export const useDataStore = create<DataState>()((set, get) => ({
   alerts: [],
   globalStatus: defaultGlobalStatus,
   recentReadings: new Map(),
+  readings: {},
   unreadAlertCount: 0,
+
 
   setSensors: (sensors) => set({ sensors }),
 
@@ -111,6 +117,18 @@ export const useDataStore = create<DataState>()((set, get) => ({
       newReadings.set(sensorId, reading);
       return { recentReadings: newReadings };
     }),
+
+  addHistoricalReading: (sensorId, reading) =>
+    set((state) => {
+      const currentReadings = state.readings[sensorId] || [];
+      return {
+        readings: {
+          ...state.readings,
+          [sensorId]: [...currentReadings, reading].slice(-100),
+        },
+      };
+    }),
+
 
   getSensorById: (id) => get().sensors.find((s) => s.id === id),
 
