@@ -32,6 +32,8 @@ export const Switch = React.forwardRef<HTMLInputElement, SwitchProps>(
         <div className="relative">
           <input
             type="checkbox"
+            role="switch"
+            aria-checked={checked ?? false}
             className="peer sr-only"
             ref={ref}
             checked={checked}
