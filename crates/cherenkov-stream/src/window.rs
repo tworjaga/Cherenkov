@@ -7,18 +7,21 @@ use chrono::{DateTime, Utc};
 use cherenkov_db::RadiationReading;
 
 /// Sliding window for time-series analysis per sensor
+#[allow(dead_code)]
 pub struct SlidingWindow {
     window_size: Duration,
     slide_interval: Duration,
     sensor_windows: HashMap<String, SensorWindow>,
 }
 
+#[allow(dead_code)]
 pub struct SensorWindow {
     readings: VecDeque<TimestampedReading>,
     window_size: Duration,
 }
 
 #[derive(Clone, Debug)]
+#[allow(dead_code)]
 pub struct TimestampedReading {
     pub timestamp: DateTime<Utc>,
     pub dose_rate: f64,
@@ -27,12 +30,14 @@ pub struct TimestampedReading {
 
 /// Reading struct for processor compatibility
 #[derive(Clone, Debug)]
+#[allow(dead_code)]
 pub struct Reading {
     pub timestamp: DateTime<Utc>,
     pub dose_rate: f64,
     pub sensor_id: String,
 }
 
+#[allow(dead_code)]
 impl SlidingWindow {
     pub fn new(window_size: Duration, slide_interval: Duration) -> Self {
         Self {
@@ -108,6 +113,7 @@ impl SlidingWindow {
     }
 }
 
+#[allow(dead_code)]
 impl SensorWindow {
     fn new(window_size: Duration) -> Self {
         Self {
@@ -143,10 +149,12 @@ impl SensorWindow {
 }
 
 /// Thread-safe sliding window for concurrent access
+#[allow(dead_code)]
 pub struct ConcurrentSlidingWindow {
     inner: Arc<RwLock<SlidingWindow>>,
 }
 
+#[allow(dead_code)]
 impl ConcurrentSlidingWindow {
     pub fn new(window_size: Duration, slide_interval: Duration) -> Self {
         Self {
@@ -171,10 +179,12 @@ impl ConcurrentSlidingWindow {
 }
 
 /// Tumbling window for fixed-size batching
+#[allow(dead_code)]
 pub struct TumblingWindow {
     size_secs: u64,
 }
 
+#[allow(dead_code)]
 impl TumblingWindow {
     pub fn new(size_secs: u64) -> Self {
         Self { size_secs }
@@ -185,12 +195,14 @@ impl TumblingWindow {
     }
 }
 
+#[allow(dead_code)]
 pub struct WindowedStream<T> {
     buffer: Vec<T>,
     window_size: Duration,
     last_emit: std::time::Instant,
 }
 
+#[allow(dead_code)]
 impl<T> WindowedStream<T> {
     pub fn new(window_size: Duration) -> Self {
         Self {
