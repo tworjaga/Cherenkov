@@ -73,11 +73,14 @@ export const AlertCard = ({ alert, onClick, onAcknowledge, isSelected, className
           <p className="text-body-xs text-text-secondary mt-1 line-clamp-2">
             {alert.message}
           </p>
-          {alert.metadata?.sensorId ? (
+          {typeof alert.metadata?.sensorId === 'string' ? (
             <p className="text-mono-xs text-text-tertiary mt-1">
               Sensor: {alert.metadata.sensorId}
             </p>
           ) : null}
+
+
+
 
           {onAcknowledge && (
             <button
