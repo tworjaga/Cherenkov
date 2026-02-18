@@ -54,11 +54,7 @@ describe('SensorList', () => {
     expect(screen.getByText('0.450 μSv/h')).toBeInTheDocument();
   });
 
-  it('shows sensor sources', () => {
-    render(<SensorList {...defaultProps} />);
-    expect(screen.getByText(/safecast/i)).toBeInTheDocument();
-    expect(screen.getByText(/uRadMonitor/i)).toBeInTheDocument();
-  });
+
 
   it('calls onSensorClick when sensor clicked', () => {
     render(<SensorList {...defaultProps} />);

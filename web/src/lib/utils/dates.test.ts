@@ -75,15 +75,16 @@ describe('dates', () => {
     it('adds days to date', () => {
       const date = new Date('2024-01-15T10:30:00Z');
       const result = addTime(date, 5, 'd');
-      expect(result.getDate()).toBe(20);
+      expect(result.getUTCDate()).toBe(20);
     });
 
     it('adds hours to date', () => {
       const date = new Date('2024-01-15T10:30:00Z');
       const result = addTime(date, 5, 'h');
-      expect(result.getHours()).toBe(15);
+      expect(result.getUTCHours()).toBe(15);
     });
   });
+
 
   describe('startOfDay', () => {
     it('returns start of day', () => {
@@ -104,6 +105,7 @@ describe('dates', () => {
       expect(result.getSeconds()).toBe(59);
     });
   });
+
 
   describe('isSameDay', () => {
     it('returns true for same day', () => {

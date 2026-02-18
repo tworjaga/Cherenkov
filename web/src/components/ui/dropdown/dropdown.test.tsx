@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from './dropdown';
 
 describe('Dropdown', () => {
@@ -15,7 +16,8 @@ describe('Dropdown', () => {
     expect(screen.getByText('Open')).toBeInTheDocument();
   });
 
-  it('opens dropdown when trigger is clicked', () => {
+  it('opens dropdown when trigger is clicked', async () => {
+    const user = userEvent.setup();
     render(
       <DropdownMenu>
         <DropdownMenuTrigger>Open</DropdownMenuTrigger>
@@ -26,13 +28,14 @@ describe('Dropdown', () => {
     );
     
     const trigger = screen.getByText('Open');
-    fireEvent.click(trigger);
+    await user.click(trigger);
     
     expect(screen.getByText('Item 1')).toBeInTheDocument();
   });
 
-  it('calls onSelect when item is clicked', () => {
+  it('calls onSelect when item is clicked', async () => {
     const handleSelect = vi.fn();
+    const user = userEvent.setup();
     render(
       <DropdownMenu>
         <DropdownMenuTrigger>Open</DropdownMenuTrigger>
@@ -43,15 +46,16 @@ describe('Dropdown', () => {
     );
     
     const trigger = screen.getByText('Open');
-    fireEvent.click(trigger);
+    await user.click(trigger);
     
     const item = screen.getByText('Item 1');
-    fireEvent.click(item);
+    await user.click(item);
     
     expect(handleSelect).toHaveBeenCalled();
   });
 
-  it('renders disabled item', () => {
+  it('renders disabled item', async () => {
+    const user = userEvent.setup();
     render(
       <DropdownMenu>
         <DropdownMenuTrigger>Open</DropdownMenuTrigger>
@@ -62,7 +66,7 @@ describe('Dropdown', () => {
     );
     
     const trigger = screen.getByText('Open');
-    fireEvent.click(trigger);
+    await user.click(trigger);
     
     const item = screen.getByText('Disabled Item');
     expect(item).toHaveAttribute('data-disabled');

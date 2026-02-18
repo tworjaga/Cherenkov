@@ -40,13 +40,14 @@ describe('Switch', () => {
 
   it('renders with switchSize small', () => {
     render(<Switch switchSize="sm" />);
-    const switchEl = screen.getByRole('switch');
-    expect(switchEl).toHaveClass('w-8');
+    const track = screen.getByRole('switch').parentElement?.querySelector('.rounded-full');
+    expect(track).toHaveClass('w-8');
   });
 
   it('renders with switchSize large', () => {
     render(<Switch switchSize="lg" />);
-    const switchEl = screen.getByRole('switch');
-    expect(switchEl).toHaveClass('w-14');
+    const track = screen.getByRole('switch').parentElement?.querySelector('.rounded-full');
+    expect(track).toHaveClass('w-14');
   });
+
 });

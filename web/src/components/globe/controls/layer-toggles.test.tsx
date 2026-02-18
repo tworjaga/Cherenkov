@@ -37,11 +37,12 @@ describe('LayerToggles', () => {
   it('reflects correct toggle states from store', () => {
     render(<LayerToggles />);
 
-    const checkboxes = screen.getAllByRole('checkbox');
-    expect(checkboxes[0]).toBeChecked(); // sensors: true
-    expect(checkboxes[1]).not.toBeChecked(); // facilities: false
-    expect(checkboxes[2]).toBeChecked(); // anomalies: true
-    expect(checkboxes[3]).not.toBeChecked(); // plumes: false
-    expect(checkboxes[4]).not.toBeChecked(); // heatmap: false
+    const switches = screen.getAllByRole('switch');
+    expect(switches[0]).toBeChecked(); // sensors: true
+    expect(switches[1]).not.toBeChecked(); // facilities: false
+    expect(switches[2]).toBeChecked(); // anomalies: true
+    expect(switches[3]).not.toBeChecked(); // plumes: false
+    expect(switches[4]).not.toBeChecked(); // heatmap: false
   });
+
 });

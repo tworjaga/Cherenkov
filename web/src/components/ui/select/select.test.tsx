@@ -1,5 +1,6 @@
-import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { describe, it, expect, vi, beforeAll } from 'vitest';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import {
   Select,
   SelectTrigger,
@@ -7,6 +8,22 @@ import {
   SelectContent,
   SelectItem,
 } from './select';
+
+// Mock Pointer API and scrollIntoView for jsdom compatibility with Radix UI
+beforeAll(() => {
+  if (!Element.prototype.hasPointerCapture) {
+    Element.prototype.hasPointerCapture = () => false;
+  }
+  if (!Element.prototype.setPointerCapture) {
+    Element.prototype.setPointerCapture = () => {};
+  }
+  if (!Element.prototype.releasePointerCapture) {
+    Element.prototype.releasePointerCapture = () => {};
+  }
+  if (!Element.prototype.scrollIntoView) {
+    Element.prototype.scrollIntoView = () => {};
+  }
+});
 
 describe('Select', () => {
   it('renders select trigger', () => {
@@ -23,7 +40,8 @@ describe('Select', () => {
     expect(screen.getByText('Select an option')).toBeInTheDocument();
   });
 
-  it('opens select when trigger is clicked', () => {
+  it('opens select when trigger is clicked', async () => {
+    const user = userEvent.setup();
     render(
       <Select>
         <SelectTrigger>
@@ -35,14 +53,15 @@ describe('Select', () => {
       </Select>
     );
     
-    const trigger = screen.getByText('Select');
-    fireEvent.click(trigger);
+    const trigger = screen.getByRole('combobox');
+    await user.click(trigger);
     
     expect(screen.getByText('Option 1')).toBeInTheDocument();
   });
 
-  it('calls onValueChange when item is selected', () => {
+  it('calls onValueChange when item is selected', async () => {
     const handleChange = vi.fn();
+    const user = userEvent.setup();
     render(
       <Select onValueChange={handleChange}>
         <SelectTrigger>
@@ -54,11 +73,11 @@ describe('Select', () => {
       </Select>
     );
     
-    const trigger = screen.getByText('Select');
-    fireEvent.click(trigger);
+    const trigger = screen.getByRole('combobox');
+    await user.click(trigger);
     
     const item = screen.getByText('Option 1');
-    fireEvent.click(item);
+    await user.click(item);
     
     expect(handleChange).toHaveBeenCalledWith('option1');
   });
@@ -90,7 +109,7 @@ describe('Select', () => {
       </Select>
     );
     
-    const trigger = screen.getByText('Select').closest('button');
+    const trigger = screen.getByRole('combobox');
     expect(trigger).toHaveAttribute('data-disabled');
   });
 });
