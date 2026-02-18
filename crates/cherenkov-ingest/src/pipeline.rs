@@ -544,6 +544,7 @@ impl IngestionPipeline {
     }
 
     /// Get pipeline statistics
+    #[allow(dead_code)]
     pub async fn stats(&self) -> PipelineStats {
         PipelineStats {
             dlq_size: self.dlq.len().await,
@@ -572,6 +573,7 @@ impl IngestionPipeline {
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct PipelineStats {
     pub dlq_size: usize,
     pub circuit_breaker_open: bool,
