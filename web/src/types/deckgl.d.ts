@@ -7,7 +7,6 @@ declare module 'deck.gl' {
 }
 
 declare module '@deck.gl/react' {
-
   import * as React from 'react';
   
   export interface MapViewState {
@@ -22,7 +21,7 @@ declare module '@deck.gl/react' {
   
   export interface DeckProps {
     viewState?: MapViewState;
-    onViewStateChange?: (params: { viewState: MapViewState }) => void;
+    onViewStateChange?: (params: { viewState: Record<string, unknown> }) => void;
     controller?: boolean | Record<string, unknown>;
     layers?: unknown[];
     getTooltip?: (info: { object?: unknown; x?: number; y?: number }) => string | { text?: string; html?: string } | null;
@@ -32,7 +31,6 @@ declare module '@deck.gl/react' {
   
   export const DeckGL: React.FC<DeckProps>;
 }
-
 
 declare module '@deck.gl/layers' {
   export interface LayerProps<D = unknown> {
@@ -65,8 +63,6 @@ declare module '@deck.gl/layers' {
     updateTriggers?: Record<string, unknown[]>;
     transitions?: Record<string, number | { duration?: number; easing?: (t: number) => number }>;
   }
-
-
   
   export class ScatterplotLayer<D = unknown> {
     constructor(props: LayerProps<D>);
@@ -107,7 +103,6 @@ declare module '@deck.gl/aggregation-layers' {
   }
 }
 
-
 declare module '@deck.gl/geo-layers' {
   export interface GeoJsonLayerProps<D = unknown> {
     id?: string;
@@ -134,7 +129,6 @@ declare module '@deck.gl/geo-layers' {
   }
 }
 
-
 declare module '@deck.gl/core' {
   export interface MapViewState {
     longitude: number;
@@ -154,7 +148,7 @@ declare module '@deck.gl/core' {
   
   export interface DeckProps {
     viewState?: MapViewState;
-    onViewStateChange?: (params: { viewState: MapViewState }) => void;
+    onViewStateChange?: (params: { viewState: Record<string, unknown> }) => void;
     controller?: boolean | Record<string, unknown>;
     layers?: unknown[];
     getTooltip?: (info: { object?: unknown; x?: number; y?: number }) => string | { text?: string; html?: string } | null;
@@ -168,7 +162,6 @@ declare module '@deck.gl/core' {
     props: Record<string, unknown>;
   }
 }
-
 
 declare module 'recharts' {
   import * as React from 'react';
