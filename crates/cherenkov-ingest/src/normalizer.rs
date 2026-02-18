@@ -1,4 +1,4 @@
-use crate::sources::RawReading;
+use crate::RawReading;
 use thiserror::Error;
 
 #[derive(Error, Debug)]

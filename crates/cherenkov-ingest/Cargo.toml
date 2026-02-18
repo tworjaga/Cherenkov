@@ -45,6 +45,12 @@ bincode = { workspace = true }
 uuid = { version = "1.6", features = ["v4", "v5", "serde"] }
 regex = "1.10"
 
+# HTML parsing for EPA RadNet
+scraper = "0.19"
+
+# Timezone handling
+chrono-tz = "0.8"
+
 
 [dev-dependencies]
 tokio-test = { workspace = true }

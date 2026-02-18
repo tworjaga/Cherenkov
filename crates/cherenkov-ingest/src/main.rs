@@ -2,14 +2,14 @@ use std::sync::Arc;
 use std::time::Duration;
 use tracing::{info, warn, error};
 
-mod sources;
-mod sources_extra;
-mod normalizer;
-mod metrics;
-mod pipeline;
-
-
-use pipeline::{IngestionPipeline, PipelineConfig};
+use cherenkov_ingest::{
+    sources::{
+        EpaRadnetSource, NasaFirmsSource, NoaaGfsSource, OpenAqSource, OpenMeteoSource,
+        SafecastSource, UradmonitorSource
+    },
+    pipeline::{IngestionPipeline, PipelineConfig, DataSource},
+    sources_extra,
+};
 use cherenkov_db::{RadiationDatabase, DatabaseConfig, scylla::ScyllaConfig};
 use cherenkov_observability::init_observability;
 use cherenkov_core::EventBus;
@@ -88,16 +88,17 @@ async fn main() -> anyhow::Result<()> {
 
 }
 
-fn create_sources() -> Vec<Box<dyn pipeline::DataSource + Send>> {
+fn create_sources() -> Vec<Box<dyn DataSource + Send>> {
     vec![
-        Box::new(sources::SafecastSource::new()),
-        Box::new(sources::UradmonitorSource::new()),
-        Box::new(sources::EpaRadnetSource::new()),
-        Box::new(sources::OpenAqSource::new()),
-        Box::new(sources::OpenMeteoSource::new()),
-        Box::new(sources_extra::NasaFirmsSource::new(
+        Box::new(SafecastSource::new()),
+        Box::new(UradmonitorSource::new()),
+        Box::new(EpaRadnetSource::new()),
+        Box::new(OpenAqSource::new()),
+        Box::new(OpenMeteoSource::new()),
+        Box::new(NasaFirmsSource::new(
             std::env::var("NASA_FIRMS_API_KEY").unwrap_or_default()
         )),
+        Box::new(NoaaGfsSource::new()),
         Box::new(sources_extra::IaeaPrisSource::new()),
     ]
 }
