@@ -72,16 +72,18 @@ export const Globe = ({
     bearing: viewport.bearing ?? 0,
   });
 
-  const handleViewStateChange = useCallback((params: { viewState: MapViewState }) => {
-    setViewState(params.viewState);
+  const handleViewStateChange = useCallback((params: { viewState: Record<string, unknown> }) => {
+    const newViewState = params.viewState as MapViewState;
+    setViewState(newViewState);
     onViewportChange({
-      longitude: params.viewState.longitude,
-      latitude: params.viewState.latitude,
-      zoom: params.viewState.zoom,
-      pitch: params.viewState.pitch ?? 30,
-      bearing: params.viewState.bearing ?? 0,
+      longitude: newViewState.longitude,
+      latitude: newViewState.latitude,
+      zoom: newViewState.zoom,
+      pitch: newViewState.pitch ?? 30,
+      bearing: newViewState.bearing ?? 0,
     });
   }, [onViewportChange]);
+
 
 
 
