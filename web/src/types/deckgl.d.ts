@@ -41,15 +41,13 @@ declare module '@deck.gl/layers' {
     visible?: boolean;
     pickable?: boolean;
     opacity?: number;
-    onClick?: (info: { object?: D; x: number; y: number }) => void;
-    onHover?: (info: { object?: D; x: number; y: number }) => void;
-    getPosition?: (d: D) => [number, number, number?];
-    getFillColor?: (d: D) => [number, number, number, number?] | [number, number, number] | (() => [number, number, number, number?] | [number, number, number]) | number[];
-    getLineColor?: (d: D) => [number, number, number, number?] | [number, number, number] | (() => [number, number, number, number?] | [number, number, number]) | number[];
-
+    onClick?: (info: { object: D | null; x: number; y: number }) => void;
+    onHover?: (info: { object: D | null; x: number; y: number }) => void;
+    getPosition?: (d: D) => [number, number] | [number, number, number];
+    getFillColor?: (d: D) => [number, number, number] | [number, number, number, number];
+    getLineColor?: (d: D) => [number, number, number] | [number, number, number, number];
     getLineWidth?: number | ((d: D) => number);
     getRadius?: number | ((d: D) => number);
-
     radiusMinPixels?: number;
     radiusMaxPixels?: number;
     lineWidthMinPixels?: number;
@@ -61,12 +59,13 @@ declare module '@deck.gl/layers' {
     sizeUnits?: string;
     getSize?: number | ((d: D) => number);
     getIcon?: string | ((d: D) => string);
-    getColor?: (d: D) => [number, number, number, number?] | [number, number, number];
+    getColor?: (d: D) => [number, number, number] | [number, number, number, number];
     iconAtlas?: string;
     iconMapping?: Record<string, unknown>;
     updateTriggers?: Record<string, unknown[]>;
     transitions?: Record<string, number | { duration?: number; easing?: (t: number) => number }>;
   }
+
 
   
   export class ScatterplotLayer<D = unknown> {
@@ -99,14 +98,15 @@ declare module '@deck.gl/aggregation-layers' {
     intensity?: number;
     threshold?: number;
     colorRange?: [number, number, number][];
-    onClick?: (info: { object?: D; x: number; y: number }) => void;
-    onHover?: (info: { object?: D; x: number; y: number }) => void;
+    onClick?: (info: { object: D | null; x: number; y: number }) => void;
+    onHover?: (info: { object: D | null; x: number; y: number }) => void;
   }
   
   export class HeatmapLayer<D = unknown> {
     constructor(props: HeatmapLayerProps<D>);
   }
 }
+
 
 declare module '@deck.gl/geo-layers' {
   export interface GeoJsonLayerProps<D = unknown> {
@@ -117,22 +117,23 @@ declare module '@deck.gl/geo-layers' {
     opacity?: number;
     filled?: boolean;
     stroked?: boolean;
-    getFillColor?: (d: D) => [number, number, number, number?] | [number, number, number];
-    getLineColor?: (d: D) => [number, number, number, number?] | [number, number, number];
+    getFillColor?: (d: D) => [number, number, number] | [number, number, number, number];
+    getLineColor?: (d: D) => [number, number, number] | [number, number, number, number];
     getLineWidth?: number | ((d: D) => number);
     lineWidthMinPixels?: number;
     lineWidthMaxPixels?: number;
     pointRadiusMinPixels?: number;
     pointRadiusMaxPixels?: number;
     getRadius?: number | ((d: D) => number);
-    onClick?: (info: { object?: D; x: number; y: number }) => void;
-    onHover?: (info: { object?: D; x: number; y: number }) => void;
+    onClick?: (info: { object: D | null; x: number; y: number }) => void;
+    onHover?: (info: { object: D | null; x: number; y: number }) => void;
   }
   
   export class GeoJsonLayer<D = unknown> {
     constructor(props: GeoJsonLayerProps<D>);
   }
 }
+
 
 declare module '@deck.gl/core' {
   export interface MapViewState {
