@@ -105,6 +105,7 @@ where
 }
 
 /// Rate limiting middleware function
+#[allow(dead_code)]
 pub async fn rate_limit_middleware(
     request: Request,
     next: Next,

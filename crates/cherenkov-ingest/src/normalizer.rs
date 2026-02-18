@@ -2,6 +2,7 @@ use crate::sources::RawReading;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
+#[allow(dead_code)]
 pub enum NormalizeError {
     #[error("Invalid coordinates")]
     InvalidCoordinates,
@@ -11,6 +12,7 @@ pub enum NormalizeError {
     UnknownUnit(String),
 }
 
+#[allow(dead_code)]
 pub struct NormalizedReading {
     pub sensor_id: String,
     pub timestamp: chrono::DateTime<chrono::Utc>,
@@ -20,24 +22,29 @@ pub struct NormalizedReading {
     pub quality_flag: QualityFlag,
 }
 
+#[allow(dead_code)]
 pub struct GeoPoint {
     pub lat: f64,
     pub lon: f64,
 }
 
+#[allow(dead_code)]
 pub enum QualityFlag {
     Valid,
     Suspect,
     Invalid,
 }
 
+#[allow(dead_code)]
 pub struct Normalizer;
 
 impl Normalizer {
+    #[allow(dead_code)]
     pub fn new() -> Self {
         Self
     }
     
+    #[allow(dead_code)]
     pub async fn normalize(&self, raw: RawReading) -> Result<NormalizedReading, NormalizeError> {
         if raw.latitude < -90.0 || raw.latitude > 90.0 {
             return Err(NormalizeError::InvalidCoordinates);

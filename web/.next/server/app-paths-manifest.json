@@ -1,17 +1,17 @@
 {
   "/_not-found": "app/_not-found.js",
-  "/anomalies/page": "app/anomalies/page.js",
   "/api/health/route": "app/api/health/route.js",
   "/page": "app/page.js",
+  "/plume/page": "app/plume/page.js",
+  "/anomalies/page": "app/anomalies/page.js",
   "/globe/page": "app/globe/page.js",
   "/sensors/page": "app/sensors/page.js",
-  "/plume/page": "app/plume/page.js",
-  "/(dashboard)/page": "app/(dashboard)/page.js",
   "/(auth)/forgot-password/page": "app/(auth)/forgot-password/page.js",
   "/(auth)/login/page": "app/(auth)/login/page.js",
-  "/(auth)/register/page": "app/(auth)/register/page.js",
-  "/settings/api-keys/page": "app/settings/api-keys/page.js",
   "/settings/data-sources/page": "app/settings/data-sources/page.js",
-  "/settings/notifications/page": "app/settings/notifications/page.js",
-  "/settings/general/page": "app/settings/general/page.js"
+  "/settings/api-keys/page": "app/settings/api-keys/page.js",
+  "/(dashboard)/page": "app/(dashboard)/page.js",
+  "/settings/general/page": "app/settings/general/page.js",
+  "/(auth)/register/page": "app/(auth)/register/page.js",
+  "/settings/notifications/page": "app/settings/notifications/page.js"
 }

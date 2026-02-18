@@ -16,6 +16,7 @@ use cherenkov_core::{EventBus, CherenkovEvent, NormalizedReading};
 #[derive(Debug, Clone)]
 pub struct PipelineConfig {
     /// Maximum number of concurrent source fetches
+    #[allow(dead_code)]
     pub max_concurrent_sources: usize,
     /// Channel buffer size for backpressure
     pub channel_buffer_size: usize,
@@ -205,6 +206,7 @@ impl DeadLetterQueue {
         self.queue.read().await.len()
     }
 
+    #[allow(dead_code)]
     pub async fn is_empty(&self) -> bool {
         self.queue.read().await.is_empty()
     }
@@ -284,6 +286,7 @@ impl Deduplicator {
         }
     }
 
+    #[allow(dead_code)]
     pub fn clear(&self) {
         self.seen.clear();
     }

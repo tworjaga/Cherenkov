@@ -380,6 +380,7 @@ impl IaeaPrisSource {
 struct ReactorInfo {
     name: String,
     country: String,
+    #[allow(dead_code)]
     reactor_type: String,
     status: String,
     latitude: Option<f64>,

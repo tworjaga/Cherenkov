@@ -36,6 +36,7 @@ impl RateLimitTier {
         }
     }
 
+    #[allow(dead_code)]
     pub fn websocket_connections(&self) -> u32 {
         match self {
             RateLimitTier::Anonymous => 1,
@@ -48,8 +49,10 @@ impl RateLimitTier {
 /// API key structure
 #[derive(Debug, Clone)]
 pub struct ApiKey {
+    #[allow(dead_code)]
     pub key: String,
     pub tier: RateLimitTier,
+    #[allow(dead_code)]
     pub owner: String,
 }
 
@@ -87,6 +90,7 @@ impl AuthState {
     }
 
     /// Generate JWT token
+    #[allow(dead_code)]
     pub fn generate_token(&self, user_id: &str, tier: RateLimitTier) -> anyhow::Result<String> {
         let now = SystemTime::now()
             .duration_since(UNIX_EPOCH)?

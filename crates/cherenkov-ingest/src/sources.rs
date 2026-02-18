@@ -8,7 +8,9 @@ use uuid::Uuid;
 
 use crate::pipeline::DataSource;
 
+/// Raw reading from external data sources before normalization
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct RawReading {
     pub sensor_id: String,
     pub timestamp: chrono::DateTime<chrono::Utc>,
@@ -491,11 +493,13 @@ impl OpenAqSource {
 }
 
 #[derive(Debug, Deserialize)]
+#[allow(dead_code)]
 struct OpenAqResponse {
     results: Vec<OpenAqMeasurement>,
 }
 
 #[derive(Debug, Deserialize)]
+#[allow(dead_code)]
 struct OpenAqMeasurement {
     location: String,
     city: Option<String>,
@@ -507,12 +511,14 @@ struct OpenAqMeasurement {
 }
 
 #[derive(Debug, Deserialize)]
+#[allow(dead_code)]
 struct OpenAqCoordinates {
     latitude: f64,
     longitude: f64,
 }
 
 #[derive(Debug, Deserialize)]
+#[allow(dead_code)]
 struct OpenAqParameter {
     parameter: String,
     value: f64,
@@ -520,6 +526,7 @@ struct OpenAqParameter {
 }
 
 #[derive(Debug, Deserialize)]
+#[allow(dead_code)]
 struct OpenAqTimestamp {
     utc: String,
 }
@@ -616,6 +623,7 @@ impl OpenMeteoSource {
 }
 
 #[derive(Debug, Deserialize)]
+#[allow(dead_code)]
 struct OpenMeteoResponse {
     latitude: f64,
     longitude: f64,
@@ -624,6 +632,7 @@ struct OpenMeteoResponse {
 }
 
 #[derive(Debug, Deserialize)]
+#[allow(dead_code)]
 struct OpenMeteoHourly {
     time: Vec<String>,
     temperature_2m: Vec<f64>,
@@ -634,6 +643,7 @@ struct OpenMeteoHourly {
 }
 
 #[derive(Debug, Deserialize)]
+#[allow(dead_code)]
 struct OpenMeteoCurrentWeather {
     temperature: f64,
     windspeed: f64,
@@ -745,12 +755,14 @@ impl DataSource for OpenMeteoSource {
 /// Fetches radiation monitoring data from European countries via SOAP/XML API.
 /// EURDEP provides near real-time environmental radiation data from monitoring
 /// stations across Europe.
+#[allow(dead_code)]
 pub struct EurdepSource {
     client: Client,
     config: SourceConfig,
 }
 
 impl EurdepSource {
+    #[allow(dead_code)]
     pub fn new() -> Self {
         Self {
             client: Client::new(),
@@ -763,6 +775,7 @@ impl EurdepSource {
     }
 
     /// Build SOAP request body for EURDEP getLastMeasurements service
+    #[allow(dead_code)]
     fn build_soap_request(&self) -> String {
         format!(
             r#"<?xml version="1.0" encoding="UTF-8"?>
@@ -796,6 +809,7 @@ impl EurdepSource {
     ///     </measurement>
     ///   </return>
     /// </getLastMeasurementsResponse>
+    #[allow(dead_code)]
     fn parse_eurdep_xml(&self, xml_data: &str) -> anyhow::Result<Vec<RadiationReading>> {
         let mut readings = Vec::new();
         
