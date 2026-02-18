@@ -46,6 +46,11 @@ impl Normalizer {
             return Err(NormalizeError::InvalidCoordinates);
         }
         
+        // Validate dose rate is not negative or NaN
+        if raw.dose_rate < 0.0 || raw.dose_rate.is_nan() {
+            return Err(NormalizeError::InvalidDoseRate);
+        }
+        
         let dose_rate_microsieverts = match raw.unit.as_str() {
             "uSv/h" | "microsieverts/hour" => raw.dose_rate,
             "mSv/h" => raw.dose_rate * 1000.0,

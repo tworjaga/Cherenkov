@@ -1,20 +1,20 @@
 # Test Fixes TODO
 
 ## Phase 1: E2E Test Configuration
-- [ ] Fix package.json test scripts
-- [ ] Update playwright.config.ts
-- [ ] Update vitest.config.ts to exclude e2e tests
+- [x] Fix package.json test scripts
+- [x] Update playwright.config.ts
+- [x] Update vitest.config.ts to exclude e2e tests
 
 ## Phase 2: Unit Test Fixes
-- [ ] Fix src/lib/utils/dates.test.ts
-- [ ] Fix src/components/dashboard/sensor-list.test.tsx
-- [ ] Fix src/components/ui/dropdown/dropdown.test.tsx
-- [ ] Fix src/components/ui/select/select.test.tsx
-- [ ] Fix src/components/ui/textarea/textarea.test.tsx
-- [ ] Fix src/components/ui/checkbox/checkbox.test.tsx
-- [ ] Fix src/components/globe/controls/layer-toggles.test.tsx
+- [x] Fix src/lib/utils/dates.test.ts
+- [x] Fix src/components/dashboard/sensor-list.test.tsx
+- [x] Fix src/components/ui/dropdown/dropdown.test.tsx
+- [x] Fix src/components/ui/select/select.test.tsx
+- [x] Fix src/components/ui/textarea/textarea.test.tsx
+- [x] Fix src/components/ui/checkbox/checkbox.test.tsx
+- [x] Fix src/components/globe/controls/layer-toggles.test.tsx
 
 ## Phase 3: Verification
-- [ ] Run full unit test suite
-- [ ] Run E2E tests separately
-- [ ] Confirm 0 errors, 0 problems
+- [x] Run full unit test suite - 43 test files passed, 253 tests passed
+- [x] Run E2E tests separately
+- [x] Confirm 0 errors, 0 problems
