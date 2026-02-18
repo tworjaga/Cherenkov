@@ -23,9 +23,10 @@ describe('Switch', () => {
   it('displays checked state correctly', () => {
     render(<Switch checked />);
     
-    const switchEl = screen.getByRole('switch').parentElement;
-    expect(switchEl).toHaveAttribute('data-state', 'checked');
+    const switchContainer = screen.getByRole('switch').parentElement;
+    expect(switchContainer).toHaveAttribute('data-state', 'checked');
   });
+
 
 
   it('is disabled when disabled prop is true', () => {
@@ -35,21 +36,25 @@ describe('Switch', () => {
 
   it('applies custom className', () => {
     render(<Switch className="custom-class" />);
-    const switchEl = screen.getByRole('switch').closest('label');
-    expect(switchEl).toHaveClass('custom-class');
+    const switchLabel = screen.getByRole('switch').closest('label');
+    expect(switchLabel).toHaveClass('custom-class');
   });
+
 
 
   it('renders with switchSize small', () => {
     render(<Switch switchSize="sm" />);
-    const track = screen.getByRole('switch').parentElement?.querySelector('.rounded-full');
+    const tracks = screen.getByRole('switch').parentElement?.querySelectorAll('.rounded-full');
+    const track = tracks?.[0];
     expect(track).toHaveClass('w-8');
   });
 
   it('renders with switchSize large', () => {
     render(<Switch switchSize="lg" />);
-    const track = screen.getByRole('switch').parentElement?.querySelector('.rounded-full');
+    const tracks = screen.getByRole('switch').parentElement?.querySelectorAll('.rounded-full');
+    const track = tracks?.[0];
     expect(track).toHaveClass('w-14');
   });
+
 
 });
