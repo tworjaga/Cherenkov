@@ -1,12 +1,12 @@
 [build]
-# Increase stack size for Windows builds to prevent stack overflow
-# during compilation of complex dependencies like redis and sqlx
-rustflags = ["-C", "link-arg=-Wl,--stack,8388608"]
+# Use local MinGW installation for linking
+rustflags = ["-C", "linker=C:\\Users\\User\\Downloads\\pythonprojects\\mingw64\\mingw64\\bin\\gcc.exe"]
 
-[target.x86_64-pc-windows-gnu]
-# Alternative: use larger stack for MinGW builds
-linker = "gcc"
-rustflags = ["-C", "link-arg=-Wl,--stack,16777216"]
+
+
+
+
+
 
 [profile.dev]
 # Reduce optimization in dev builds to lower stack pressure
