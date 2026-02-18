@@ -28,13 +28,14 @@ export const Switch = React.forwardRef<HTMLInputElement, SwitchProps>(
     const classes = sizeClasses[size];
 
     return (
-      <label className={cn("flex items-center gap-3 cursor-pointer", className)}>
+      <label className="flex items-center gap-3 cursor-pointer">
         <div className="relative">
           <input
             type="checkbox"
             role="switch"
             aria-checked={checked ?? false}
-            className="peer sr-only"
+            data-state={checked ? 'checked' : 'unchecked'}
+            className={cn("peer sr-only", className)}
             ref={ref}
             checked={checked}
             onChange={handleChange}
@@ -42,7 +43,6 @@ export const Switch = React.forwardRef<HTMLInputElement, SwitchProps>(
           />
 
           <div
-            data-state={checked ? 'checked' : 'unchecked'}
             className={cn(
               'rounded-full bg-[#2a2a3d] transition-colors duration-200',
               'peer-checked:bg-[#00d4ff]',
@@ -50,6 +50,7 @@ export const Switch = React.forwardRef<HTMLInputElement, SwitchProps>(
               classes.track
             )}
           />
+
 
           <div
             className={cn(
