@@ -79,11 +79,12 @@ describe('dates', () => {
     });
 
     it('adds hours to date', () => {
-      const date = new Date('2024-01-15T10:30:00Z');
+      const date = new Date('2024-06-15T10:30:00Z');
       const result = addTime(date, 5, 'h');
       expect(result.getUTCHours()).toBe(15);
     });
   });
+
 
 
   describe('startOfDay', () => {
