@@ -103,7 +103,7 @@ export function getRelativeTime(date: Date | string | number): string {
 }
 
 /**
- * Adds time to a date
+ * Adds time to a date using UTC methods for consistency
  */
 export function addTime(
   date: Date,
@@ -114,28 +114,28 @@ export function addTime(
   
   switch (unit) {
     case 'ms':
-      result.setMilliseconds(result.getMilliseconds() + amount);
+      result.setUTCMilliseconds(result.getUTCMilliseconds() + amount);
       break;
     case 's':
-      result.setSeconds(result.getSeconds() + amount);
+      result.setUTCSeconds(result.getUTCSeconds() + amount);
       break;
     case 'm':
-      result.setMinutes(result.getMinutes() + amount);
+      result.setUTCMinutes(result.getUTCMinutes() + amount);
       break;
     case 'h':
-      result.setHours(result.getHours() + amount);
+      result.setUTCHours(result.getUTCHours() + amount);
       break;
     case 'd':
-      result.setDate(result.getDate() + amount);
+      result.setUTCDate(result.getUTCDate() + amount);
       break;
     case 'w':
-      result.setDate(result.getDate() + amount * 7);
+      result.setUTCDate(result.getUTCDate() + amount * 7);
       break;
     case 'M':
-      result.setMonth(result.getMonth() + amount);
+      result.setUTCMonth(result.getUTCMonth() + amount);
       break;
     case 'y':
-      result.setFullYear(result.getFullYear() + amount);
+      result.setUTCFullYear(result.getUTCFullYear() + amount);
       break;
   }
   
