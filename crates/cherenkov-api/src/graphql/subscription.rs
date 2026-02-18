@@ -3,6 +3,7 @@ use futures_util::stream::Stream;
 use std::time::Duration;
 use tokio_stream::StreamExt;
 
+#[allow(dead_code)]
 pub struct SubscriptionRoot;
 
 #[Subscription]
@@ -29,6 +30,7 @@ impl SubscriptionRoot {
 }
 
 #[derive(async_graphql::SimpleObject)]
+#[allow(dead_code)]
 pub struct ReadingUpdate {
     pub sensor_id: ID,
     pub timestamp: chrono::DateTime<chrono::Utc>,
@@ -36,6 +38,7 @@ pub struct ReadingUpdate {
 }
 
 #[derive(async_graphql::SimpleObject)]
+#[allow(dead_code)]
 pub struct Alert {
     pub id: ID,
     pub severity: String,

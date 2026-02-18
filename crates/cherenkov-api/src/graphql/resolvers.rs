@@ -214,6 +214,7 @@ use futures_util::stream::Stream;
 use tokio::sync::broadcast;
 
 /// Subscription root for real-time updates
+#[allow(dead_code)]
 pub struct SubscriptionRoot {
     sensor_tx: broadcast::Sender<SensorReading>,
     anomaly_tx: broadcast::Sender<AnomalyEvent>,
@@ -239,6 +240,7 @@ impl SubscriptionRoot {
 }
 
 #[derive(Clone, Debug)]
+#[allow(dead_code)]
 pub struct SensorReading {
     pub sensor_id: String,
     pub timestamp: DateTime<Utc>,
@@ -248,6 +250,7 @@ pub struct SensorReading {
 }
 
 #[derive(Clone, Debug)]
+#[allow(dead_code)]
 pub struct AnomalyEvent {
     pub anomaly_id: String,
     pub sensor_id: String,

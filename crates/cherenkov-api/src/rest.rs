@@ -197,6 +197,7 @@ use axum::http::StatusCode;
 // Request/Response types
 
 #[derive(Debug, Deserialize)]
+#[allow(dead_code)]
 pub struct ReadingsQuery {
     pub from: DateTime<Utc>,
     pub to: DateTime<Utc>,
@@ -204,6 +205,7 @@ pub struct ReadingsQuery {
 }
 
 #[derive(Debug, Deserialize)]
+#[allow(dead_code)]
 pub struct NearbyQuery {
     pub lat: f64,
     pub lon: f64,
@@ -211,6 +213,7 @@ pub struct NearbyQuery {
 }
 
 #[derive(Debug, Deserialize)]
+#[allow(dead_code)]
 pub struct AnomaliesQuery {
     pub severity: Option<String>,
     pub since: Option<DateTime<Utc>>,
@@ -218,6 +221,7 @@ pub struct AnomaliesQuery {
 }
 
 #[derive(Debug, Serialize)]
+#[allow(dead_code)]
 pub struct SensorResponse {
     pub id: String,
     pub name: String,
@@ -228,6 +232,7 @@ pub struct SensorResponse {
 }
 
 #[derive(Debug, Serialize)]
+#[allow(dead_code)]
 pub struct ReadingResponse {
     pub id: String,
     pub sensor_id: String,
@@ -237,6 +242,7 @@ pub struct ReadingResponse {
 }
 
 #[derive(Debug, Serialize)]
+#[allow(dead_code)]
 pub struct GlobalStatusResponse {
     pub defcon_level: i32,
     pub status: String,
@@ -246,6 +252,7 @@ pub struct GlobalStatusResponse {
 }
 
 #[derive(Debug, Serialize)]
+#[allow(dead_code)]
 pub struct AnomalyResponse {
     pub id: String,
     pub sensor_id: String,
@@ -255,6 +262,7 @@ pub struct AnomalyResponse {
 }
 
 #[derive(Debug, Serialize)]
+#[allow(dead_code)]
 pub struct AckResponse {
     pub alert_id: String,
     pub acknowledged_at: DateTime<Utc>,

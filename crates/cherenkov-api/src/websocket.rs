@@ -21,6 +21,7 @@ const HEARTBEAT_INTERVAL: u64 = 30;
 const CONNECTION_TIMEOUT: u64 = 120;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct RealTimeUpdate {
     pub update_type: UpdateType,
     pub sensor_id: String,
@@ -29,6 +30,7 @@ pub struct RealTimeUpdate {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub enum UpdateType {
     Reading,
     Anomaly,
@@ -40,6 +42,7 @@ pub enum UpdateType {
 
 /// Connection metadata for tracking and rate limiting
 #[derive(Debug)]
+#[allow(dead_code)]
 pub struct ConnectionMeta {
     pub id: String,
     pub connected_at: Instant,
@@ -51,6 +54,7 @@ pub struct ConnectionMeta {
     pub client_info: Option<String>,
 }
 
+#[allow(dead_code)]
 impl ConnectionMeta {
     pub fn new(id: String) -> Self {
         let now = Instant::now();
@@ -96,6 +100,7 @@ impl ConnectionMeta {
     }
 }
 
+#[allow(dead_code)]
 pub struct WebSocketState {
     pub tx: broadcast::Sender<RealTimeUpdate>,
     pub connections: RwLock<u64>,
@@ -108,6 +113,7 @@ pub struct WebSocketState {
 }
 
 
+#[allow(dead_code)]
 impl WebSocketState {
     /// Broadcast message to all connected clients
     pub async fn broadcast_all(&self, message: serde_json::Value) -> Result<(), String> {
@@ -370,6 +376,7 @@ async fn handle_socket(mut socket: WebSocket, state: Arc<WebSocketState>) {
 
 
 #[derive(Debug, Deserialize)]
+#[allow(dead_code)]
 struct ClientCommand {
     action: String,
     sensor_id: Option<String>,
@@ -380,6 +387,7 @@ struct ClientCommand {
 }
 
 #[derive(Debug, Deserialize, Clone)]
+#[allow(dead_code)]
 pub struct GeoRegion {
     pub lat_min: f64,
     pub lat_max: f64,
@@ -387,6 +395,7 @@ pub struct GeoRegion {
     pub lon_max: f64,
 }
 
+#[allow(dead_code)]
 impl GeoRegion {
     pub fn contains(&self, lat: f64, lon: f64) -> bool {
         lat >= self.lat_min && lat <= self.lat_max &&

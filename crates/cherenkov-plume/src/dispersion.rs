@@ -24,7 +24,7 @@ pub struct LagrangianDispersion {
 }
 
 
-struct AtmosphericGrid {
+pub struct AtmosphericGrid {
     u: Vec<Vec<Vec<f64>>>,
     v: Vec<Vec<Vec<f64>>>,
     w: Vec<Vec<Vec<f64>>>,
@@ -32,22 +32,27 @@ struct AtmosphericGrid {
     lat_max: f64,
     lon_min: f64,
     lon_max: f64,
+    #[allow(dead_code)]
     levels: Vec<f64>,
     nx: usize,
     ny: usize,
     nz: usize,
     dx: f64,
+    #[allow(dead_code)]
     dy: f64,
+    #[allow(dead_code)]
     dz: f64,
 }
 
 struct Particle {
     position: Vector3<f64>,
     velocity: Vector3<f64>,
+    #[allow(dead_code)]
     mass: f64,
     activity_bq: f64,
     deposited: bool,
     deposition_time: Option<f64>,
+    #[allow(dead_code)]
     isotope: String,
     half_life_hours: f64,
 }
