@@ -14,7 +14,7 @@ export const Radio = React.forwardRef<HTMLInputElement, RadioProps>(
             type="radio"
             role="radio"
             aria-checked={checked ?? false}
-            className="peer sr-only"
+            className={cn("peer sr-only", className)}
             ref={ref}
             checked={checked}
             {...props}
@@ -23,10 +23,10 @@ export const Radio = React.forwardRef<HTMLInputElement, RadioProps>(
             className={cn(
               'w-4 h-4 rounded-full border border-[#2a2a3d] bg-[#0a0a10] transition-colors',
               'peer-checked:border-[#00d4ff] peer-checked:bg-[#00d4ff]',
-              'peer-focus:ring-2 peer-focus:ring-[#00d4ff] peer-focus:ring-offset-0',
-              className
+              'peer-focus:ring-2 peer-focus:ring-[#00d4ff] peer-focus:ring-offset-0'
             )}
           >
+
             <div className="w-1.5 h-1.5 rounded-full bg-[#050508] opacity-0 peer-checked:opacity-100 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
           </div>
         </div>
