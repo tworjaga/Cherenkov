@@ -34,22 +34,24 @@ export const Switch = React.forwardRef<HTMLInputElement, SwitchProps>(
             type="checkbox"
             role="switch"
             aria-checked={checked ?? false}
-            className="peer sr-only"
+            data-state={checked ? 'checked' : 'unchecked'}
+            className={cn("peer sr-only", className)}
             ref={ref}
             checked={checked}
             onChange={handleChange}
             {...props}
           />
 
+
           <div
             className={cn(
               'rounded-full bg-[#2a2a3d] transition-colors duration-200',
               'peer-checked:bg-[#00d4ff]',
               'peer-focus:ring-2 peer-focus:ring-[#00d4ff] peer-focus:ring-offset-0',
-              classes.track,
-              className
+              classes.track
             )}
           />
+
           <div
             className={cn(
               'absolute top-1/2 left-0.5 -translate-y-1/2 rounded-full bg-white transition-transform duration-200',

@@ -56,6 +56,7 @@ export const Search = ({
       <Input
         ref={inputRef}
         type="text"
+        role="searchbox"
         value={currentValue}
         onChange={handleChange}
         onKeyDown={handleKeyDown}
@@ -63,15 +64,18 @@ export const Search = ({
         autoFocus={autoFocus}
         className="pl-9 pr-9 bg-bg-secondary border-border-default focus:border-accent-primary"
       />
+
       {currentValue && (
         <Button
           variant="ghost"
           size="sm"
           onClick={handleClear}
+          aria-label="Clear search"
           className="absolute right-1 h-6 w-6 p-0 text-text-tertiary hover:text-text-primary"
         >
           <X className="h-4 w-4" />
         </Button>
+
       )}
     </div>
   );

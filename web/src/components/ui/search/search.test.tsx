@@ -8,15 +8,16 @@ describe('Search', () => {
     expect(screen.getByPlaceholderText('Search...')).toBeInTheDocument();
   });
 
-  it('calls onSearch when input changes', () => {
-    const handleSearch = vi.fn();
-    render(<Search onSearch={handleSearch} />);
+  it('calls onChange when input changes', () => {
+    const handleChange = vi.fn();
+    render(<Search onChange={handleChange} />);
     
     const input = screen.getByRole('searchbox');
     fireEvent.change(input, { target: { value: 'test query' } });
     
-    expect(handleSearch).toHaveBeenCalledWith('test query');
+    expect(handleChange).toHaveBeenCalledWith('test query');
   });
+
 
   it('displays initial value', () => {
     render(<Search value="initial" />);
@@ -24,14 +25,15 @@ describe('Search', () => {
   });
 
   it('clears input when clear button is clicked', () => {
-    const handleSearch = vi.fn();
-    render(<Search value="query" onSearch={handleSearch} />);
+    const handleChange = vi.fn();
+    render(<Search value="query" onChange={handleChange} />);
     
     const clearButton = screen.getByLabelText('Clear search');
     fireEvent.click(clearButton);
     
-    expect(handleSearch).toHaveBeenCalledWith('');
+    expect(handleChange).toHaveBeenCalledWith('');
   });
+
 
   it('applies custom className', () => {
 
