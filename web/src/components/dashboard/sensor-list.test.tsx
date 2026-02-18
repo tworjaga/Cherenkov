@@ -64,8 +64,9 @@ describe('SensorList', () => {
 
   it('shows selected state when sensor is clicked', () => {
     render(<SensorList {...defaultProps} />);
-    const tokyoElement = screen.getByText(/Tokyo Sensor/i).closest('div[class*="cursor-pointer"]');
-    fireEvent.click(tokyoElement!);
+    const tokyoElement = screen.getByTestId('sensor-item-sensor-1');
+    fireEvent.click(tokyoElement);
     expect(tokyoElement).toHaveClass('border-accent-primary');
   });
+
 });

@@ -48,6 +48,7 @@ export const SensorList = ({ sensors, onSensorClick, className }: SensorListProp
         {sensors.map((sensor) => (
           <div
             key={sensor.id}
+            data-testid={`sensor-item-${sensor.id}`}
             onClick={() => handleClick(sensor)}
             className={`p-3 rounded-lg border cursor-pointer transition-all hover:shadow-md ${
               selectedId === sensor.id
@@ -55,6 +56,7 @@ export const SensorList = ({ sensors, onSensorClick, className }: SensorListProp
                 : 'border-border-subtle bg-bg-secondary'
             }`}
           >
+
             <div className="flex items-start justify-between gap-2">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
