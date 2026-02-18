@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils';
 export interface AlertCardProps {
   alert: Alert;
   onClick?: () => void;
-  onAcknowledge?: () => void;
+  onAcknowledge?: (alertId: string) => void;
   isSelected?: boolean;
   className?: string;
 }
@@ -34,17 +34,18 @@ export const AlertCard = ({ alert, onClick, onAcknowledge, isSelected, className
   const getSeverityStyles = () => {
     switch (alert.severity) {
       case 'critical':
-        return 'border-alert-critical/30 bg-alert-critical/5';
+        return 'border-l-4 border-l-alert-critical border-alert-critical/30 bg-alert-critical/5';
       case 'high':
-        return 'border-alert-medium/30 bg-alert-medium/5';
+        return 'border-l-4 border-l-alert-medium border-alert-medium/30 bg-alert-medium/5';
       case 'medium':
-        return 'border-accent-primary/30 bg-accent-primary/5';
+        return 'border-l-4 border-l-accent-primary border-accent-primary/30 bg-accent-primary/5';
       case 'low':
-        return 'border-border-subtle bg-bg-secondary';
+        return 'border-l-4 border-l-alert-normal border-border-subtle bg-bg-secondary';
       default:
-        return 'border-border-subtle bg-bg-secondary';
+        return 'border-l-4 border-l-alert-normal border-border-subtle bg-bg-secondary';
     }
   };
+
 
   return (
     <div
@@ -71,17 +72,23 @@ export const AlertCard = ({ alert, onClick, onAcknowledge, isSelected, className
           <p className="text-body-xs text-text-secondary mt-1 line-clamp-2">
             {alert.message}
           </p>
+          {alert.metadata?.sensorId && (
+            <p className="text-mono-xs text-text-tertiary mt-1">
+              Sensor: {alert.metadata.sensorId}
+            </p>
+          )}
           {onAcknowledge && (
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                onAcknowledge();
+                onAcknowledge(alert.id);
               }}
               className="mt-2 text-xs text-accent-primary hover:text-accent-secondary transition-colors"
             >
-              Acknowledge
+              {alert.acknowledged ? 'Acknowledged' : 'Acknowledge'}
             </button>
           )}
+
         </div>
       </div>
     </div>

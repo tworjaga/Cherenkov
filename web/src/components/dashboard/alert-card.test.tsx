@@ -57,8 +57,9 @@ describe('AlertCard', () => {
     );
 
     const card = container.querySelector('.border-l-4');
-    expect(card?.className).toContain('border-l-alert-critical');
+    expect(card?.className).toContain('border-alert-critical/30');
   });
+
 
   it('renders acknowledged state', () => {
     const acknowledgedAlert = { ...mockAlert, acknowledged: true, acknowledgedAt: Date.now() };
