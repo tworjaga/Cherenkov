@@ -83,18 +83,21 @@ export const Globe = ({
     });
   }, [onViewportChange]);
 
+
+
   const heatmapLayer = useMemo(() => {
     if (!layerVisibility.heatmap || sensors.length === 0) return null;
     
     return new HeatmapLayer({
       id: 'heatmap-layer',
       data: sensors,
-      getPosition: (d: Sensor) => [d.location.lon, d.location.lat],
+      getPosition: (d: Sensor) => [d.location.lon, d.location.lat] as [number, number],
       getWeight: (d: Sensor) => d.lastReading?.doseRate ?? 0,
       radiusPixels: 50,
       intensity: 1,
       threshold: 0.05,
     });
+
   }, [sensors, layerVisibility.heatmap]);
 
   const sensorLayer = useMemo(() => {
@@ -110,7 +113,8 @@ export const Globe = ({
       radiusMinPixels: 4,
       radiusMaxPixels: 16,
       lineWidthMinPixels: 1,
-      getPosition: (d: Sensor) => [d.location.lon, d.location.lat],
+      getPosition: (d: Sensor) => [d.location.lon, d.location.lat] as [number, number],
+
       getRadius: (d: Sensor) => {
         if (d.id === _selectedSensorId) return 12;
         return d.status === 'active' ? 8 : 6;
@@ -134,11 +138,12 @@ export const Globe = ({
       },
       getLineColor: (): [number, number, number, number] => [255, 255, 255, 255],
       getLineWidth: 2,
-      onClick: (info: { object?: Sensor | null; x: number; y: number }) => {
+      onClick: (info: { object: Sensor | null; x: number; y: number }) => {
         if (info.object && onSensorSelect) {
           onSensorSelect(info.object.id);
         }
       },
+
       updateTriggers: {
         getFillColor: [_selectedSensorId],
         getRadius: [_selectedSensorId],
@@ -158,7 +163,8 @@ export const Globe = ({
       filled: true,
       radiusMinPixels: 6,
       radiusMaxPixels: 20,
-      getPosition: (d: Anomaly) => [d.location.lon, d.location.lat],
+      getPosition: (d: Anomaly) => [d.location.lon, d.location.lat] as [number, number],
+
       getRadius: (d: Anomaly) => {
         switch (d.severity) {
           case 'critical':
