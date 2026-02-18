@@ -23,10 +23,11 @@ describe('Switch', () => {
   it('displays checked state correctly', () => {
     render(<Switch checked />);
     
-    const switchInput = screen.getByRole('switch');
-    const switchContainer = switchInput.parentElement;
-    expect(switchContainer).toHaveAttribute('data-state', 'checked');
+    const switchLabel = screen.getByTestId('switch-label');
+    expect(switchLabel).toHaveAttribute('data-state', 'checked');
   });
+
+
 
 
 
@@ -38,31 +39,26 @@ describe('Switch', () => {
 
   it('applies custom className', () => {
     render(<Switch className="custom-class" />);
-    const switchInput = screen.getByRole('switch');
-    const switchLabel = switchInput.closest('label');
+    const switchLabel = screen.getByTestId('switch-label');
     expect(switchLabel).toHaveClass('custom-class');
   });
 
 
 
 
+
   it('renders with switchSize small', () => {
     render(<Switch switchSize="sm" />);
-    const switchInput = screen.getByRole('switch');
-    const switchContainer = switchInput.parentElement;
-    const tracks = switchContainer?.querySelectorAll('.rounded-full');
-    const track = tracks?.[0];
+    const track = screen.getByTestId('switch-track');
     expect(track).toHaveClass('w-8');
   });
 
   it('renders with switchSize large', () => {
     render(<Switch switchSize="lg" />);
-    const switchInput = screen.getByRole('switch');
-    const switchContainer = switchInput.parentElement;
-    const tracks = switchContainer?.querySelectorAll('.rounded-full');
-    const track = tracks?.[0];
+    const track = screen.getByTestId('switch-track');
     expect(track).toHaveClass('w-14');
   });
+
 
 
 

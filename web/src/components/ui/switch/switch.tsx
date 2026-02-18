@@ -28,8 +28,12 @@ export const Switch = React.forwardRef<HTMLInputElement, SwitchProps>(
     const classes = sizeClasses[size];
 
   return (
-    <label className={cn("flex items-center gap-3 cursor-pointer", className)}>
-      <div className="relative" data-state={checked ? 'checked' : 'unchecked'}>
+    <label 
+      className={cn("flex items-center gap-3 cursor-pointer", className)}
+      data-state={checked ? 'checked' : 'unchecked'}
+      data-testid="switch-label"
+    >
+      <div className="relative">
         <input
           type="checkbox"
           role="switch"
@@ -40,31 +44,30 @@ export const Switch = React.forwardRef<HTMLInputElement, SwitchProps>(
           onChange={handleChange}
           {...props}
         />
+        <div
+          className={cn(
+            'rounded-full bg-[#2a2a3d] transition-colors duration-200',
+            'peer-checked:bg-[#00d4ff]',
+            'peer-focus:ring-2 peer-focus:ring-[#00d4ff] peer-focus:ring-offset-0',
+            classes.track
+          )}
+          data-testid="switch-track"
+        />
+        <div
+          className={cn(
+            'absolute top-1/2 left-0.5 -translate-y-1/2 rounded-full bg-white transition-transform duration-200',
+            classes.thumb,
+            checked && classes.translate
+          )}
+          data-testid="switch-thumb"
+        />
+      </div>
+      {label && (
+        <span className="text-sm text-[#a0a0b0] select-none">{label}</span>
+      )}
+    </label>
+  );
 
-
-          <div
-            className={cn(
-              'rounded-full bg-[#2a2a3d] transition-colors duration-200',
-              'peer-checked:bg-[#00d4ff]',
-              'peer-focus:ring-2 peer-focus:ring-[#00d4ff] peer-focus:ring-offset-0',
-              classes.track
-            )}
-          />
-
-
-          <div
-            className={cn(
-              'absolute top-1/2 left-0.5 -translate-y-1/2 rounded-full bg-white transition-transform duration-200',
-              classes.thumb,
-              checked && classes.translate
-            )}
-          />
-        </div>
-        {label && (
-          <span className="text-sm text-[#a0a0b0] select-none">{label}</span>
-        )}
-      </label>
-    );
 
   }
 );
