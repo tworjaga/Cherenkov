@@ -12,11 +12,12 @@ describe('Search', () => {
     const handleChange = vi.fn();
     render(<Search onChange={handleChange} />);
     
-    const input = screen.getByRole('searchbox');
+    const input = screen.getByPlaceholderText('Search...');
     fireEvent.change(input, { target: { value: 'test query' } });
     
     expect(handleChange).toHaveBeenCalledWith('test query');
   });
+
 
 
   it('displays initial value', () => {
