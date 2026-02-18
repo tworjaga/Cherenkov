@@ -73,7 +73,8 @@ export const Globe = ({
   });
 
   const handleViewStateChange = useCallback((params: { viewState: Record<string, unknown> }) => {
-    const newViewState = params.viewState as MapViewState;
+    const newViewState = params.viewState as unknown as MapViewState;
+
     setViewState(newViewState);
     onViewportChange({
       longitude: newViewState.longitude,

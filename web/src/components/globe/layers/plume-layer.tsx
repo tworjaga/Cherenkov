@@ -16,8 +16,9 @@ interface PlumeData {
 interface PlumeLayerProps {
   data?: PlumeData[];
   visible?: boolean;
-  onClick?: (info: { object?: PlumeData; x: number; y: number }) => void;
+  onClick?: (info: { object: PlumeData | null; x: number; y: number }) => void;
 }
+
 
 
 export function PlumeLayer({ data = [], visible = true, onClick }: PlumeLayerProps): ScatterplotLayer<PlumeData> {
