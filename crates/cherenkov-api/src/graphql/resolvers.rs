@@ -221,6 +221,7 @@ pub struct SubscriptionRoot {
 }
 
 impl SubscriptionRoot {
+    #[allow(dead_code)]
     pub fn new() -> Self {
         let (sensor_tx, _) = broadcast::channel(1000);
         let (anomaly_tx, _) = broadcast::channel(100);
@@ -230,10 +231,12 @@ impl SubscriptionRoot {
         }
     }
 
+    #[allow(dead_code)]
     pub fn get_sensor_sender(&self) -> broadcast::Sender<SensorReading> {
         self.sensor_tx.clone()
     }
 
+    #[allow(dead_code)]
     pub fn get_anomaly_sender(&self) -> broadcast::Sender<AnomalyEvent> {
         self.anomaly_tx.clone()
     }
