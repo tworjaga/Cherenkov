@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { DatePicker } from './date-picker';
 
@@ -15,7 +15,9 @@ describe('DatePicker', () => {
     const trigger = screen.getByRole('button');
     await user.click(trigger);
     // Calendar dialog should be visible
-    expect(screen.getByText('Select Date')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText('Select Date')).toBeInTheDocument();
+    });
   });
 
   it('displays selected date', () => {
@@ -33,7 +35,12 @@ describe('DatePicker', () => {
     const trigger = screen.getByRole('button');
     await user.click(trigger);
     
-    // Select a date (15th)
+    // Wait for modal to open and select a date (15th)
+    await waitFor(() => {
+      const dateButton = screen.getByText('15');
+      expect(dateButton).toBeInTheDocument();
+    });
+    
     const dateButton = screen.getByText('15');
     await user.click(dateButton);
     
