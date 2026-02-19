@@ -18,18 +18,19 @@ export const Checkbox = React.forwardRef<HTMLInputElement, CheckboxProps>(
     };
 
     return (
-      <label className="flex items-center gap-2 cursor-pointer">
+      <label className={cn("flex items-center gap-2 cursor-pointer", className)}>
         <div className="relative">
           <input
             type="checkbox"
             role="checkbox"
             aria-checked={checked ?? false}
-            className={cn("peer sr-only", className)}
+            className="peer sr-only"
             ref={ref}
             checked={checked}
             onChange={handleChange}
             {...props}
           />
+
 
           <div
             className={cn(
