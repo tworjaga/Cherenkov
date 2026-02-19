@@ -73,17 +73,18 @@ describe('dates', () => {
 
   describe('addTime', () => {
     it('adds days to date', () => {
-      const date = new Date('2024-01-15T10:30:00Z');
+      const date = new Date(Date.UTC(2024, 0, 15, 10, 30, 0));
       const result = addTime(date, 5, 'd');
       expect(result.getUTCDate()).toBe(20);
     });
 
     it('adds hours to date', () => {
-      const date = new Date('2024-06-15T10:30:00Z');
+      const date = new Date(Date.UTC(2024, 5, 15, 10, 30, 0));
       const result = addTime(date, 5, 'h');
       expect(result.getUTCHours()).toBe(15);
     });
   });
+
 
 
 
