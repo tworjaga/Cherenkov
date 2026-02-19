@@ -1,7 +1,8 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from './dropdown';
+
 
 describe('Dropdown', () => {
   it('renders dropdown trigger', () => {
@@ -30,8 +31,11 @@ describe('Dropdown', () => {
     const trigger = screen.getByText('Open');
     await user.click(trigger);
     
-    expect(screen.getByText('Item 1')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText('Item 1')).toBeInTheDocument();
+    });
   });
+
 
   it('calls onSelect when item is clicked', async () => {
     const handleSelect = vi.fn();
@@ -48,11 +52,12 @@ describe('Dropdown', () => {
     const trigger = screen.getByText('Open');
     await user.click(trigger);
     
-    const item = screen.getByText('Item 1');
+    const item = await screen.findByText('Item 1');
     await user.click(item);
     
     expect(handleSelect).toHaveBeenCalled();
   });
+
 
   it('renders disabled item', async () => {
     const user = userEvent.setup();
@@ -68,7 +73,8 @@ describe('Dropdown', () => {
     const trigger = screen.getByText('Open');
     await user.click(trigger);
     
-    const item = screen.getByText('Disabled Item');
+    const item = await screen.findByText('Disabled Item');
     expect(item).toHaveAttribute('data-disabled');
   });
+
 });
