@@ -50,9 +50,11 @@ describe('SensorList', () => {
 
   it('displays sensor readings', () => {
     render(<SensorList {...defaultProps} />);
-    expect(screen.getByText('0.150 μSv/h')).toBeInTheDocument();
-    expect(screen.getByText('0.450 μSv/h')).toBeInTheDocument();
+    expect(screen.getByText('0.150')).toBeInTheDocument();
+    expect(screen.getByText('0.450')).toBeInTheDocument();
+    expect(screen.getAllByText('μSv/h').length).toBe(2);
   });
+
 
 
 
