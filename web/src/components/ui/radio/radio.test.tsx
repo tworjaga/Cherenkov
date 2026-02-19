@@ -38,6 +38,7 @@ describe('Radio', () => {
   it('applies custom className', () => {
     render(<Radio value="option1" className="custom-class" />);
     const radio = screen.getByRole('radio');
-    expect(radio).toHaveClass('custom-class');
+    expect(radio).toHaveClass('sr-only', 'custom-class');
   });
+
 });
