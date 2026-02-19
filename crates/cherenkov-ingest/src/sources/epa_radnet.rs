@@ -245,7 +245,7 @@ impl EpaRadnetSource {
                 .map(|e| e.text().collect::<String>())
                 .unwrap_or_default();
                 
-            let (city, _state, lat, lon) = match self.parse_epa_location(&location_text) {
+            let (_city, _state, lat, lon) = match self.parse_epa_location(&location_text) {
                 Ok(coords) => coords,
                 Err(_) => {
                     let (c, s) = location_text.split_once(',').unwrap_or(("Unknown", "US"));

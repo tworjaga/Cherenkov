@@ -47,7 +47,9 @@ impl NoaaGfsSource {
     }
 
     /// Parse GFS GRIB2 index file to find data locations
+    #[allow(dead_code)]
     fn parse_gfs_index(&self, index_data: &str) -> Vec<(String, u64, u64)> {
+
         let mut records = Vec::new();
         
         for line in index_data.lines() {
@@ -72,7 +74,9 @@ impl NoaaGfsSource {
     }
 
     /// Calculate wind direction in degrees from U and V components
+    #[allow(dead_code)]
     fn calculate_wind_direction(&self, u: f64, v: f64) -> f64 {
+
         let dir = (270.0 - v.atan2(u).to_degrees()) % 360.0;
         if dir < 0.0 { dir + 360.0 } else { dir }
     }
@@ -122,8 +126,6 @@ impl NoaaGfsSource {
     /// Parse ASCII grid data from GFS
     fn parse_ascii_grid(&self, ascii_data: &str) -> Vec<GfsGridPoint> {
         let mut points = Vec::new();
-        let mut current_lat = 0.0;
-        let mut current_lon = 0.0;
         let mut reading_grid = false;
         
         for line in ascii_data.lines() {
@@ -143,9 +145,6 @@ impl NoaaGfsSource {
                         parts[1].parse::<f64>(),
                         parts[2].parse::<f64>()
                     ) {
-                        current_lat = lat;
-                        current_lon = lon;
-                        
                         // Create grid point with placeholder values
                         // Real implementation would parse all variables
                         points.push(GfsGridPoint {
@@ -165,6 +164,7 @@ impl NoaaGfsSource {
         
         points
     }
+
 
     /// Convert GFS grid point to radiation proxy reading
     /// 

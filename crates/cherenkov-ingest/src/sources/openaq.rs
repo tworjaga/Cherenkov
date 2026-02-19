@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use reqwest::Client;
 use std::time::Duration;
-use tracing::{info, warn, instrument};
+use tracing::{info, warn};
 use cherenkov_db::{RadiationReading, QualityFlag};
 use uuid::Uuid;
 use crate::pipeline::DataSource;
@@ -30,13 +30,16 @@ struct OpenAqResponse {
 #[derive(Debug, Deserialize)]
 struct OpenAqMeasurement {
     location: String,
+    #[allow(dead_code)]
     city: Option<String>,
+    #[allow(dead_code)]
     country: Option<String>,
     coordinates: Option<OpenAqCoordinates>,
     measurements: Vec<OpenAqParameter>,
     #[serde(rename = "date")]
     timestamp: OpenAqTimestamp,
 }
+
 
 /// OpenAQ coordinates
 #[derive(Debug, Deserialize)]
@@ -50,8 +53,10 @@ struct OpenAqCoordinates {
 struct OpenAqParameter {
     parameter: String,
     value: f64,
+    #[allow(dead_code)]
     unit: String,
 }
+
 
 /// OpenAQ timestamp
 #[derive(Debug, Deserialize)]

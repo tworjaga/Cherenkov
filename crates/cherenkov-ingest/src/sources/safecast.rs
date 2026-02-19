@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use chrono::Utc;
 use reqwest::Client;
 use serde::Deserialize;
-use tracing::{info, warn, error};
+use tracing::{info, error};
 use std::time::Duration;
 use uuid::Uuid;
 
@@ -20,6 +20,7 @@ pub struct SafecastSource {
 
 #[derive(Debug, Deserialize)]
 struct SafecastMeasurement {
+    #[allow(dead_code)]
     id: u64,
     value: f64,
     unit: String,
@@ -27,8 +28,10 @@ struct SafecastMeasurement {
     longitude: f64,
     captured_at: String,
     device_id: Option<u64>,
+    #[allow(dead_code)]
     location_name: Option<String>,
 }
+
 
 impl SafecastSource {
     pub fn new() -> Self {

@@ -1,8 +1,7 @@
 use async_trait::async_trait;
-use chrono::Utc;
 use reqwest::Client;
 use serde::Deserialize;
-use tracing::{info, warn, error};
+use tracing::{info, error};
 use std::time::Duration;
 use uuid::Uuid;
 
@@ -23,6 +22,7 @@ pub struct UradmonitorSource {
 struct UradDevice {
     id: String,
     #[serde(rename = "type")]
+    #[allow(dead_code)]
     device_type: String,
     latitude: f64,
     longitude: f64,
@@ -31,20 +31,28 @@ struct UradDevice {
     #[serde(default)]
     radiation: Option<f64>,
     #[serde(default)]
+    #[allow(dead_code)]
     temperature: Option<f64>,
     #[serde(default)]
+    #[allow(dead_code)]
     pressure: Option<f64>,
     #[serde(default)]
+    #[allow(dead_code)]
     humidity: Option<f64>,
     #[serde(default)]
+    #[allow(dead_code)]
     voc: Option<f64>,
     #[serde(default)]
+    #[allow(dead_code)]
     co2: Option<f64>,
     #[serde(default)]
+    #[allow(dead_code)]
     pm25: Option<f64>,
     #[serde(default)]
+    #[allow(dead_code)]
     pm10: Option<f64>,
 }
+
 
 impl UradmonitorSource {
     pub fn new() -> Self {

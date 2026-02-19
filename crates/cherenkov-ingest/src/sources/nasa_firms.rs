@@ -6,7 +6,8 @@ use cherenkov_db::{RadiationReading, QualityFlag};
 use uuid::Uuid;
 use crate::pipeline::DataSource;
 use crate::SourceConfig;
-use chrono::{DateTime, Utc, NaiveDateTime, TimeZone};
+use chrono::{Utc, NaiveDateTime};
+
 
 
 /// NASA FIRMS (Fire Information for Resource Management System) source
