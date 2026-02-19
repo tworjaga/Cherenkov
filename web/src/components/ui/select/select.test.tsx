@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeAll } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+
 import {
   Select,
   SelectTrigger,
@@ -76,11 +77,12 @@ describe('Select', () => {
     const trigger = screen.getByRole('combobox');
     await user.click(trigger);
     
-    const item = screen.getByText('Option 1');
+    const item = await screen.findByText('Option 1');
     await user.click(item);
     
     expect(handleChange).toHaveBeenCalledWith('option1');
   });
+
 
   it('displays selected value', () => {
     render(
