@@ -42,7 +42,7 @@ time = { version = "0.3", features = ["serde"] }
 uuid = { version = "1.6", features = ["v4", "serde"] }
 
 # Random number generation
-rand = "0.8"
+rand = "=0.8.5"
 
 # Database
 
@@ -59,8 +59,8 @@ async-graphql = { version = "7.0", features = ["chrono"] }
 async-graphql-axum = "7.0"
 
 # ML
-candle-core = { git = "https://github.com/huggingface/candle" }
-candle-nn = { git = "https://github.com/huggingface/candle" }
+candle-core = "0.3"
+candle-nn = "0.3"
 
 
 # Stream processing

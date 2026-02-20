@@ -1,5 +1,5 @@
 use candle_core::{Device, Tensor, DType};
-use candle_onnx::onnx::ModelProto;
+use candle_onnx::onnx;
 use std::sync::Arc;
 use std::collections::HashMap;
 use tokio::sync::RwLock;
@@ -10,7 +10,7 @@ use crate::{Classification, IsotopePrediction, Spectrum};
 
 /// ONNX model wrapper for isotope classification
 pub struct OnnxModel {
-    model: ModelProto,
+    model: onnx::ModelProto,
     device: Device,
     input_name: String,
     output_name: String,
@@ -20,10 +20,18 @@ impl OnnxModel {
     pub fn load(path: &str, device: &Device) -> anyhow::Result<Self> {
         info!("Loading ONNX model from: {}", path);
         
-        let model = ModelProto::from_file(path)
+        // Read model bytes from file
+        let model_bytes = std::fs::read(path)
             .map_err(|e| {
-                error!("Failed to load ONNX model: {}", e);
-                anyhow::anyhow!("ONNX load error: {}", e)
+                error!("Failed to read ONNX model file: {}", e);
+                anyhow::anyhow!("File read error: {}", e)
+            })?;
+        
+        // Parse the model using prost
+        let model = onnx::ModelProto::decode(&*model_bytes)
+            .map_err(|e| {
+                error!("Failed to parse ONNX model: {}", e);
+                anyhow::anyhow!("ONNX parse error: {}", e)
             })?;
         
         // Extract input/output names from model graph
@@ -53,8 +61,8 @@ impl OnnxModel {
         let mut inputs = HashMap::new();
         inputs.insert(self.input_name.clone(), input.clone());
         
-        // Run inference
-        let outputs = self.model.eval(&inputs, &self.device)
+        // Run inference using candle_onnx::simple_eval
+        let outputs = candle_onnx::simple_eval(&self.model, inputs)
             .map_err(|e| {
                 error!("ONNX inference failed: {}", e);
                 anyhow::anyhow!("Inference error: {}", e)
