@@ -44,6 +44,7 @@ metrics = "0.22"
 cherenkov-core = { path = "../cherenkov-core" }
 cherenkov-db = { path = "../cherenkov-db" }
 cherenkov-observability = { path = "../cherenkov-observability" }
+cherenkov-plume = { path = "../cherenkov-plume" }
 
 
 [dev-dependencies]
