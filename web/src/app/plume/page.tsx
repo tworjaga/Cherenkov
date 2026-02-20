@@ -139,7 +139,8 @@ export default function PlumePage() {
   const calculatePlumeDispersion = useCallback((timeHours: number): PlumePoint[] => {
     const data: PlumePoint[] = [];
     const { windSpeed, windDirection } = weatherData;
-    const { releaseRate, isotope, stabilityClass } = releaseParams;
+    const { releaseRate, stabilityClass } = releaseParams;
+
     
     // Pasquill-Gifford dispersion coefficients
     const dispersionCoeffs: Record<string, { ay: number; by: number; az: number; bz: number }> = {

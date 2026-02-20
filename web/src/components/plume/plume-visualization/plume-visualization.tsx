@@ -44,7 +44,7 @@ export const PlumeVisualization = React.memo(function PlumeVisualization({
   plumeData = [],
   isAnimating = false,
   currentTime = 0,
-  onTimeChange,
+
 }: PlumeVisualizationProps) {
   const layers = useMemo(() => ({
     sensors: true,
@@ -54,23 +54,7 @@ export const PlumeVisualization = React.memo(function PlumeVisualization({
     heatmap: false,
   }), []);
 
-  const windDirectionRad = useMemo(() => {
-    if (!simulationData) return 0;
-    return (simulationData.windDirection * Math.PI) / 180;
-  }, [simulationData?.windDirection]);
 
-  const plumeExtent = useMemo(() => {
-    if (!simulationData) return null;
-    
-    const { center, windSpeed, timeStep, maxTime } = simulationData;
-    const distanceKm = windSpeed * (timeStep / 3600) * maxTime;
-    
-    return {
-      downwind: distanceKm,
-      crosswind: distanceKm * 0.3,
-      center,
-    };
-  }, [simulationData]);
 
   const concentrationStats = useMemo(() => {
     if (plumeData.length === 0) return null;
@@ -88,14 +72,7 @@ export const PlumeVisualization = React.memo(function PlumeVisualization({
     };
   }, [plumeData]);
 
-  const getConcentrationLevel = (doseRate: number) => {
-    for (const level of CONCENTRATION_LEVELS) {
-      if (doseRate >= level.threshold) {
-        return level;
-      }
-    }
-    return CONCENTRATION_LEVELS[CONCENTRATION_LEVELS.length - 1];
-  };
+
 
   return (
     <Card className="h-full flex flex-col">

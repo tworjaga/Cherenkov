@@ -24,10 +24,11 @@ export const SensorList = ({ sensors, onSensorClick, className }: SensorListProp
   const [scrollTop, setScrollTop] = useState(0);
 
   // Use intersection observer for lazy loading off-screen content
-  const [loadMoreRef, isIntersecting] = useIntersectionObserver<HTMLDivElement>({
+  const [loadMoreRef] = useIntersectionObserver<HTMLDivElement>({
     threshold: 0,
     rootMargin: '100px',
   });
+
 
 
 
@@ -52,7 +53,8 @@ export const SensorList = ({ sensors, onSensorClick, className }: SensorListProp
   };
 
   // Calculate visible range for virtual scrolling
-  const { virtualItems, totalHeight, startIndex } = useMemo(() => {
+  const { virtualItems, totalHeight } = useMemo(() => {
+
     const totalItems = sensors.length;
     const totalHeight = totalItems * ITEM_HEIGHT;
     
