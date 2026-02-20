@@ -5,6 +5,9 @@ pub mod isotope;
 pub mod onnx_export;
 pub mod training;
 
+#[cfg(test)]
+mod inference_test;
+
 pub use data_loader::{
     SpectraDataset, SpectraSample, DatasetConfig, DataSource, DataFormat,
     PreprocessingConfig, SourceType, public_datasets
