@@ -14,11 +14,11 @@
 - [x] cherenkov-observability: 0 warnings
 
 ### In Progress:
-- [ ] cherenkov-ml - inference.rs, training.rs
-- [ ] cherenkov-plume - dispersion.rs, weather.rs, particle.rs
-- [ ] cherenkov-stream - window.rs, processor.rs, correlation.rs
-- [ ] cherenkov-api - main.rs, rest.rs, websocket.rs
-- [ ] cherenkov-ingest - pipeline.rs, sources.rs
+- [x] cherenkov-ml - inference.rs, training.rs
+- [x] cherenkov-plume - dispersion.rs, weather.rs, particle.rs
+- [x] cherenkov-stream - window.rs, processor.rs, correlation.rs
+- [x] cherenkov-api - main.rs, rest.rs, websocket.rs
+- [x] cherenkov-ingest - pipeline.rs, sources.rs
 
 ## Warning Categories:
 1. Dead code (unused fields, methods, variables)
