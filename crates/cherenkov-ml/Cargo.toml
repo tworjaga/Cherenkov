@@ -24,5 +24,12 @@ uuid = { version = "1.6", features = ["v4", "serde"] }
 chrono = { workspace = true }
 rand = "=0.8.5"
 
+# Data loading and ONNX export
+reqwest = { version = "0.11", features = ["stream", "json"] }
+csv = "1.3"
+bytes = "1.5"
+url = "2.5"
+tempfile = "3.9"
+
 [dev-dependencies]
 tokio-test = { workspace = true }
