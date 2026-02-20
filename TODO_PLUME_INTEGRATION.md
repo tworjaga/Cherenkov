@@ -12,13 +12,17 @@
 
 
 ## Step 3: Connect frontend to real API
-- [ ] Update use-plume-simulation.ts with GraphQL mutations
+- [x] Update use-plume-simulation.ts with GraphQL mutations
+  - Completed: 6d3a420 feat(graphql): add plume simulation queries
 - [ ] Connect plume-layer.tsx to real data
+
 
 ## Step 4: Implement evacuation zones
 - [ ] Add dose threshold contour generation
 - [ ] Integrate with dispersion output
 
 ## Step 5: Weather data integration
-- [ ] Connect weather.rs to NOAA GFS/Open-Meteo
-- [ ] Add weather parameter controls
+- [x] Connect weather.rs to NOAA GFS/Open-Meteo
+  - Completed: 76958ad fix(plume): correct WeatherConditions field names for LocalWeather integration
+- [x] Add weather parameter controls
+  - Completed: 76958ad fix(plume): correct WeatherConditions field names for LocalWeather integration
