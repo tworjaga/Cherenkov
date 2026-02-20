@@ -1,5 +1,6 @@
 use candle_core::{Device, Tensor, DType, Shape};
 use candle_onnx::onnx;
+use prost::Message;
 use std::sync::Arc;
 use std::collections::HashMap;
 use tokio::sync::RwLock;
@@ -47,7 +48,7 @@ pub enum OnnxError {
 }
 
 /// ONNX model metadata for validation
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct ModelMetadata {
     pub input_names: Vec<String>,
     pub output_names: Vec<String>,
@@ -60,7 +61,7 @@ pub struct ModelMetadata {
 
 /// ONNX model wrapper for isotope classification with validation
 pub struct OnnxModel {
-    model: onnx::ModelProto,
+    pub(crate) model: onnx::ModelProto,
     device: Device,
     input_name: String,
     output_name: String,
@@ -75,7 +76,7 @@ impl OnnxModel {
         let model_bytes = std::fs::read(path)
             .map_err(OnnxError::FileRead)?;
         
-        let model = onnx::ModelProto::decode(&*model_bytes)
+        let model = onnx::ModelProto::decode(&model_bytes[..])
             .map_err(OnnxError::ParseError)?;
         
         let metadata = Self::extract_metadata(&model)?;
@@ -127,11 +128,11 @@ impl OnnxModel {
         }
         
         let input_names: Vec<String> = graph.input.iter()
-            .filter_map(|i| i.name.clone())
+            .map(|i| i.name.clone())
             .collect();
         
         let output_names: Vec<String> = graph.output.iter()
-            .filter_map(|o| o.name.clone())
+            .map(|o| o.name.clone())
             .collect();
         
         let input_shapes: Vec<Vec<usize>> = graph.input.iter()
@@ -156,11 +157,17 @@ impl OnnxModel {
     /// Extract tensor shape from ONNX type
     fn extract_shape(tensor_type: &Option<onnx::TypeProto>) -> Vec<usize> {
         tensor_type.as_ref()
-            .and_then(|t| t.tensor_type.as_ref())
+            .and_then(|t| match &t.value {
+                Some(onnx::type_proto::Value::TensorType(tt)) => Some(tt),
+                _ => None,
+            })
             .and_then(|tt| tt.shape.as_ref())
             .map(|s| s.dim.iter()
-                .filter_map(|d| d.dim_value.as_ref())
-                .filter_map(|v| if *v > 0 { Some(*v as usize) } else { None })
+                .filter_map(|d| d.value.as_ref())
+                .filter_map(|v| match v {
+                    onnx::tensor_shape_proto::dimension::Value::DimValue(val) if *val > 0 => Some(*val as usize),
+                    _ => None,
+                })
                 .collect())
             .unwrap_or_default()
     }
