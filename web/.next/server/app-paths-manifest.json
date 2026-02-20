@@ -1,3 +1,16 @@
 {
-  "/(dashboard)/page": "app/(dashboard)/page.js"
+  "/_not-found": "app/_not-found.js",
+  "/api/health/route": "app/api/health/route.js",
+  "/anomalies/page": "app/anomalies/page.js",
+  "/sensors/page": "app/sensors/page.js",
+  "/globe/page": "app/globe/page.js",
+  "/plume/page": "app/plume/page.js",
+  "/(auth)/forgot-password/page": "app/(auth)/forgot-password/page.js",
+  "/(auth)/register/page": "app/(auth)/register/page.js",
+  "/settings/api-keys/page": "app/settings/api-keys/page.js",
+  "/(dashboard)/page": "app/(dashboard)/page.js",
+  "/(auth)/login/page": "app/(auth)/login/page.js",
+  "/settings/general/page": "app/settings/general/page.js",
+  "/settings/notifications/page": "app/settings/notifications/page.js",
+  "/settings/data-sources/page": "app/settings/data-sources/page.js"
 }

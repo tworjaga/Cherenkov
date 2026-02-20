@@ -92,7 +92,7 @@ export const Sidebar = () => {
           `}
           role="navigation"
           aria-label="Main navigation"
-          aria-expanded={sidebarVisible}
+
         >
           {/* Mobile close button */}
           {isMobile && (

@@ -100,8 +100,8 @@ export const BottomPanel = ({
         `}
         role="complementary"
         aria-label="Analytics panel"
-        aria-expanded={bottomPanelOpen}
       >
+
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-2 border-b border-border-subtle flex-shrink-0">
           <div className="flex items-center gap-2 md:gap-4 overflow-x-auto scrollbar-hide" role="tablist" aria-label="Analytics tabs">

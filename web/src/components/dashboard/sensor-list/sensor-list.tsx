@@ -84,7 +84,8 @@ export const SensorList = ({ sensors, onSensorClick, className }: SensorListProp
 
   // Memoized sensor item renderer
   const SensorItem = useMemo(() => {
-    return ({ sensor, style, index }: { sensor: Sensor; style: React.CSSProperties; index: number }) => (
+    const Component = ({ sensor, style, index }: { sensor: Sensor; style: React.CSSProperties; index: number }) => (
+
       <div
         key={sensor.id}
         data-testid={`sensor-item-${sensor.id}`}
@@ -143,7 +144,10 @@ export const SensorList = ({ sensors, onSensorClick, className }: SensorListProp
         )}
       </div>
     );
+    Component.displayName = 'SensorItem';
+    return Component;
   }, [selectedId, sensors.length, handleClick]);
+
 
   return (
     <Card className={className}>

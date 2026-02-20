@@ -212,8 +212,8 @@ export const RightPanel = () => {
         `}
         role="complementary"
         aria-label="Alert panel"
-        aria-expanded={rightPanelOpen}
         aria-hidden={!rightPanelOpen}
+
       >
         {/* Collapse toggle button (desktop only) */}
         {!isMobile && (
