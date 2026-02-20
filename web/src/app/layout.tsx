@@ -7,8 +7,9 @@ import { RightPanel } from '@/components/layout/right-panel';
 import { BottomPanel } from '@/components/layout/bottom-panel';
 import { ClientProviders } from '@/components/providers';
 import { Toaster } from 'react-hot-toast';
+
 import { SkipLink } from '@/components/ui/skip-link';
-import { LayoutProvider } from '@/components/providers/layout-provider';
+
 
 const inter = Inter({
   subsets: ['latin'],
@@ -56,42 +57,41 @@ export default function RootLayout({
     >
       <body className="bg-bg-primary text-text-primary antialiased overflow-hidden touch-manipulation">
         <ClientProviders>
-          <LayoutProvider>
-            <SkipLink />
+          <SkipLink />
+          
+          <div 
+            className="flex flex-col h-screen w-screen"
+            role="application"
+            aria-label="Cherenkov Radiological Intelligence Dashboard"
+          >
+            <Header />
             
             <div 
-              className="flex flex-col h-screen w-screen"
-              role="application"
-              aria-label="Cherenkov Radiological Intelligence Dashboard"
+              className="flex flex-1 overflow-hidden relative"
+              role="main"
+              aria-label="Main content area"
             >
-              <Header />
+              <Sidebar />
               
-              <div 
-                className="flex flex-1 overflow-hidden relative"
-                role="main"
-                aria-label="Main content area"
+              <main 
+                id="main-content"
+                className="flex-1 relative overflow-hidden focus:outline-none focus:ring-2 focus:ring-accent-primary/50"
+                tabIndex={-1}
               >
-                <Sidebar />
-                
-                <main 
-                  id="main-content"
-                  className="flex-1 relative overflow-hidden focus:outline-none focus:ring-2 focus:ring-accent-primary/50"
-                  tabIndex={-1}
-                >
-                  {children}
-                </main>
-                
-                <RightPanel />
-              </div>
+                {children}
+              </main>
               
-              <BottomPanel 
-                globalTimeSeries={[]}
-                regionalStats={[]}
-                recentEvents={[]}
-              />
+              <RightPanel />
             </div>
-          </LayoutProvider>
+            
+            <BottomPanel 
+              globalTimeSeries={[]}
+              regionalStats={[]}
+              recentEvents={[]}
+            />
+          </div>
         </ClientProviders>
+
         
         <Toaster 
           position="top-right"

@@ -1,7 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useCallback, useEffect, ReactNode } from 'react';
-import { useAppStore } from '@/stores/app-store';
+import React from 'react';
 
 interface LayoutContextType {
   isMobile: boolean;
@@ -9,101 +8,71 @@ interface LayoutContextType {
   isDesktop: boolean;
   sidebarVisible: boolean;
   rightPanelVisible: boolean;
-  rightPanelOpen: boolean;
   bottomPanelVisible: boolean;
-  bottomPanelOpen: boolean;
   toggleSidebar: () => void;
   toggleRightPanel: () => void;
   toggleBottomPanel: () => void;
-  setSidebarVisible: (visible: boolean) => void;
-  setRightPanelVisible: (visible: boolean) => void;
-  setBottomPanelVisible: (visible: boolean) => void;
+  rightPanelOpen: boolean;
+  bottomPanelOpen: boolean;
+  resetLayout: () => void;
 }
 
+const LayoutContext = React.createContext<LayoutContextType | null>(null);
 
-const LayoutContext = createContext<LayoutContextType | undefined>(undefined);
-
-interface LayoutProviderProps {
-  children: ReactNode;
+export function useLayout(): LayoutContextType {
+  const context = React.useContext(LayoutContext);
+  if (!context) {
+    throw new Error('useLayout must be used within LayoutProvider');
+  }
+  return context;
 }
 
-export function LayoutProvider({ children }: LayoutProviderProps): JSX.Element {
-  const {
-    sidebarCollapsed,
-    rightPanelOpen,
-    bottomPanelOpen,
-    toggleSidebar: storeToggleSidebar,
-    toggleRightPanel: storeToggleRightPanel,
-    toggleBottomPanel: storeToggleBottomPanel,
-  } = useAppStore();
+interface ProviderProps {
+  children: React.ReactNode;
+}
 
-  const [isMobile, setIsMobile] = React.useState(false);
-  const [isTablet, setIsTablet] = React.useState(false);
-  const [isDesktop, setIsDesktop] = React.useState(true);
+export function LayoutProvider(props: ProviderProps): React.ReactElement {
 
-  useEffect(() => {
-    const checkScreenSize = (): void => {
-      const width = window.innerWidth;
-      setIsMobile(width < 768);
-      setIsTablet(width >= 768 && width < 1024);
-      setIsDesktop(width >= 1024);
-    };
+  const [sidebarVisible, setSidebarVisible] = React.useState(true);
+  const [rightPanelVisible, setRightPanelVisible] = React.useState(true);
+  const [bottomPanelVisible, setBottomPanelVisible] = React.useState(true);
 
-    checkScreenSize();
-    window.addEventListener('resize', checkScreenSize);
-    return () => window.removeEventListener('resize', checkScreenSize);
+  const toggleSidebar = React.useCallback(() => {
+    setSidebarVisible(prev => !prev);
   }, []);
 
-  const setSidebarVisible = useCallback((visible: boolean): void => {
-    const store = useAppStore.getState();
-    if (visible !== !store.sidebarCollapsed) {
-      storeToggleSidebar();
-    }
-  }, [storeToggleSidebar]);
+  const toggleRightPanel = React.useCallback(() => {
+    setRightPanelVisible(prev => !prev);
+  }, []);
 
-  const setRightPanelVisible = useCallback((visible: boolean): void => {
-    const store = useAppStore.getState();
-    if (visible !== store.rightPanelOpen) {
-      storeToggleRightPanel();
-    }
-  }, [storeToggleRightPanel]);
+  const toggleBottomPanel = React.useCallback(() => {
+    setBottomPanelVisible(prev => !prev);
+  }, []);
 
-  const setBottomPanelVisible = useCallback((visible: boolean): void => {
-    const store = useAppStore.getState();
-    if (visible !== store.bottomPanelOpen) {
-      storeToggleBottomPanel();
-    }
-  }, [storeToggleBottomPanel]);
+  const resetLayout = React.useCallback(() => {
+    setSidebarVisible(true);
+    setRightPanelVisible(true);
+    setBottomPanelVisible(true);
+  }, []);
 
-  const value: LayoutContextType = {
-    isMobile,
-    isTablet,
-    isDesktop,
-    sidebarVisible: !sidebarCollapsed,
-    rightPanelVisible: rightPanelOpen,
-    rightPanelOpen: rightPanelOpen,
-    bottomPanelVisible: bottomPanelOpen,
-    bottomPanelOpen: bottomPanelOpen,
-    toggleSidebar: storeToggleSidebar,
-    toggleRightPanel: storeToggleRightPanel,
-    toggleBottomPanel: storeToggleBottomPanel,
-    setSidebarVisible,
-    setRightPanelVisible,
-    setBottomPanelVisible,
-  };
-
+  const value = React.useMemo<LayoutContextType>(() => ({
+    isMobile: false,
+    isTablet: false,
+    isDesktop: true,
+    sidebarVisible,
+    rightPanelVisible,
+    bottomPanelVisible,
+    toggleSidebar,
+    toggleRightPanel,
+    toggleBottomPanel,
+    rightPanelOpen: rightPanelVisible,
+    bottomPanelOpen: bottomPanelVisible,
+    resetLayout,
+  }), [sidebarVisible, rightPanelVisible, bottomPanelVisible, toggleSidebar, toggleRightPanel, toggleBottomPanel, resetLayout]);
 
   return (
     <LayoutContext.Provider value={value}>
-      {children}
+      {props.children}
     </LayoutContext.Provider>
   );
-}
-
-export function useLayout(): LayoutContextType {
-  const context = useContext(LayoutContext);
-  if (context === undefined) {
-    throw new Error('useLayout must be used within a LayoutProvider');
-  }
-  return context;
 }

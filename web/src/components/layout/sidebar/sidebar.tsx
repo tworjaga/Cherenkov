@@ -108,7 +108,8 @@ export const Sidebar = () => {
           )}
 
           <nav className="flex flex-col gap-1 p-2" role="menubar" aria-label="Application views">
-            {navItems.map((item, index) => {
+          {navItems.map((item) => {
+
               const Icon = item.icon;
               const isActive = view === item.id;
 
