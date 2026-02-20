@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -12,20 +12,25 @@ import { Label } from '@/components/ui/label';
 import { EvacuationZones } from '@/components/plume/evacuation-zones';
 import { PlumeVisualization, PlumePoint } from '@/components/plume/plume-visualization';
 import { useToast } from '@/components/ui/toast';
+import { usePlumeSimulation } from '@/hooks/use-plume-simulation';
 import { 
   Wind, 
   Radio, 
   MapPin, 
   Play, 
   Pause, 
-  RotateCcw, 
   Download,
   AlertTriangle,
   Info,
   Clock,
   Thermometer,
-  Gauge
+  Gauge,
+  SkipBack,
+  SkipForward,
+  Repeat
 } from 'lucide-react';
+
+
 
 interface ReleaseParameters {
   latitude: number;
@@ -67,11 +72,13 @@ const STABILITY_CLASSES = [
 
 export default function PlumePage() {
   const { addToast } = useToast();
-  const [isSimulating, setIsSimulating] = useState(false);
-  const [simulationTime, setSimulationTime] = useState(0);
   const [maxSimulationTime] = useState(72); // hours
   
+  // Use the enhanced plume simulation hook
+  const [simState, simControls] = usePlumeSimulation(maxSimulationTime * 3600 * 1000); // Convert to ms
+  
   const [releaseParams, setReleaseParams] = useState<ReleaseParameters>({
+
     latitude: 37.4215,
     longitude: 141.0323,
     altitude: 50,
@@ -93,8 +100,15 @@ export default function PlumePage() {
 
   const [plumeData, setPlumeData] = useState<PlumePoint[]>([]);
   const [activeTab, setActiveTab] = useState('simulation');
+  const [showEvacuationOverlay, setShowEvacuationOverlay] = useState(true);
+
+  // Convert simulation time from ms to hours for display
+  const simulationTimeHours = useMemo(() => {
+    return simState.currentTime / (3600 * 1000);
+  }, [simState.currentTime]);
 
   // Fetch NOAA GFS weather data
+
   const fetchWeatherData = useCallback(async () => {
     try {
       // In production, this would call the NOAA GFS API endpoint
@@ -192,35 +206,16 @@ export default function PlumePage() {
     return data;
   }, [weatherData, releaseParams]);
 
-  // Run simulation
-  useEffect(() => {
-    if (!isSimulating) return;
-    
-    const interval = setInterval(() => {
-      setSimulationTime(prev => {
-        const newTime = prev + 0.5;
-        if (newTime >= maxSimulationTime) {
-          setIsSimulating(false);
-          return maxSimulationTime;
-        }
-        return newTime;
-      });
-    }, 500);
-    
-    return () => clearInterval(interval);
-  }, [isSimulating, maxSimulationTime]);
-
   // Update plume data when simulation time changes
   useEffect(() => {
-    if (simulationTime > 0) {
-      const newPlumeData = calculatePlumeDispersion(simulationTime);
+    if (simulationTimeHours > 0) {
+      const newPlumeData = calculatePlumeDispersion(simulationTimeHours);
       setPlumeData(newPlumeData);
     }
-  }, [simulationTime, calculatePlumeDispersion]);
+  }, [simulationTimeHours, calculatePlumeDispersion]);
 
   const handleStartSimulation = () => {
-    setIsSimulating(true);
-    setSimulationTime(0);
+    simControls.play();
     addToast({
       title: 'Simulation Started',
       description: `Running ${maxSimulationTime}h dispersion model`,
@@ -229,22 +224,36 @@ export default function PlumePage() {
   };
 
   const handlePauseSimulation = () => {
-    setIsSimulating(false);
+    simControls.pause();
   };
 
   const handleResetSimulation = () => {
-    setIsSimulating(false);
-    setSimulationTime(0);
+    simControls.reset();
     setPlumeData([]);
   };
+
+  const handleSeekToTime = (timeHours: number) => {
+    simControls.seekToTime(timeHours * 3600 * 1000);
+  };
+
+  const handleSpeedChange = (speed: number) => {
+    simControls.setSpeed(speed);
+    addToast({
+      title: 'Simulation Speed Changed',
+      description: `Speed set to ${speed}x`,
+      variant: 'default',
+    });
+  };
+
 
   const handleExportData = () => {
     const data = {
       releaseParameters: releaseParams,
       weatherData,
       plumeData,
-      simulationTime,
+      simulationTime: simulationTimeHours,
       exportTimestamp: new Date().toISOString(),
+
     };
     
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -477,13 +486,23 @@ export default function PlumePage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex items-center gap-4">
+              {/* Enhanced Simulation Controls */}
+              <div className="flex items-center gap-2">
                 <Button
-                  onClick={isSimulating ? handlePauseSimulation : handleStartSimulation}
-                  variant={isSimulating ? 'secondary' : 'default'}
+                  onClick={handleResetSimulation}
+                  variant="outline"
+                  size="sm"
+                  title="Reset to beginning"
+                >
+                  <SkipBack className="h-4 w-4" />
+                </Button>
+                
+                <Button
+                  onClick={simState.isPlaying ? handlePauseSimulation : handleStartSimulation}
+                  variant={simState.isPlaying ? 'secondary' : 'default'}
                   className="flex-1"
                 >
-                  {isSimulating ? (
+                  {simState.isPlaying ? (
                     <>
                       <Pause className="h-4 w-4 mr-2" />
                       Pause
@@ -491,35 +510,78 @@ export default function PlumePage() {
                   ) : (
                     <>
                       <Play className="h-4 w-4 mr-2" />
-                      Start Simulation
+                      {simState.currentTime > 0 ? 'Resume' : 'Start Simulation'}
                     </>
                   )}
                 </Button>
-                <Button onClick={handleResetSimulation} variant="outline">
-                  <RotateCcw className="h-4 w-4 mr-2" />
-                  Reset
+                
+                <Button
+                  onClick={() => handleSeekToTime(maxSimulationTime)}
+                  variant="outline"
+                  size="sm"
+                  title="Skip to end"
+                  disabled={simState.isPlaying}
+                >
+                  <SkipForward className="h-4 w-4" />
+                </Button>
+                
+                <Button
+                  onClick={simControls.toggleLoop}
+                  variant={simState.isLooping ? 'default' : 'outline'}
+                  size="sm"
+                  title="Toggle loop"
+                >
+                  <Repeat className="h-4 w-4" />
                 </Button>
               </div>
 
+              {/* Speed Control */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs">Simulation Speed</Label>
+                  <span className="text-xs font-medium">{simState.speed}x</span>
+                </div>
+                <div className="flex gap-1">
+                  {[0.5, 1, 2, 5, 10].map((speed) => (
+                    <Button
+                      key={speed}
+                      variant={simState.speed === speed ? 'default' : 'outline'}
+                      size="sm"
+                      className="flex-1 text-xs"
+                      onClick={() => handleSpeedChange(speed)}
+                    >
+                      {speed}x
+                    </Button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Time Slider */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label>Simulation Time</Label>
-                  <span className="text-sm font-semibold">{simulationTime.toFixed(1)} hours</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-semibold">{simulationTimeHours.toFixed(1)} hours</span>
+                    <span className="text-xs text-muted-foreground">
+                      ({((simState.progress)).toFixed(0)}%)
+                    </span>
+                  </div>
                 </div>
                 <Slider
-                  value={[simulationTime]}
-                  onValueChange={([value]) => setSimulationTime(value)}
+                  value={[simulationTimeHours]}
+                  onValueChange={([value]) => handleSeekToTime(value)}
                   min={0}
                   max={maxSimulationTime}
-                  step={0.5}
-                  disabled={isSimulating}
+                  step={0.1}
+                  disabled={simState.isPlaying}
                 />
                 <div className="flex justify-between text-xs text-text-secondary">
                   <span>0h</span>
-                  <span>{maxSimulationTime / 2}h</span>
+                  <span>{(maxSimulationTime / 2).toFixed(0)}h</span>
                   <span>{maxSimulationTime}h</span>
                 </div>
               </div>
+
 
               {plumeData.length > 0 && (
                 <div className="grid grid-cols-3 gap-4 pt-4 border-t border-border-subtle">
@@ -549,11 +611,21 @@ export default function PlumePage() {
 
         <TabsContent value="visualization">
           <Card className="h-[600px]">
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="flex items-center gap-2">
                 <MapPin className="h-5 w-5" />
                 Real-time Plume Visualization
               </CardTitle>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant={showEvacuationOverlay ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setShowEvacuationOverlay(!showEvacuationOverlay)}
+                >
+                  <AlertTriangle className="h-4 w-4 mr-2" />
+                  {showEvacuationOverlay ? 'Hide' : 'Show'} Evacuation Zones
+                </Button>
+              </div>
             </CardHeader>
             <CardContent className="h-[500px]">
               <PlumeVisualization 
@@ -565,21 +637,34 @@ export default function PlumePage() {
                   windDirection: weatherData.windDirection,
                   windSpeed: weatherData.windSpeed,
                   stabilityClass: releaseParams.stabilityClass,
-                  timeStep: simulationTime,
+                  timeStep: simulationTimeHours,
                   maxTime: maxSimulationTime,
                 }}
-                isAnimating={isSimulating}
-                currentTime={simulationTime}
+                isAnimating={simState.isPlaying}
+                currentTime={simulationTimeHours}
+                onTimeChange={handleSeekToTime}
               />
             </CardContent>
           </Card>
         </TabsContent>
 
+
         <TabsContent value="evacuation">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <EvacuationZones />
+            <EvacuationZones 
+              particles={plumeData.map(p => ({
+                x: p.lng,
+                y: p.lat,
+                z: 0,
+                concentration: p.concentration,
+              }))}
+              releaseLat={releaseParams.latitude}
+              releaseLng={releaseParams.longitude}
+              isotope={releaseParams.isotope}
+            />
             
             <Card>
+
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <AlertTriangle className="h-5 w-5 text-amber-500" />

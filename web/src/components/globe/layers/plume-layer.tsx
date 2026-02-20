@@ -4,7 +4,15 @@ import { useMemo } from 'react';
 import { ScatterplotLayer, HeatmapLayer } from 'deck.gl';
 
 import { useGlobeStore } from '@/stores/globe-store';
-import { usePlumeSimulation, PlumeParticle } from '@/hooks/use-plume-simulation';
+import { usePlumeSimulation } from '@/hooks/use-plume-simulation';
+
+interface PlumeParticle {
+  x: number;
+  y: number;
+  z: number;
+  concentration: number;
+  timestamp: number;
+}
 
 interface PlumeLayerProps {
   visible?: boolean;
@@ -22,17 +30,19 @@ export function PlumeLayer({
   const { timeRange } = useGlobeStore();
   
   // Use real-time simulation data from WebSocket
-  const { state } = usePlumeSimulation();
+  const [simState] = usePlumeSimulation();
+
 
   // Filter particles by time range if set
   const filteredData = useMemo(() => {
-    if (!timeRange || !state.particles.length) return state.particles;
+    if (!timeRange || !simState.particles.length) return simState.particles;
     
-    return state.particles.filter((particle: PlumeParticle) => {
+    return simState.particles.filter((particle: PlumeParticle) => {
       const timestamp = particle.timestamp;
       return timestamp >= timeRange[0] && timestamp <= timeRange[1];
     });
-  }, [state.particles, timeRange]);
+  }, [simState.particles, timeRange]);
+
 
   // Prepare heatmap data from particle concentrations
   // Note: x, y are in meters from release point, need to convert to lat/lng for visualization
@@ -67,9 +77,9 @@ export function PlumeLayer({
     layers.push(new HeatmapLayer({
       id: 'plume-heatmap-layer',
       data: heatmapData,
-      visible: visible && state.isRunning,
+      visible: visible && simState.isPlaying,
       getPosition: (d: { position: [number, number] }) => d.position,
-      getWeight: (d: { weight: number }) => d.weight,
+      getWeight: (d: { position: [number, number]; weight: number }) => d.weight,
       intensity: 2,
       radiusPixels: 60,
       colorRange: [
@@ -87,7 +97,8 @@ export function PlumeLayer({
     layers.push(new ScatterplotLayer({
       id: 'plume-particles-layer',
       data: filteredData,
-      visible: visible && state.isRunning,
+      visible: visible && simState.isPlaying,
+
       // x, y, z are in meters from release point
       getPosition: (d: PlumeParticle) => [
         d.x / 111000,  // Convert to approximate degrees
