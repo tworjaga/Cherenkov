@@ -12,18 +12,17 @@
   - [x] Update weather.rs with real-time data fetching
   - [x] Integrate with dispersion.rs
 
-- [ ] Implement evacuation zone calculations based on dose thresholds
-  - [ ] Update evacuation-zones.tsx component
-  - [ ] Add contour generation for dose thresholds
-- [ ] Add plume simulation controls (release parameters, weather conditions)
-  - [ ] Enhance plume-simulator.tsx
-  - [ ] Add time-slider integration
+- [x] Add plume simulation controls (release parameters, weather conditions)
+  - [x] Enhance plume-simulator.tsx with usePlumeSimulation hook
+  - [x] Add time-slider integration with play/pause/seek controls
 
-### In Progress
+
+### Completed
 - [x] Implement evacuation zone calculations based on dose thresholds
   - [x] Update evacuation-zones.tsx component
   - [x] Add contour generation for dose thresholds
-  - [x] Fix evacuation-zones.test.tsx - use getAllByText for population/radius assertions
+  - [x] Fix evacuation-zones.test.tsx - use getAllByText for population/radius assertions (8 tests passing)
+
 
 
 ### Completed
@@ -31,9 +30,17 @@
   - [x] weather.rs: WeatherDataProvider trait with GfsWeatherProvider, OpenMeteoWeatherProvider, CompositeWeatherProvider
   - [x] dispersion.rs: LagrangianDispersion with weather_provider integration, new_with_weather() constructor
 
+- [x] Add plume simulation controls with temporal simulation
+  - [x] use-plume-simulation.ts: Created hook with play/pause/seek/speed/loop controls
+  - [x] plume-simulator.tsx: Integrated time-slider with simulation state management
+
+- [x] Implement evacuation zone calculations based on dose thresholds
+  - [x] evacuation-zones.tsx: Component with Critical/High/Medium zones
+  - [x] evacuation-zones.test.tsx: All 8 tests passing
+
 - [x] Analysis of current codebase state
 - [x] Plan approval
-- [x] Fix evacuation-zones.test.tsx - use getAllByText for population/radius assertions (8 tests passing)
+
 
 
 ## Phase 2: ML-based Anomaly Classification
@@ -46,7 +53,7 @@
 - [ ] Implement email notification service using SMTP
 - [ ] Add SMS gateway integration (Twilio or similar)
 - [ ] Create webhook delivery system
-- [ ] Add Telegram bot notifications (@al7exy integration)
+- [ ] Add Telegram bot notifications
 
 ## Phase 4: Mobile Application Foundation
 - [ ] Set up React Native project structure
