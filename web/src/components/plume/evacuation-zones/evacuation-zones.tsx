@@ -1,9 +1,11 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { AlertTriangle, Circle, MapPin, Activity } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { useToast } from '@/components/ui/toast';
+import { AlertTriangle, Circle, MapPin, Activity, Bell } from 'lucide-react';
 
 // Dose thresholds in μSv/h (microsieverts per hour)
 // Based on radiation protection standards
@@ -38,6 +40,8 @@ interface EvacuationZonesProps {
   releaseLat?: number;
   releaseLng?: number;
   isotope?: string;
+  onZoneClick?: (zone: EvacuationZone) => void;
+  showAlertButton?: boolean;
 }
 
 // Calculate dose rate from particle concentration
@@ -102,11 +106,11 @@ function calculateZonesFromParticles(
   
   // Calculate max radius for each threshold
   const thresholds = [
-    { level: 'critical', threshold: DOSE_THRESHOLDS.CRITICAL, name: 'Immediate Evacuation Zone' },
-    { level: 'high', threshold: DOSE_THRESHOLDS.HIGH, name: 'Shelter in Place Zone' },
-    { level: 'medium', threshold: DOSE_THRESHOLDS.MEDIUM, name: 'Monitoring Zone' },
-    { level: 'low', threshold: DOSE_THRESHOLDS.LOW, name: 'Precautionary Zone' },
-  ] as const;
+    { level: 'critical' as const, threshold: DOSE_THRESHOLDS.CRITICAL, name: 'Immediate Evacuation Zone' },
+    { level: 'high' as const, threshold: DOSE_THRESHOLDS.HIGH, name: 'Shelter in Place Zone' },
+    { level: 'medium' as const, threshold: DOSE_THRESHOLDS.MEDIUM, name: 'Monitoring Zone' },
+    { level: 'low' as const, threshold: DOSE_THRESHOLDS.LOW, name: 'Precautionary Zone' },
+  ];
   
   for (const { level, threshold, name } of thresholds) {
     const exceedingParticles = particles.filter(p => {
@@ -212,7 +216,11 @@ export function EvacuationZones({
   releaseLat = 0,
   releaseLng = 0,
   isotope = 'Cs-137',
+  onZoneClick,
+  showAlertButton = true,
 }: EvacuationZonesProps) {
+  const { toast } = useToast();
+  
   const zones = useMemo(() => {
     if (propZones) return propZones;
     if (particles.length > 0) {
@@ -220,6 +228,56 @@ export function EvacuationZones({
     }
     return getDefaultZones();
   }, [propZones, particles, releaseLat, releaseLng, isotope]);
+
+  // Trigger alert for critical zones
+  useEffect(() => {
+    const criticalZones = zones.filter(z => z.severity === 'critical');
+    if (criticalZones.length > 0) {
+      criticalZones.forEach(zone => {
+        toast({
+          title: `CRITICAL: ${zone.name}`,
+          description: `Dose rate: ${zone.doseRate} μSv/h | Population: ${zone.population.toLocaleString()}`,
+          variant: 'destructive',
+          duration: 10000,
+        });
+      });
+    }
+  }, [zones, toast]);
+
+  const handleZoneClick = (zone: EvacuationZone) => {
+    onZoneClick?.(zone);
+    
+    // Trigger alert notification
+    toast({
+      title: `${severityLabels[zone.severity]} Alert: ${zone.name}`,
+      description: zone.instructions,
+      variant: zone.severity === 'critical' ? 'destructive' : 'default',
+      duration: 5000,
+    });
+  };
+
+  const handleSendAlert = () => {
+    const criticalZones = zones.filter(z => z.severity === 'critical' || z.severity === 'high');
+    if (criticalZones.length === 0) {
+      toast({
+        title: 'No Critical Zones',
+        description: 'No evacuation zones require immediate alert.',
+        variant: 'default',
+      });
+      return;
+    }
+
+    // Send alert for all critical/high zones
+    criticalZones.forEach(zone => {
+      onZoneClick?.(zone);
+      toast({
+        title: `ALERT SENT: ${zone.name}`,
+        description: `Emergency notification dispatched for ${zone.population.toLocaleString()} people`,
+        variant: 'destructive',
+        duration: 8000,
+      });
+    });
+  };
 
   return (
     <div className="space-y-4">
@@ -235,16 +293,36 @@ export function EvacuationZones({
         </div>
       )}
       
+      {showAlertButton && (
+        <div className="flex justify-end">
+          <Button 
+            onClick={handleSendAlert}
+            variant="destructive"
+            size="sm"
+            className="gap-2"
+          >
+            <Bell className="h-4 w-4" />
+            Send Emergency Alerts
+          </Button>
+        </div>
+      )}
+
       <div className="grid gap-4">
         {zones.map((zone) => (
-          <Card key={zone.id}>
+          <Card 
+            key={zone.id} 
+            className="cursor-pointer transition-colors hover:bg-accent/50"
+            onClick={() => handleZoneClick(zone)}
+          >
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Circle className={`h-4 w-4 ${severityColors[zone.severity]}`} />
                   <span className="font-semibold">{zone.name}</span>
                 </div>
-                <Badge variant={zone.severity === 'critical' ? 'danger' : 'outline'}>
+                <Badge variant={(zone.severity === 'critical' ? 'danger' : 'outline') as 'danger' | 'outline'}>
+
+
                   {severityLabels[zone.severity]}
                 </Badge>
               </div>
@@ -271,7 +349,6 @@ export function EvacuationZones({
           </Card>
         ))}
       </div>
-
     </div>
   );
 }
