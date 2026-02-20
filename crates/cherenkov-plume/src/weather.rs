@@ -6,6 +6,349 @@ use chrono::{DateTime, Utc, NaiveDate, Duration, Timelike};
 use tracing::{info, debug, warn, error};
 use reqwest;
 
+/// Trait for weather data providers
+#[async_trait::async_trait]
+pub trait WeatherDataProvider: Send + Sync {
+    /// Fetch weather data for a specific location and time
+    async fn fetch_weather(
+        &self,
+        latitude: f64,
+        longitude: f64,
+        altitude_m: f64,
+    ) -> anyhow::Result<LocalWeather>;
+    
+    /// Fetch weather grid for dispersion modeling
+    async fn fetch_weather_grid(
+        &self,
+        lat_min: f64,
+        lat_max: f64,
+        lon_min: f64,
+        lon_max: f64,
+        resolution_degrees: f64,
+    ) -> anyhow::Result<WeatherGrid>;
+}
+
+/// Weather provider using NOAA GFS data via ingest service
+pub struct GfsWeatherProvider {
+    ingest_service: WeatherIngestService,
+}
+
+impl GfsWeatherProvider {
+    pub fn new() -> Self {
+        Self {
+            ingest_service: WeatherIngestService::new(),
+        }
+    }
+}
+
+#[async_trait::async_trait]
+impl WeatherDataProvider for GfsWeatherProvider {
+    async fn fetch_weather(
+        &self,
+        latitude: f64,
+        longitude: f64,
+        altitude_m: f64,
+    ) -> anyhow::Result<LocalWeather> {
+        let model = self.ingest_service.fetch_latest_gfs().await?;
+        self.ingest_service.interpolate_to_location(&model, latitude, longitude, altitude_m).await
+    }
+    
+    async fn fetch_weather_grid(
+        &self,
+        lat_min: f64,
+        lat_max: f64,
+        lon_min: f64,
+        lon_max: f64,
+        resolution_degrees: f64,
+    ) -> anyhow::Result<WeatherGrid> {
+        let model = self.ingest_service.fetch_latest_gfs().await?;
+        
+        // Extract subgrid for the requested region
+        let grid = &model.grid;
+        let nx = ((lon_max - lon_min) / resolution_degrees) as usize + 1;
+        let ny = ((lat_max - lat_min) / resolution_degrees) as usize + 1;
+        let nz = grid.nz;
+        
+        // Create subgrid with interpolated values
+        let mut u_wind = vec![vec![vec![0.0; nx]; ny]; nz];
+        let mut v_wind = vec![vec![vec![0.0; nx]; ny]; nz];
+        let mut w_wind = vec![vec![vec![0.0; nx]; ny]; nz];
+        let mut temperature = vec![vec![vec![273.15; nx]; ny]; nz];
+        let mut humidity = vec![vec![vec![50.0; nx]; ny]; nz];
+        let mut pressure = vec![vec![vec![1013.25; nx]; ny]; nz];
+        
+        // Interpolate from global grid to subgrid
+        for k in 0..nz {
+            for j in 0..ny {
+                for i in 0..nx {
+                    let lon = lon_min + i as f64 * resolution_degrees;
+                    let lat = lat_min + j as f64 * resolution_degrees;
+                    
+                    // Find nearest indices in source grid
+                    let x_frac = (lon - grid.lon_min) / (grid.lon_max - grid.lon_min);
+                    let y_frac = (lat - grid.lat_min) / (grid.lat_max - grid.lat_min);
+                    
+                    let src_i = (x_frac * (grid.nx - 1) as f64).clamp(0.0, (grid.nx - 1) as f64) as usize;
+                    let src_j = (y_frac * (grid.ny - 1) as f64).clamp(0.0, (grid.ny - 1) as f64) as usize;
+                    
+                    u_wind[k][j][i] = grid.u_wind[k][src_j][src_i];
+                    v_wind[k][j][i] = grid.v_wind[k][src_j][src_i];
+                    w_wind[k][j][i] = grid.w_wind[k][src_j][src_i];
+                    temperature[k][j][i] = grid.temperature[k][src_j][src_i];
+                    humidity[k][j][i] = grid.humidity[k][src_j][src_i];
+                    pressure[k][j][i] = grid.pressure[k][src_j][src_i];
+                }
+            }
+        }
+        
+        let precipitation_rate = vec![vec![0.0; nx]; ny];
+        let cloud_cover = vec![vec![0.0; nx]; ny];
+        let boundary_layer_height = vec![vec![500.0; nx]; ny];
+        
+        Ok(WeatherGrid {
+            lat_min,
+            lat_max,
+            lon_min,
+            lon_max,
+            resolution_degrees,
+            nx,
+            ny,
+            nz,
+            levels_hpa: grid.levels_hpa.clone(),
+            u_wind,
+            v_wind,
+            w_wind,
+            temperature,
+            humidity,
+            pressure,
+            precipitation_rate,
+            cloud_cover,
+            boundary_layer_height,
+        })
+    }
+}
+
+/// Weather provider using Open-Meteo API
+pub struct OpenMeteoWeatherProvider {
+    client: reqwest::Client,
+    base_url: String,
+}
+
+impl OpenMeteoWeatherProvider {
+    pub fn new() -> Self {
+        Self {
+            client: reqwest::Client::builder()
+                .timeout(std::time::Duration::from_secs(30))
+                .build()
+                .expect("Failed to create HTTP client"),
+            base_url: "https://api.open-meteo.com/v1/forecast".to_string(),
+        }
+    }
+    
+    /// Parse Open-Meteo response into LocalWeather
+    fn parse_current_weather(&self, response: &serde_json::Value) -> anyhow::Result<LocalWeather> {
+        let current = response.get("current")
+            .ok_or_else(|| anyhow::anyhow!("Missing current weather data"))?;
+        
+        let temperature = current.get("temperature_2m")
+            .and_then(|v| v.as_f64())
+            .unwrap_or(15.0);
+        
+        let wind_speed = current.get("windspeed_10m")
+            .and_then(|v| v.as_f64())
+            .unwrap_or(5.0);
+        
+        let wind_direction = current.get("winddirection_10m")
+            .and_then(|v| v.as_f64())
+            .unwrap_or(0.0);
+        
+        let pressure = current.get("surface_pressure")
+            .and_then(|v| v.as_f64())
+            .unwrap_or(1013.25);
+        
+        // Convert wind speed and direction to u/v components
+        let wind_rad = wind_direction.to_radians();
+        let u = -wind_speed * wind_rad.sin();
+        let v = -wind_speed * wind_rad.cos();
+        
+        Ok(LocalWeather {
+            timestamp: Utc::now(),
+            latitude: response.get("latitude").and_then(|v| v.as_f64()).unwrap_or(0.0),
+            longitude: response.get("longitude").and_then(|v| v.as_f64()).unwrap_or(0.0),
+            altitude_m: 0.0,
+            u_wind: u,
+            v_wind: v,
+            w_wind: 0.0,
+            wind_speed,
+            wind_direction,
+            temperature,
+            humidity: current.get("relativehumidity_2m").and_then(|v| v.as_f64()).unwrap_or(50.0),
+            pressure: pressure * 100.0, // Convert hPa to Pa
+            precipitation_rate: current.get("precipitation").and_then(|v| v.as_f64()).unwrap_or(0.0),
+            cloud_cover: current.get("cloudcover").and_then(|v| v.as_f64()).unwrap_or(0.0),
+            boundary_layer_height: 500.0,
+        })
+    }
+}
+
+#[async_trait::async_trait]
+impl WeatherDataProvider for OpenMeteoWeatherProvider {
+    async fn fetch_weather(
+        &self,
+        latitude: f64,
+        longitude: f64,
+        _altitude_m: f64,
+    ) -> anyhow::Result<LocalWeather> {
+        let url = format!(
+            "{}?latitude={}&longitude={}&current=temperature_2m,relativehumidity_2m,surface_pressure,windspeed_10m,winddirection_10m,precipitation,cloudcover&timezone=UTC",
+            self.base_url, latitude, longitude
+        );
+        
+        let response = self.client
+            .get(&url)
+            .header("User-Agent", "Cherenkov/1.0 (Radiation Monitoring)")
+            .send()
+            .await
+            .map_err(|e| anyhow::anyhow!("Failed to fetch Open-Meteo data: {}", e))?;
+        
+        if !response.status().is_success() {
+            return Err(anyhow::anyhow!("Open-Meteo returned status: {}", response.status()));
+        }
+        
+        let data: serde_json::Value = response.json().await
+            .map_err(|e| anyhow::anyhow!("Failed to parse Open-Meteo response: {}", e))?;
+        
+        let mut weather = self.parse_current_weather(&data)?;
+        weather.latitude = latitude;
+        weather.longitude = longitude;
+        
+        Ok(weather)
+    }
+    
+    async fn fetch_weather_grid(
+        &self,
+        lat_min: f64,
+        lat_max: f64,
+        lon_min: f64,
+        lon_max: f64,
+        resolution_degrees: f64,
+    ) -> anyhow::Result<WeatherGrid> {
+        // For Open-Meteo, we fetch a single point and replicate it
+        // In production, this would fetch multiple points
+        let center_lat = (lat_min + lat_max) / 2.0;
+        let center_lon = (lon_min + lon_max) / 2.0;
+        
+        let weather = self.fetch_weather(center_lat, center_lon, 0.0).await?;
+        
+        let nx = ((lon_max - lon_min) / resolution_degrees) as usize + 1;
+        let ny = ((lat_max - lat_min) / resolution_degrees) as usize + 1;
+        let nz = 1;
+        
+        let u_wind = vec![vec![vec![weather.u_wind; nx]; ny]; nz];
+        let v_wind = vec![vec![vec![weather.v_wind; nx]; ny]; nz];
+        let w_wind = vec![vec![vec![weather.w_wind; nx]; ny]; nz];
+        let temperature = vec![vec![vec![weather.temperature + 273.15; nx]; ny]; nz];
+        let humidity = vec![vec![vec![weather.humidity; nx]; ny]; nz];
+        let pressure = vec![vec![vec![weather.pressure; nx]; ny]; nz];
+        
+        let precipitation_rate = vec![vec![weather.precipitation_rate; nx]; ny];
+        let cloud_cover = vec![vec![weather.cloud_cover; nx]; ny];
+        let boundary_layer_height = vec![vec![weather.boundary_layer_height; nx]; ny];
+        
+        Ok(WeatherGrid {
+            lat_min,
+            lat_max,
+            lon_min,
+            lon_max,
+            resolution_degrees,
+            nx,
+            ny,
+            nz,
+            levels_hpa: vec![weather.pressure / 100.0],
+            u_wind,
+            v_wind,
+            w_wind,
+            temperature,
+            humidity,
+            pressure,
+            precipitation_rate,
+            cloud_cover,
+            boundary_layer_height,
+        })
+    }
+}
+
+/// Composite weather provider that tries multiple sources
+pub struct CompositeWeatherProvider {
+    providers: Vec<Box<dyn WeatherDataProvider>>,
+}
+
+impl CompositeWeatherProvider {
+    pub fn new() -> Self {
+        let mut providers: Vec<Box<dyn WeatherDataProvider>> = Vec::new();
+        
+        // Try GFS first (higher resolution)
+        providers.push(Box::new(GfsWeatherProvider::new()));
+        
+        // Fall back to Open-Meteo
+        providers.push(Box::new(OpenMeteoWeatherProvider::new()));
+        
+        Self { providers }
+    }
+    
+    /// Create with specific providers
+    pub fn with_providers(providers: Vec<Box<dyn WeatherDataProvider>>) -> Self {
+        Self { providers }
+    }
+}
+
+#[async_trait::async_trait]
+impl WeatherDataProvider for CompositeWeatherProvider {
+    async fn fetch_weather(
+        &self,
+        latitude: f64,
+        longitude: f64,
+        altitude_m: f64,
+    ) -> anyhow::Result<LocalWeather> {
+        for (i, provider) in self.providers.iter().enumerate() {
+            match provider.fetch_weather(latitude, longitude, altitude_m).await {
+                Ok(weather) => {
+                    info!("Fetched weather from provider {}", i);
+                    return Ok(weather);
+                }
+                Err(e) => {
+                    warn!("Provider {} failed: {}, trying next", i, e);
+                }
+            }
+        }
+        
+        Err(anyhow::anyhow!("All weather providers failed"))
+    }
+    
+    async fn fetch_weather_grid(
+        &self,
+        lat_min: f64,
+        lat_max: f64,
+        lon_min: f64,
+        lon_max: f64,
+        resolution_degrees: f64,
+    ) -> anyhow::Result<WeatherGrid> {
+        for (i, provider) in self.providers.iter().enumerate() {
+            match provider.fetch_weather_grid(lat_min, lat_max, lon_min, lon_max, resolution_degrees).await {
+                Ok(grid) => {
+                    info!("Fetched weather grid from provider {}", i);
+                    return Ok(grid);
+                }
+                Err(e) => {
+                    warn!("Provider {} failed for grid: {}, trying next", i, e);
+                }
+            }
+        }
+        
+        Err(anyhow::anyhow!("All weather providers failed for grid"))
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WeatherModel {
     pub source: WeatherSource,

@@ -1,8 +1,10 @@
 use crate::{ReleaseParameters, PlumeSimulation, ConcentrationGrid, ArrivalTime};
+use crate::weather::{WeatherDataProvider, WeatherGrid, LocalWeather, CompositeWeatherProvider};
 use nalgebra::Vector3;
 use tracing::{info, debug, warn};
 use std::time::Instant;
 use candle_core::{Device, Tensor, DType};
+use std::sync::Arc;
 
 
 pub struct LagrangianDispersion {
@@ -21,6 +23,8 @@ pub struct LagrangianDispersion {
     gpu_activities: Option<Tensor>,
     gpu_deposited: Option<Tensor>,
     gpu_half_lives: Option<Tensor>,
+    /// Weather provider for real-time data
+    weather_provider: Option<Arc<dyn WeatherDataProvider>>,
 }
 
 
@@ -107,7 +111,83 @@ impl LagrangianDispersion {
             gpu_activities: None,
             gpu_deposited: None,
             gpu_half_lives: None,
+            weather_provider: None,
         }
+    }
+    
+    /// Create a new LagrangianDispersion with weather data fetching
+    pub async fn new_with_weather(
+        release: &ReleaseParameters,
+        config: DispersionConfig,
+        weather_provider: Arc<dyn WeatherDataProvider>,
+    ) -> anyhow::Result<Self> {
+        info!(
+            "Initializing LagrangianDispersion with weather provider, {} particles, GPU: {}",
+            config.num_particles, config.use_gpu
+        );
+        
+        // Fetch weather grid for the simulation domain
+        let domain_size_deg = 2.0; // 2 degree domain around release
+        let resolution_deg = 0.1; // 0.1 degree resolution
+        
+        let weather_grid = weather_provider
+            .fetch_weather_grid(
+                release.latitude - domain_size_deg,
+                release.latitude + domain_size_deg,
+                release.longitude - domain_size_deg,
+                release.longitude + domain_size_deg,
+                resolution_deg,
+            )
+            .await?;
+        
+        let grid = AtmosphericGrid::from_weather_grid(&weather_grid)?;
+        
+        let device = if config.use_gpu {
+            Device::cuda_if_available(0).unwrap_or(Device::Cpu)
+        } else {
+            Device::Cpu
+        };
+        
+        info!("Using device: {:?}", device);
+        
+        Ok(Self {
+            grid,
+            particles: Vec::with_capacity(config.num_particles),
+            dt_seconds: config.dt_seconds,
+            use_gpu: config.use_gpu && device.is_cuda(),
+            device,
+            decay_constant: 0.0,
+            dry_deposition_velocity: 0.01,
+            wet_deposition_rate: 0.0,
+            gpu_positions: None,
+            gpu_activities: None,
+            gpu_deposited: None,
+            gpu_half_lives: None,
+            weather_provider: Some(weather_provider),
+        })
+    }
+    
+    /// Update weather data during simulation
+    pub async fn update_weather(&mut self, release: &ReleaseParameters) -> anyhow::Result<()> {
+        if let Some(ref provider) = self.weather_provider {
+            let domain_size_deg = 2.0;
+            let resolution_deg = 0.1;
+            
+            let weather_grid = provider
+                .fetch_weather_grid(
+                    release.latitude - domain_size_deg,
+                    release.latitude + domain_size_deg,
+                    release.longitude - domain_size_deg,
+                    release.longitude + domain_size_deg,
+                    resolution_deg,
+                )
+                .await?;
+            
+            self.grid = AtmosphericGrid::from_weather_grid(&weather_grid)?;
+            info!("Weather data updated during simulation");
+        }
+        
+        Ok(())
     }
     
     /// Initialize GPU buffers for particle data
@@ -581,6 +661,49 @@ impl AtmosphericGrid {
     fn get_rain_rate(&self, _elapsed_hours: f64) -> f64 {
         0.0
     }
+    
+    /// Create AtmosphericGrid from WeatherGrid
+    pub fn from_weather_grid(weather: &WeatherGrid) -> anyhow::Result<Self> {
+        info!(
+            "Creating AtmosphericGrid from WeatherGrid: {}x{}x{}",
+            weather.nx, weather.ny, weather.nz
+        );
+        
+        // Convert weather grid to atmospheric grid
+        // WeatherGrid uses [level][lat][lon] indexing, we need to transpose
+        let mut u = vec![vec![vec![0.0; weather.nx]; weather.ny]; weather.nz];
+        let mut v = vec![vec![vec![0.0; weather.nx]; weather.ny]; weather.nz];
+        let mut w = vec![vec![vec![0.0; weather.nx]; weather.ny]; weather.nz];
+        
+        for k in 0..weather.nz {
+            for j in 0..weather.ny {
+                for i in 0..weather.nx {
+                    u[k][j][i] = weather.u_wind[k][j][i];
+                    v[k][j][i] = weather.v_wind[k][j][i];
+                    w[k][j][i] = weather.w_wind[k][j][i];
+                }
+            }
+        }
+        
+        let dx = weather.resolution_degrees * 111000.0; // Convert degrees to meters (approx)
+        
+        Ok(Self {
+            u,
+            v,
+            w,
+            lat_min: weather.lat_min,
+            lat_max: weather.lat_max,
+            lon_min: weather.lon_min,
+            lon_max: weather.lon_max,
+            levels: weather.levels_hpa.clone(),
+            nx: weather.nx,
+            ny: weather.ny,
+            nz: weather.nz,
+            dx,
+            dy: dx,
+            dz: 1000.0, // 1km vertical spacing default
+        })
+    }
 }
 
 fn get_half_life_hours(isotope: &str) -> f64 {
@@ -656,6 +779,26 @@ impl GaussianPlumeModel {
     pub fn new(weather: WeatherConditions, release: ReleaseParameters) -> Self {
         Self { weather, release }
     }
+    
+    /// Create GaussianPlumeModel with live weather data
+    pub async fn new_with_live_weather(
+        release: ReleaseParameters,
+        weather_provider: Arc<dyn WeatherDataProvider>,
+    ) -> anyhow::Result<Self> {
+        let local_weather = weather_provider
+            .fetch_weather(release.latitude, release.longitude, release.altitude_m)
+            .await?;
+        
+        let weather = WeatherConditions::from_local_weather(&local_weather);
+        
+        info!(
+            "Created GaussianPlumeModel with live weather: {:.1} m/s wind, {:.1}° direction",
+            weather.wind_speed_ms, weather.wind_direction_deg
+        );
+        
+        Ok(Self { weather, release })
+    }
+}
 
     /// Calculate concentration at a point (x, y, z) downwind from source
     /// x: downwind distance (m)
