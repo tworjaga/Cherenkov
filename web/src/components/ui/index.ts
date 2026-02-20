@@ -26,3 +26,4 @@ export * from './progress';
 export * from './alert';
 export * from './separator';
 export * from './spinner';
+export * from './skip-link';
