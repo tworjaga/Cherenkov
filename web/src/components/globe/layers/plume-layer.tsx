@@ -4,55 +4,59 @@ import { useMemo } from 'react';
 import { ScatterplotLayer } from 'deck.gl';
 
 import { useGlobeStore } from '@/stores/globe-store';
-
-interface PlumeData {
-  id: string;
-  coordinates: [number, number];
-  radius: number;
-  concentration: number;
-  timestamp: Date;
-}
+import { usePlumeSimulation, PlumeParticle } from '@/hooks/use-plume-simulation';
 
 interface PlumeLayerProps {
-  data?: PlumeData[];
   visible?: boolean;
-  onClick?: (info: { object: PlumeData | null; x: number; y: number }) => void;
+  onClick?: (info: { object: PlumeParticle | null; x: number; y: number }) => void;
 }
 
-
-
-export function PlumeLayer({ data = [], visible = true, onClick }: PlumeLayerProps): ScatterplotLayer<PlumeData> {
-
+export function PlumeLayer({ 
+  visible = true, 
+  onClick 
+}: PlumeLayerProps): ScatterplotLayer<PlumeParticle> {
   const { timeRange } = useGlobeStore();
+  
+  // Use real-time simulation data from WebSocket
+  const { state } = usePlumeSimulation();
 
+  // Filter particles by time range if set
   const filteredData = useMemo(() => {
-    if (!timeRange) return data;
-    return data.filter((plume) => {
-      const timestamp = new Date(plume.timestamp).getTime();
+    if (!timeRange || !state.particles.length) return state.particles;
+    
+    return state.particles.filter((particle: PlumeParticle) => {
+      const timestamp = particle.timestamp;
       return timestamp >= timeRange[0] && timestamp <= timeRange[1];
     });
-  }, [data, timeRange]);
+  }, [state.particles, timeRange]);
+
+  // Calculate color based on dose rate (higher = more red)
+  const getFillColor = (d: PlumeParticle): [number, number, number, number] => {
+    // Color by dose rate (yellow to red scale)
+    const intensity = Math.min(d.doseRate / 100, 1);
+    return [
+      255, 
+      Math.round(255 - intensity * 155), 
+      Math.round(100 - intensity * 100), 
+      Math.round(150 + intensity * 105)
+    ];
+  };
 
   return new ScatterplotLayer({
     id: 'plume-layer',
     data: filteredData,
-    visible,
-    getPosition: (d: PlumeData) => d.coordinates,
-    getRadius: (d: PlumeData) => d.radius,
-    getFillColor: (d: PlumeData) => {
-      const intensity = Math.min(d.concentration / 100, 1);
-      return [255, 100 + intensity * 100, 50, 150 + intensity * 105];
-    },
+    visible: visible && state.isRunning,
+    getPosition: (d: PlumeParticle) => [d.lng, d.lat, d.altitude],
+    getRadius: (d: PlumeParticle) => Math.max(50, d.concentration * 10),
+    getFillColor,
     getLineColor: () => [255, 200, 50, 200],
-
-
     lineWidthMinPixels: 1,
     stroked: true,
     filled: true,
     pickable: true,
-    onClick,
-    radiusMinPixels: 5,
-    radiusMaxPixels: 100,
+    onClick: onClick as (info: { object: PlumeParticle | null; x: number; y: number }) => void,
+    radiusMinPixels: 3,
+    radiusMaxPixels: 50,
+    billboard: false, // 3D particles
   });
-
 }
