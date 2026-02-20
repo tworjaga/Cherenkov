@@ -121,7 +121,7 @@ impl OnnxExporter {
             fs::create_dir_all(parent)?;
         }
         
-        // Build ONNX model
+        // Build ONNX model using candle_onnx types
         let model_proto = self.build_onnx_model(varmap, input_shape, output_shape).await?;
         
         // Serialize to file
@@ -149,14 +149,14 @@ impl OnnxExporter {
         Ok(report)
     }
     
-    /// Build ONNX model protobuf
+    /// Build ONNX model protobuf using candle_onnx types
     async fn build_onnx_model(
         &self,
         varmap: &VarMap,
         input_shape: &[usize],
         output_shape: &[usize],
-    ) -> ExportResult<onnx::ModelProto> {
-        use onnx::*;
+    ) -> ExportResult<candle_onnx::onnx::ModelProto> {
+        use candle_onnx::onnx::*;
         
         let mut model = ModelProto::default();
         model.ir_version = 8;
@@ -175,7 +175,7 @@ impl OnnxExporter {
         // Add input
         let input_tensor = ValueInfoProto {
             name: self.config.input_names[0].clone(),
-            type_: Some(TypeProto {
+            r#type: Some(TypeProto {
                 value: Some(type_proto::Value::TensorType(TypeProtoTensor {
                     elem_type: TensorProtoDataType::Float as i32,
                     shape: Some(TensorShapeProto {
@@ -196,7 +196,7 @@ impl OnnxExporter {
         // Add output
         let output_tensor = ValueInfoProto {
             name: self.config.output_names[0].clone(),
-            type_: Some(TypeProto {
+            r#type: Some(TypeProto {
                 value: Some(type_proto::Value::TensorType(TypeProtoTensor {
                     elem_type: TensorProtoDataType::Float as i32,
                     shape: Some(TensorShapeProto {
@@ -244,7 +244,7 @@ impl OnnxExporter {
     async fn build_neural_network_nodes(
         &self,
         varmap: &VarMap,
-        graph: &mut onnx::GraphProto,
+        graph: &mut candle_onnx::onnx::GraphProto,
     ) -> ExportResult<()> {
         // This is a simplified implementation
         // In production, you would traverse the actual computation graph
@@ -261,7 +261,7 @@ impl OnnxExporter {
         
         // Add a simple MatMul + Add node as placeholder
         // Real implementation would reconstruct the full graph
-        let node = onnx::NodeProto {
+        let node = candle_onnx::onnx::NodeProto {
             op_type: "MatMul".to_string(),
             input: vec![self.config.input_names[0].clone(), "weight".to_string()],
             output: vec!["matmul_out".to_string()],
@@ -269,7 +269,7 @@ impl OnnxExporter {
         };
         graph.node.push(node);
         
-        let bias_node = onnx::NodeProto {
+        let bias_node = candle_onnx::onnx::NodeProto {
             op_type: "Add".to_string(),
             input: vec!["matmul_out".to_string(), "bias".to_string()],
             output: vec![self.config.output_names[0].clone()],
@@ -285,8 +285,8 @@ impl OnnxExporter {
         &self,
         tensor: &candle_core::Tensor,
         name: &str,
-    ) -> ExportResult<onnx::TensorProto> {
-        use onnx::*;
+    ) -> ExportResult<candle_onnx::onnx::TensorProto> {
+        use candle_onnx::onnx::*;
         
         let shape: Vec<i64> = tensor.dims().iter().map(|&d| d as i64).collect();
         let data: Vec<f32> = tensor.to_vec1()
@@ -327,7 +327,7 @@ impl OnnxExporter {
         
         // Load and check the model
         let model_bytes = fs::read(model_path)?;
-        let model: onnx::ModelProto = Message::decode(&model_bytes[..])
+        let model: candle_onnx::onnx::ModelProto = Message::decode(&model_bytes[..])
             .map_err(|e| ExportError::Serialization(format!("Failed to decode model: {}", e)))?;
         
         // Basic validation
@@ -358,7 +358,7 @@ impl OnnxExporter {
         
         // Load model
         let model_bytes = fs::read(model_path)?;
-        let mut model: onnx::ModelProto = Message::decode(&model_bytes[..])
+        let mut model: candle_onnx::onnx::ModelProto = Message::decode(&model_bytes[..])
             .map_err(|e| ExportError::Serialization(format!("Failed to decode: {}", e)))?;
         
         // Apply optimizations
@@ -387,7 +387,7 @@ impl OnnxExporter {
     }
     
     /// Fuse operations for optimization
-    fn fuse_operations(&self, graph: &mut onnx::GraphProto) -> ExportResult<()> {
+    fn fuse_operations(&self, graph: &mut candle_onnx::onnx::GraphProto) -> ExportResult<()> {
         // Simplified fusion: MatMul + Add -> Gemm
         let mut i = 0;
         while i < graph.node.len().saturating_sub(1) {
@@ -432,12 +432,6 @@ pub async fn export_model_to_onnx(
 ) -> ExportResult<ExportReport> {
     let exporter = OnnxExporter::new();
     exporter.export_model(varmap, input_shape, output_shape, output_path).await
-}
-
-/// ONNX protobuf definitions (simplified)
-pub mod onnx {
-    #![allow(missing_docs)]
-    include!(concat!(env!("OUT_DIR"), "/onnx.rs"));
 }
 
 #[cfg(test)]
