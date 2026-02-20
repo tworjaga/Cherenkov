@@ -1260,6 +1260,7 @@ dependencies = [
  "cherenkov-core",
  "cherenkov-db",
  "cherenkov-observability",
+ "cherenkov-plume",
  "chrono",
  "dashmap",
  "futures-util",

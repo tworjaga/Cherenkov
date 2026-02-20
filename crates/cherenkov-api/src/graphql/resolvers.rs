@@ -4,7 +4,8 @@ use uuid::Uuid;
 use std::sync::Arc;
 
 use cherenkov_db::{RadiationDatabase, AggregationLevel};
-use cherenkov_plume::{GaussianPlumeModel, ReleaseParameters, WeatherConditions, StabilityClass};
+use cherenkov_plume::dispersion::{GaussianPlumeModel, WeatherConditions, StabilityClass};
+use cherenkov_plume::ReleaseParameters;
 
 pub struct QueryRoot;
 
