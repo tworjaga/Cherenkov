@@ -36,3 +36,20 @@ export const ALL_SENSOR_UPDATES = gql`
     }
   }
 `;
+
+export const PLUME_PARTICLES = gql`
+  subscription PlumeParticles($simulationId: ID!, $batchSize: Int) {
+    plumeParticles(simulationId: $simulationId, batchSize: $batchSize) {
+      simulationId
+      particles {
+        id
+        x
+        y
+        z
+        concentration
+        timestamp
+      }
+      timestamp
+    }
+  }
+`;
