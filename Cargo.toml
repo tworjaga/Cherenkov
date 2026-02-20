@@ -59,8 +59,8 @@ async-graphql = { version = "7.0", features = ["chrono"] }
 async-graphql-axum = "7.0"
 
 # ML
-candle-core = "0.3"
-candle-nn = "0.3"
+candle-core = "0.8"
+candle-nn = "0.8"
 
 
 # Stream processing
