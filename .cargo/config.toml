@@ -7,10 +7,9 @@
 
 
 [build]
-# Use MinGW linker for GNU toolchain
-rustflags = ["-C", "linker=C:\\Users\\User\\Downloads\\pythonprojects\\mingw64\\mingw64\\bin\\gcc.exe"]
 
 [profile.dev]
+
 # Reduce optimization in dev builds to lower stack pressure
 opt-level = 1
 codegen-units = 16
