@@ -1,11 +1,15 @@
 # Plume Dispersion Integration TODO
 
 ## Step 1: Add cherenkov-plume dependency to API
-- [ ] Update cherenkov-api/Cargo.toml with cherenkov-plume dependency
+- [x] Update cherenkov-api/Cargo.toml with cherenkov-plume dependency
+  - Completed: 41a817e feat(deps): add cherenkov-plume dependency to API crate
 
 ## Step 2: Implement real plume simulation resolver
-- [ ] Replace placeholder simulate_plume resolver
+- [x] Replace placeholder simulate_plume resolver
+  - Completed: 42127c4 feat(api): integrate GaussianPlumeModel into simulate_plume resolver
+  - Completed: 717d0f7 feat(api): integrate cherenkov-plume crate for dispersion simulation
 - [ ] Add particle streaming subscription
+
 
 ## Step 3: Connect frontend to real API
 - [ ] Update use-plume-simulation.ts with GraphQL mutations
