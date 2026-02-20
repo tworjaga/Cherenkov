@@ -1,27 +1,71 @@
-use candle_core::{Device, Tensor};
+use candle_core::{Device, Tensor, DType};
+use candle_onnx::onnx::ModelProto;
 use std::sync::Arc;
 use std::collections::HashMap;
 use tokio::sync::RwLock;
-use tracing::{info, warn};
+use tracing::{info, warn, error};
 use std::time::Instant;
 
 use crate::{Classification, IsotopePrediction, Spectrum};
 
-/// Stub ONNX model for compilation
-pub struct OnnxModel;
+/// ONNX model wrapper for isotope classification
+pub struct OnnxModel {
+    model: ModelProto,
+    device: Device,
+    input_name: String,
+    output_name: String,
+}
 
 impl OnnxModel {
-    pub fn load(_path: &str) -> anyhow::Result<Self> {
-        warn!("ONNX model loading is stubbed - candle_onnx API changed");
-        Ok(Self)
+    pub fn load(path: &str, device: &Device) -> anyhow::Result<Self> {
+        info!("Loading ONNX model from: {}", path);
+        
+        let model = ModelProto::from_file(path)
+            .map_err(|e| {
+                error!("Failed to load ONNX model: {}", e);
+                anyhow::anyhow!("ONNX load error: {}", e)
+            })?;
+        
+        // Extract input/output names from model graph
+        let graph = model.graph.as_ref()
+            .ok_or_else(|| anyhow::anyhow!("Model has no graph"))?;
+        
+        let input_name = graph.input.first()
+            .and_then(|i| i.name.clone())
+            .unwrap_or_else(|| "input".to_string());
+        
+        let output_name = graph.output.first()
+            .and_then(|o| o.name.clone())
+            .unwrap_or_else(|| "output".to_string());
+        
+        info!("ONNX model loaded - input: {}, output: {}", input_name, output_name);
+        
+        Ok(Self {
+            model,
+            device: device.clone(),
+            input_name,
+            output_name,
+        })
     }
     
     pub fn forward(&self, input: &Tensor) -> anyhow::Result<Tensor> {
-        // Return dummy logits matching expected output shape
-        let batch_size = input.dims()[0];
-        let num_classes = 15;
-        let dummy_logits = Tensor::zeros((batch_size, num_classes), input.dtype(), input.device())?;
-        Ok(dummy_logits)
+        // Create input map for the model
+        let mut inputs = HashMap::new();
+        inputs.insert(self.input_name.clone(), input.clone());
+        
+        // Run inference
+        let outputs = self.model.eval(&inputs, &self.device)
+            .map_err(|e| {
+                error!("ONNX inference failed: {}", e);
+                anyhow::anyhow!("Inference error: {}", e)
+            })?;
+        
+        // Extract output tensor
+        let output = outputs.get(&self.output_name)
+            .or_else(|| outputs.values().next())
+            .ok_or_else(|| anyhow::anyhow!("No output tensor found"))?;
+        
+        Ok(output.clone())
     }
 }
 
@@ -76,7 +120,7 @@ impl InferenceService {
     pub async fn load_model(&self, name: &str, path: &str, version: &str) -> anyhow::Result<()> {
         let mut cache = self.models.write().await;
         
-        let model = OnnxModel::load(path)
+        let model = OnnxModel::load(path, &self.device)
             .map_err(|e| anyhow::anyhow!("Failed to load model: {}", e))?;
         
         let model_arc = Arc::new(model);
