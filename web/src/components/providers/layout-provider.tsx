@@ -9,7 +9,9 @@ interface LayoutContextType {
   isDesktop: boolean;
   sidebarVisible: boolean;
   rightPanelVisible: boolean;
+  rightPanelOpen: boolean;
   bottomPanelVisible: boolean;
+  bottomPanelOpen: boolean;
   toggleSidebar: () => void;
   toggleRightPanel: () => void;
   toggleBottomPanel: () => void;
@@ -17,6 +19,7 @@ interface LayoutContextType {
   setRightPanelVisible: (visible: boolean) => void;
   setBottomPanelVisible: (visible: boolean) => void;
 }
+
 
 const LayoutContext = createContext<LayoutContextType | undefined>(undefined);
 
@@ -78,7 +81,9 @@ export function LayoutProvider({ children }: LayoutProviderProps): JSX.Element {
     isDesktop,
     sidebarVisible: !sidebarCollapsed,
     rightPanelVisible: rightPanelOpen,
+    rightPanelOpen: rightPanelOpen,
     bottomPanelVisible: bottomPanelOpen,
+    bottomPanelOpen: bottomPanelOpen,
     toggleSidebar: storeToggleSidebar,
     toggleRightPanel: storeToggleRightPanel,
     toggleBottomPanel: storeToggleBottomPanel,
@@ -86,6 +91,7 @@ export function LayoutProvider({ children }: LayoutProviderProps): JSX.Element {
     setRightPanelVisible,
     setBottomPanelVisible,
   };
+
 
   return (
     <LayoutContext.Provider value={value}>

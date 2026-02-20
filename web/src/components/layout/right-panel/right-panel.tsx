@@ -1,12 +1,14 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { AlertTriangle, Check, X, Radio, MapPin, Clock } from 'lucide-react';
+import { AlertTriangle, Check, X, Radio, MapPin, Clock, ChevronRight } from 'lucide-react';
 import { useAppStore, useDataStore } from '@/stores';
+import { useLayout } from '@/components/providers';
 import { Alert, Sensor } from '@/types';
 import { formatTimestamp, formatDoseRate } from '@/lib/utils/formatters';
 import { getSeverityColor } from '@/lib/utils/calculations';
+
 
 interface AlertCardProps {
   alert: Alert;
@@ -142,8 +144,10 @@ const SensorDetail = ({ sensor, onClose }: SensorDetailProps) => {
 export const RightPanel = () => {
   const { selectedSensorId, selectSensor } = useAppStore();
   const { alerts, sensors, acknowledgeAlert } = useDataStore();
+  const { rightPanelOpen, toggleRightPanel, isMobile } = useLayout();
   const [isPaused, setIsPaused] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
 
   const selectedSensor = selectedSensorId 
     ? sensors.find(s => s.id === selectedSensorId) 
@@ -152,17 +156,83 @@ export const RightPanel = () => {
   const sortedAlerts = [...alerts].sort((a, b) => b.timestamp - a.timestamp);
   const unacknowledgedCount = alerts.filter(a => !a.acknowledged).length;
 
+  // Handle escape key to close panel on mobile
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    if (e.key === 'Escape' && isMobile && rightPanelOpen) {
+      toggleRightPanel();
+    }
+  }, [isMobile, rightPanelOpen, toggleRightPanel]);
+
+  useEffect(() => {
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleKeyDown]);
+
   useEffect(() => {
     if (!isPaused && scrollRef.current) {
       scrollRef.current.scrollTop = 0;
     }
   }, [alerts, isPaused]);
 
-  return (
-    <div data-testid="right-panel" className="flex flex-col w-right-panel h-full bg-bg-secondary border-l border-border-subtle">
+  // Mobile overlay backdrop
+  const MobileOverlay = () => (
+    <AnimatePresence>
+      {isMobile && rightPanelOpen && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.2 }}
+          className="fixed inset-0 bg-black/50 z-30 md:hidden"
+          onClick={toggleRightPanel}
+          aria-hidden="true"
+        />
+      )}
+    </AnimatePresence>
+  );
 
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-border-subtle">
+  return (
+    <>
+      <MobileOverlay />
+      <motion.div 
+        ref={panelRef}
+        data-testid="right-panel" 
+        initial={{ x: 320, opacity: 0 }}
+        animate={{ 
+          x: rightPanelOpen ? 0 : (isMobile ? 320 : 0),
+          opacity: rightPanelOpen ? 1 : (isMobile ? 0 : 1),
+          width: rightPanelOpen ? 320 : (isMobile ? 0 : 0)
+        }}
+        transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+        className={`
+          fixed right-0 top-header h-[calc(100vh-56px)] bg-bg-secondary border-l border-border-subtle z-40
+          flex flex-col overflow-hidden
+          ${!rightPanelOpen && !isMobile ? 'hidden md:flex' : ''}
+          ${isMobile ? 'w-[320px] shadow-2xl' : ''}
+        `}
+        role="complementary"
+        aria-label="Alert panel"
+        aria-expanded={rightPanelOpen}
+        aria-hidden={!rightPanelOpen}
+      >
+        {/* Collapse toggle button (desktop only) */}
+        {!isMobile && (
+          <button
+            onClick={toggleRightPanel}
+            className="absolute -left-6 top-1/2 -translate-y-1/2 w-6 h-12 bg-bg-secondary border border-border-subtle border-r-0 rounded-l-md flex items-center justify-center hover:bg-bg-hover transition-colors z-50"
+            aria-label={rightPanelOpen ? 'Collapse alert panel' : 'Expand alert panel'}
+            aria-expanded={rightPanelOpen}
+          >
+            <ChevronRight 
+              className={`w-4 h-4 text-text-secondary transition-transform duration-300 ${rightPanelOpen ? 'rotate-180' : ''}`} 
+              aria-hidden="true"
+            />
+          </button>
+        )}
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-4 py-3 border-b border-border-subtle flex-shrink-0">
+
         <div className="flex items-center gap-2">
           <span className="text-heading-xs text-text-secondary">ALERTS</span>
           {unacknowledgedCount > 0 && (
@@ -174,17 +244,37 @@ export const RightPanel = () => {
         <div className="flex items-center gap-2">
           <button
             onClick={() => setIsPaused(!isPaused)}
-            className={`text-body-xs px-2 py-1 rounded transition-colors ${
+            className={`text-body-xs px-2 py-1 rounded transition-colors focus:outline-none focus:ring-2 focus:ring-accent-primary/50 ${
               isPaused ? 'bg-alert-medium/20 text-alert-medium' : 'text-text-tertiary hover:text-text-primary'
             }`}
+            aria-label={isPaused ? 'Resume alert feed' : 'Pause alert feed'}
+            aria-pressed={isPaused}
           >
             {isPaused ? 'RESUME' : 'PAUSE'}
           </button>
+          {isMobile && (
+            <button
+              onClick={toggleRightPanel}
+              className="p-1 rounded hover:bg-bg-hover text-text-tertiary hover:text-text-primary transition-colors focus:outline-none focus:ring-2 focus:ring-accent-primary/50"
+              aria-label="Close alert panel"
+            >
+              <X className="w-5 h-5" aria-hidden="true" />
+            </button>
+          )}
         </div>
       </div>
 
       {/* Content */}
-      <div data-testid="alert-feed" className="flex-1 overflow-y-auto p-3 space-y-3 scrollbar-thin scrollbar-thumb-border-active scrollbar-track-transparent">
+      <div 
+        ref={scrollRef}
+        data-testid="alert-feed" 
+        className="flex-1 overflow-y-auto p-3 space-y-3 scrollbar-thin scrollbar-thumb-border-active scrollbar-track-transparent"
+        role="feed"
+        aria-label="Alert feed"
+        aria-live={isPaused ? 'off' : 'polite'}
+        aria-atomic="false"
+      >
+
 
         <AnimatePresence mode="popLayout">
           {selectedSensor ? (
@@ -218,12 +308,13 @@ export const RightPanel = () => {
       </div>
 
       {/* Footer */}
-      <div className="px-4 py-2 border-t border-border-subtle bg-bg-tertiary">
+      <div className="px-4 py-2 border-t border-border-subtle bg-bg-tertiary flex-shrink-0">
         <div className="flex items-center justify-between text-mono-xs text-text-tertiary">
           <span>Total: {alerts.length}</span>
           <span>Active: {unacknowledgedCount}</span>
         </div>
       </div>
-    </div>
+      </motion.div>
+    </>
   );
 };
