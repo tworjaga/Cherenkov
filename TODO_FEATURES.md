@@ -3,10 +3,11 @@
 ## Phase 1: Plume Dispersion Modeling Enhancement
 
 ### Tasks
-- [ ] Integrate real-time plume visualization on the globe
-  - [ ] Update plume-layer.tsx with DeckGL visualization
-  - [ ] Connect to dispersion simulation API
-  - [ ] Add particle concentration heatmap
+- [x] Integrate real-time plume visualization on the globe
+  - [x] Update plume-layer.tsx with DeckGL visualization
+  - [x] Connect to dispersion simulation API
+  - [x] Add particle concentration heatmap
+
 - [ ] Connect weather data sources (NOAA GFS, Open-Meteo) to dispersion calculations
   - [ ] Update weather.rs with real-time data fetching
   - [ ] Integrate with dispersion.rs
@@ -18,7 +19,10 @@
   - [ ] Add time-slider integration
 
 ### In Progress
-- [ ] Creating plume visualization layer
+- [ ] Connect weather data sources (NOAA GFS, Open-Meteo) to dispersion calculations
+  - [ ] Update weather.rs with real-time data fetching
+  - [ ] Integrate with dispersion.rs
+
 
 ### Completed
 - [x] Analysis of current codebase state
