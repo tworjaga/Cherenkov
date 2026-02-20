@@ -8,9 +8,10 @@
   - [x] Connect to dispersion simulation API
   - [x] Add particle concentration heatmap
 
-- [ ] Connect weather data sources (NOAA GFS, Open-Meteo) to dispersion calculations
-  - [ ] Update weather.rs with real-time data fetching
-  - [ ] Integrate with dispersion.rs
+- [x] Connect weather data sources (NOAA GFS, Open-Meteo) to dispersion calculations
+  - [x] Update weather.rs with real-time data fetching
+  - [x] Integrate with dispersion.rs
+
 - [ ] Implement evacuation zone calculations based on dose thresholds
   - [ ] Update evacuation-zones.tsx component
   - [ ] Add contour generation for dose thresholds
