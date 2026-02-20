@@ -38,3 +38,11 @@ rand = "0.8"
 
 [dev-dependencies]
 tokio-test = { workspace = true }
+
+[lib]
+name = "cherenkov_stream"
+path = "src/lib.rs"
+
+[[bin]]
+name = "cherenkov-stream"
+path = "src/main.rs"
