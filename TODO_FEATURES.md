@@ -20,9 +20,11 @@
   - [ ] Add time-slider integration
 
 ### In Progress
-- [ ] Implement evacuation zone calculations based on dose thresholds
-  - [ ] Update evacuation-zones.tsx component
-  - [ ] Add contour generation for dose thresholds
+- [x] Implement evacuation zone calculations based on dose thresholds
+  - [x] Update evacuation-zones.tsx component
+  - [x] Add contour generation for dose thresholds
+  - [x] Fix evacuation-zones.test.tsx - use getAllByText for population/radius assertions
+
 
 ### Completed
 - [x] Connect weather data sources (NOAA GFS, Open-Meteo) to dispersion calculations
@@ -31,6 +33,8 @@
 
 - [x] Analysis of current codebase state
 - [x] Plan approval
+- [x] Fix evacuation-zones.test.tsx - use getAllByText for population/radius assertions (8 tests passing)
+
 
 ## Phase 2: ML-based Anomaly Classification
 - [ ] Fix ONNX model loading (update to current candle-onnx API)
