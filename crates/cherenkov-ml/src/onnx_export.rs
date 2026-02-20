@@ -1,9 +1,8 @@
 use std::path::{Path, PathBuf};
 use std::fs;
-use candle_core::{Device, Tensor, DType, Shape};
 use candle_nn::VarMap;
 use prost::Message;
-use tracing::{info, debug, warn, error};
+use tracing::{info, debug, warn};
 use thiserror::Error;
 use chrono::Utc;
 use serde::{Serialize, Deserialize};
@@ -39,7 +38,7 @@ pub struct ExportConfig {
     pub opset_version: i64,
     pub input_names: Vec<String>,
     pub output_names: Vec<String>,
-    pub dynamic_axes: Option<Vec<(String, Vec<Option<i64>>)>>,
+    pub dynamic_axes: Option<Vec<(String, Vec<Option<i64>>>>,
     pub metadata: Option<ModelMetadata>,
     pub optimize: bool,
     pub validate: bool,
@@ -176,8 +175,9 @@ impl OnnxExporter {
         let input_tensor = ValueInfoProto {
             name: self.config.input_names[0].clone(),
             r#type: Some(TypeProto {
-                value: Some(type_proto::Value::TensorType(TypeProtoTensor {
-                    elem_type: TensorProtoDataType::Float as i32,
+                denotation: "".to_string(),
+                value: Some(type_proto::Value::TensorType(type_proto::Tensor {
+                    elem_type: tensor_proto::DataType::Float as i32,
                     shape: Some(TensorShapeProto {
                         dim: input_shape.iter()
                             .map(|&d| tensor_shape_proto::Dimension {
@@ -197,8 +197,9 @@ impl OnnxExporter {
         let output_tensor = ValueInfoProto {
             name: self.config.output_names[0].clone(),
             r#type: Some(TypeProto {
-                value: Some(type_proto::Value::TensorType(TypeProtoTensor {
-                    elem_type: TensorProtoDataType::Float as i32,
+                denotation: "".to_string(),
+                value: Some(type_proto::Value::TensorType(type_proto::Tensor {
+                    elem_type: tensor_proto::DataType::Float as i32,
                     shape: Some(TensorShapeProto {
                         dim: output_shape.iter()
                             .map(|&d| tensor_shape_proto::Dimension {
@@ -246,21 +247,16 @@ impl OnnxExporter {
         varmap: &VarMap,
         graph: &mut candle_onnx::onnx::GraphProto,
     ) -> ExportResult<()> {
-        // This is a simplified implementation
-        // In production, you would traverse the actual computation graph
-        
         let varmap_data = varmap.data().lock().unwrap();
         
         for (name, tensor) in varmap_data.iter() {
             debug!("Processing variable: {}", name);
             
-            // Create tensor proto for weights
             let tensor_proto = self.candle_tensor_to_onnx(tensor, name)?;
             graph.initializer.push(tensor_proto);
         }
         
         // Add a simple MatMul + Add node as placeholder
-        // Real implementation would reconstruct the full graph
         let node = candle_onnx::onnx::NodeProto {
             op_type: "MatMul".to_string(),
             input: vec![self.config.input_names[0].clone(), "weight".to_string()],
@@ -290,11 +286,11 @@ impl OnnxExporter {
         
         let shape: Vec<i64> = tensor.dims().iter().map(|&d| d as i64).collect();
         let data: Vec<f32> = tensor.to_vec1()
-            .map_err(|e| ExportError::Candle(e))?;
+            .map_err(ExportError::Candle)?;
         
         Ok(TensorProto {
             name: name.to_string(),
-            data_type: TensorProtoDataType::Float as i32,
+            data_type: tensor_proto::DataType::Float as i32,
             dims: shape,
             float_data: data,
             ..Default::default()
@@ -310,7 +306,6 @@ impl OnnxExporter {
             return Err(ExportError::Validation("Output shape cannot be empty".to_string()));
         }
         if input[0] != 1 && input[0] != 0 {
-            // Batch size should be 1 or dynamic (0)
             warn!("Unusual batch size detected: {}", input[0]);
         }
         Ok(())
@@ -320,17 +315,15 @@ impl OnnxExporter {
     async fn validate_export(
         &self,
         model_path: &Path,
-        input_shape: &[usize],
-        output_shape: &[usize],
+        _input_shape: &[usize],
+        _output_shape: &[usize],
     ) -> ExportResult<()> {
         debug!("Validating exported ONNX model");
         
-        // Load and check the model
         let model_bytes = fs::read(model_path)?;
         let model: candle_onnx::onnx::ModelProto = Message::decode(&model_bytes[..])
             .map_err(|e| ExportError::Serialization(format!("Failed to decode model: {}", e)))?;
         
-        // Basic validation
         if model.ir_version < 7 {
             return Err(ExportError::Validation(
                 format!("IR version {} is too old", model.ir_version)
@@ -356,26 +349,20 @@ impl OnnxExporter {
     pub async fn optimize_model(&self, model_path: &Path) -> ExportResult<PathBuf> {
         info!("Optimizing ONNX model at {:?}", model_path);
         
-        // Load model
         let model_bytes = fs::read(model_path)?;
         let mut model: candle_onnx::onnx::ModelProto = Message::decode(&model_bytes[..])
             .map_err(|e| ExportError::Serialization(format!("Failed to decode: {}", e)))?;
         
-        // Apply optimizations
         if let Some(ref mut graph) = model.graph {
-            // Remove unused initializers
             let used_tensors: std::collections::HashSet<String> = graph.node
                 .iter()
                 .flat_map(|n| n.input.iter().cloned())
                 .collect();
             
             graph.initializer.retain(|t| used_tensors.contains(&t.name));
-            
-            // Fuse consecutive operations where possible
             self.fuse_operations(graph)?;
         }
         
-        // Save optimized model
         let optimized_path = model_path.with_extension("optimized.onnx");
         let mut buffer = Vec::new();
         model.encode(&mut buffer)
@@ -388,13 +375,10 @@ impl OnnxExporter {
     
     /// Fuse operations for optimization
     fn fuse_operations(&self, graph: &mut candle_onnx::onnx::GraphProto) -> ExportResult<()> {
-        // Simplified fusion: MatMul + Add -> Gemm
         let mut i = 0;
         while i < graph.node.len().saturating_sub(1) {
             if graph.node[i].op_type == "MatMul" && graph.node[i + 1].op_type == "Add" {
-                // Check if MatMul output is Add input
                 if graph.node[i].output[0] == graph.node[i + 1].input[0] {
-                    // Fuse into Gemm
                     let mut gemm = graph.node[i].clone();
                     gemm.op_type = "Gemm".to_string();
                     gemm.input.push(graph.node[i + 1].input[1].clone());
@@ -437,7 +421,6 @@ pub async fn export_model_to_onnx(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::path::PathBuf;
     
     #[tokio::test]
     async fn test_export_config_default() {
@@ -456,12 +439,8 @@ mod tests {
     #[tokio::test]
     async fn test_shape_validation() {
         let exporter = OnnxExporter::new();
-        
-        // Valid shapes
         assert!(exporter.validate_shapes(&[1, 10], &[1, 5]).is_ok());
         assert!(exporter.validate_shapes(&[32, 1024], &[32, 10]).is_ok());
-        
-        // Invalid shapes
         assert!(exporter.validate_shapes(&[], &[1, 5]).is_err());
         assert!(exporter.validate_shapes(&[1, 10], &[]).is_err());
     }
