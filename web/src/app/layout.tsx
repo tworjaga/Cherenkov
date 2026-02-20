@@ -6,9 +6,11 @@ import { Sidebar } from '@/components/layout/sidebar';
 import { RightPanel } from '@/components/layout/right-panel';
 import { BottomPanel } from '@/components/layout/bottom-panel';
 import { ClientProviders } from '@/components/providers';
+import { LayoutProvider } from '@/components/providers/layout-provider';
 import { Toaster } from 'react-hot-toast';
 
 import { SkipLink } from '@/components/ui/skip-link';
+
 
 
 const inter = Inter({
@@ -57,43 +59,46 @@ export default function RootLayout({
     >
       <body className="bg-bg-primary text-text-primary antialiased overflow-hidden touch-manipulation">
         <ClientProviders>
-          <SkipLink />
-          
-          <div 
-            className="flex flex-col h-screen w-screen"
-            role="application"
-            aria-label="Cherenkov Radiological Intelligence Dashboard"
-          >
-            <Header />
+          <LayoutProvider>
+            <SkipLink />
             
             <div 
-              className="flex flex-1 overflow-hidden relative"
-              role="main"
-              aria-label="Main content area"
+              className="flex flex-col h-screen w-screen"
+              role="application"
+              aria-label="Cherenkov Radiological Intelligence Dashboard"
             >
-              <Sidebar />
+              <Header />
               
-              <main 
-                id="main-content"
-                className="flex-1 relative overflow-hidden focus:outline-none focus:ring-2 focus:ring-accent-primary/50"
-                tabIndex={-1}
+              <div 
+                className="flex flex-1 overflow-hidden relative"
+                role="main"
+                aria-label="Main content area"
               >
-                {children}
-              </main>
+                <Sidebar />
+                
+                <main 
+                  id="main-content"
+                  className="flex-1 relative overflow-hidden focus:outline-none focus:ring-2 focus:ring-accent-primary/50"
+                  tabIndex={-1}
+                >
+                  {children}
+                </main>
+                
+                <RightPanel />
+              </div>
               
-              <RightPanel />
+              <BottomPanel 
+                globalTimeSeries={[]}
+                regionalStats={[]}
+                recentEvents={[]}
+              />
             </div>
-            
-            <BottomPanel 
-              globalTimeSeries={[]}
-              regionalStats={[]}
-              recentEvents={[]}
-            />
-          </div>
+          </LayoutProvider>
         </ClientProviders>
 
         
         <Toaster 
+
           position="top-right"
           toastOptions={{
             style: {
