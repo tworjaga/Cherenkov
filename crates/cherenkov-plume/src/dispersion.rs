@@ -775,6 +775,30 @@ impl Default for WeatherConditions {
     }
 }
 
+impl WeatherConditions {
+    /// Create WeatherConditions from LocalWeather data
+    pub fn from_local_weather(weather: &crate::weather::LocalWeather) -> Self {
+        Self {
+            wind_speed_ms: weather.wind_speed,
+            wind_direction_deg: weather.wind_direction,
+            stability_class: StabilityClass::from_weather_stability(weather.stability_class()),
+            temperature_k: weather.temperature + 273.15, // Convert Celsius to Kelvin
+            pressure_pa: weather.pressure,
+        }
+    }
+}
+
+impl StabilityClass {
+    /// Convert weather module StabilityClass to dispersion StabilityClass
+    pub fn from_weather_stability(stability: crate::weather::StabilityClass) -> Self {
+        match stability {
+            crate::weather::StabilityClass::Unstable => StabilityClass::B,
+            crate::weather::StabilityClass::Neutral => StabilityClass::D,
+            crate::weather::StabilityClass::Stable => StabilityClass::F,
+        }
+    }
+}
+
 impl GaussianPlumeModel {
     pub fn new(weather: WeatherConditions, release: ReleaseParameters) -> Self {
         Self { weather, release }
@@ -798,7 +822,6 @@ impl GaussianPlumeModel {
         
         Ok(Self { weather, release })
     }
-}
 
     /// Calculate concentration at a point (x, y, z) downwind from source
     /// x: downwind distance (m)
