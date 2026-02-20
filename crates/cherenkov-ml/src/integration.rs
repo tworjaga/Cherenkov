@@ -1,7 +1,8 @@
-use crate::{InferenceService, TrainingPipeline, TrainingConfig, TrainingResult};
-use crate::inference::{BatchRequest, Classification};
-use cherenkov_core::events::{Event, EventType, Severity};
-use cherenkov_stream::anomaly::AnomalyDetector;
+use crate::{InferenceService, TrainingPipeline, TrainingConfig, TrainingResult, Classification};
+use crate::inference::BatchRequest;
+use cherenkov_core::events::{CherenkovEvent, Severity, Anomaly as CoreAnomaly};
+use cherenkov_stream::anomaly::{AnomalyDetector, Reading};
+
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use tracing::{info, warn, error};
@@ -67,14 +68,21 @@ impl MlAnomalyIntegration {
         radiation_level: f64,
     ) -> anyhow::Result<Option<MlAnomalyResult>> {
         // First check if anomaly detector flags this
-        let is_anomaly = {
-            let detector = self.anomaly_detector.read().await;
-            detector.check_anomaly(sensor_id.clone(), radiation_level)
+        let readings = vec![Reading {
+            sensor_id: sensor_id.clone(),
+            dose_rate: radiation_level,
+            timestamp: chrono::Utc::now(),
+        }];
+        
+        let anomaly = {
+            let mut detector = self.anomaly_detector.write().await;
+            detector.detect(readings)
         };
         
-        if !is_anomaly {
+        if anomaly.is_none() {
             return Ok(None);
         }
+
         
         // Run ML classification
         let classification = self.inference.classify_spectrum(&spectrum).await?;
@@ -115,11 +123,19 @@ impl MlAnomalyIntegration {
         
         // Filter to anomalous readings
         let anomalous: Vec<_> = {
-            let detector = self.anomaly_detector.read().await;
+            let mut detector = self.anomaly_detector.write().await;
             readings.into_iter()
-                .filter(|(id, _, _, level)| detector.check_anomaly(id.clone(), *level))
+                .filter(|(id, _, _, level)| {
+                    let r = vec![Reading {
+                        sensor_id: id.clone(),
+                        dose_rate: *level,
+                        timestamp: chrono::Utc::now(),
+                    }];
+                    detector.detect(r).is_some()
+                })
                 .collect()
         };
+
         
         if anomalous.is_empty() {
             return Ok(results);
@@ -178,37 +194,32 @@ impl MlAnomalyIntegration {
     }
     
     /// Convert ML result to system event
-    pub fn to_event(&self, result: &MlAnomalyResult) -> Event {
+    pub fn to_event(&self, result: &MlAnomalyResult) -> CherenkovEvent {
         let severity = match result.recommended_action {
             RecommendedAction::Critical => Severity::Critical,
             RecommendedAction::Evacuate => Severity::Critical,
-            RecommendedAction::Alert => Severity::High,
-            RecommendedAction::Investigate => Severity::Medium,
-            RecommendedAction::Monitor => Severity::Low,
+            RecommendedAction::Alert => Severity::Warning,
+            RecommendedAction::Investigate => Severity::Warning,
+            RecommendedAction::Monitor => Severity::Info,
         };
         
         let isotope_info = result.isotope_classification.as_ref()
             .map(|c| format!("{:?}", c.isotopes))
             .unwrap_or_default();
         
-        Event {
-            id: result.anomaly_id.clone(),
-            event_type: EventType::Anomaly,
+        CherenkovEvent::AnomalyDetected(CoreAnomaly {
+            anomaly_id: result.anomaly_id.clone(),
+            sensor_id: uuid::Uuid::new_v4(),
             severity,
-            timestamp: result.timestamp,
-            location: result.location,
-            description: format!(
-                "ML-classified anomaly: {} at ({:.4}, {:.4}) - Confidence: {:.2}",
-                isotope_info, result.location.0, result.location.1, result.confidence
-            ),
-            source: "ml_anomaly_detector".to_string(),
-            metadata: HashMap::from([
-                ("radiation_level".to_string(), result.radiation_level.to_string()),
-                ("confidence".to_string(), result.confidence.to_string()),
-                ("action".to_string(), format!("{:?}", result.recommended_action)),
-            ]),
-        }
+            z_score: result.anomaly_score,
+            detected_at: chrono::DateTime::from_timestamp(result.timestamp as i64, 0).unwrap_or_else(|| chrono::Utc::now()),
+            timestamp: chrono::DateTime::from_timestamp(result.timestamp as i64, 0).unwrap_or_else(|| chrono::Utc::now()),
+            dose_rate: result.radiation_level,
+            baseline: result.radiation_level * 0.5,
+            algorithm: "ml_classifier".to_string(),
+        })
     }
+
 }
 
 /// Model management API
