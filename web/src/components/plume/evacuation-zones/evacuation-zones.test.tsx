@@ -57,14 +57,17 @@ describe('EvacuationZones', () => {
   it('shows population estimates', () => {
     render(<EvacuationZones />);
     
-    expect(screen.getByText(/Population:/)).toBeInTheDocument();
+    const populations = screen.getAllByText(/Population:/);
+    expect(populations.length).toBeGreaterThan(0);
   });
 
   it('displays radius information', () => {
     render(<EvacuationZones />);
     
-    expect(screen.getByText(/km radius/)).toBeInTheDocument();
+    const radiuses = screen.getAllByText(/km radius/);
+    expect(radiuses.length).toBeGreaterThan(0);
   });
+
 
   it('uses custom zones when provided', () => {
     const customZones = [
