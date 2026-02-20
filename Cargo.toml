@@ -9,6 +9,7 @@ members = [
     "crates/cherenkov-plume",
     "crates/cherenkov-api",
     "crates/cherenkov-observability",
+    "crates/cherenkov-notify",
 ]
 
 
