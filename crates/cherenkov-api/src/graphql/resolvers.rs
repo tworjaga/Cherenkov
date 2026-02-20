@@ -4,6 +4,7 @@ use uuid::Uuid;
 use std::sync::Arc;
 
 use cherenkov_db::{RadiationDatabase, AggregationLevel};
+use cherenkov_plume::{GaussianPlumeModel, ReleaseParameters, WeatherConditions, StabilityClass};
 
 pub struct QueryRoot;
 
@@ -130,25 +131,62 @@ impl QueryRoot {
         duration_hours: u32,
         isotope: Option<String>,
     ) -> Result<PlumeSimulation> {
-        // Plume simulation disabled - cherenkov_plume crate not available
-        // Return placeholder data
-        let _ = (release_rate, duration_hours, isotope);
-        
-        // Generate placeholder concentration grid
-        let mut grid = vec![];
-        for _x in (0..10000).step_by(500) {
-            let mut row = vec![];
-            for _y in (-5000..5000).step_by(500) {
-                row.push(0.0);
+        // Create release parameters
+        let release = ReleaseParameters {
+            latitude: lat,
+            longitude: lon,
+            altitude_m: 50.0,
+            release_rate_bq_s: release_rate,
+            duration_hours,
+            isotope: isotope.unwrap_or_else(|| "Cs-137".to_string()),
+            particle_size_um: 1.0,
+        };
+
+        // Create default weather conditions (neutral stability, 5 m/s wind)
+        let weather = WeatherConditions {
+            wind_speed_ms: 5.0,
+            wind_direction_deg: 0.0,
+            stability_class: StabilityClass::D,
+            temperature_k: 288.15,
+            pressure_pa: 101325.0,
+        };
+
+        // Initialize Gaussian plume model
+        let model = GaussianPlumeModel::new(weather, release);
+
+        // Generate concentration grid
+        let grid_resolution_m = 500.0;
+        let max_distance_m = 10000.0;
+        let crosswind_range_m = 5000.0;
+
+        let nx = (max_distance_m / grid_resolution_m) as usize;
+        let ny = (2.0 * crosswind_range_m / grid_resolution_m) as usize;
+
+        let mut grid = vec![vec![0.0; ny]; nx];
+        let mut max_dose = 0.0;
+
+        for i in 0..nx {
+            let x = i as f64 * grid_resolution_m;
+            for j in 0..ny {
+                let y = j as f64 * grid_resolution_m - crosswind_range_m;
+                
+                // Calculate ground-level concentration
+                let concentration = model.ground_level_concentration(x, y);
+                grid[i][j] = concentration;
+                
+                // Track maximum dose
+                let dose = model.ground_level_dose_rate(x, y);
+                if dose > max_dose {
+                    max_dose = dose;
+                }
             }
-            grid.push(row);
         }
-        
+
         Ok(PlumeSimulation {
             lat,
             lon,
             concentration_grid: grid,
-            max_dose: 0.0,
+            max_dose,
         })
     }
 }
