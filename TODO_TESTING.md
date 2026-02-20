@@ -1,83 +1,69 @@
-# Cherenkov Project Testing Status
+# Cherenkov Full Testing Plan
 
-## Current Status Summary
+## Current State Assessment
 
-### Web Frontend (Next.js + TypeScript)
-- **Unit Tests**: 253 passing, 1 skipped (43 test files)
-- **TypeScript Errors**: 40+ errors (see details below)
-- **Linting**: In progress
+### Unit Tests (Vitest)
+- **Total**: 253 tests
+- **Passing**: 233 tests
+- **Failing**: 20 tests
+- **Status**: 92% pass rate
+
+### E2E Tests (Playwright)
+- **Browsers**: Chromium, Firefox, WebKit
+- **Status**: Running (50+ tests executed)
+- **Passing**: Globe, Dashboard, Auth, Sensors tests
+- **Issues**: Some timeout issues on Firefox
+
+### Mock API Server
+- **Status**: Running on port 8080
+- **WebSocket**: Active with frequent connections/disconnections
+- **GraphQL/REST**: Functional
 
 ### Rust Backend
-- **Unit Tests**: 0 tests across all 8 crates (no tests written)
-- **Build**: Successful with warnings
-- **Warnings**: Unused imports, dead code, unused variables
+- **Status**: Build failed (MinGW dlltool.exe missing)
+- **Workaround**: Mock API server in use
 
-## TypeScript Errors to Fix
+## Test Failure Categories
 
-### Globe Component Errors
-1. `src/components/globe/globe.tsx` - Type mismatches with deck.gl
-2. `src/components/globe/layers/*.tsx` - Layer type errors
-3. Missing type declarations for deck.gl
+### 1. Component Test Failures
+- [ ] `dates.test.ts` - Timezone issue (expected 15, got 16)
+- [ ] `sensor-list.test.tsx` - Text matching issue (/safecast/i not found)
+- [ ] `dropdown.test.tsx` - Dropdown not opening in test
+- [ ] `select.test.tsx` - Select options not found
+- [ ] `textarea.test.tsx` - Error state class mismatch
+- [ ] `switch.test.tsx` - data-state attribute not set
+- [ ] `checkbox.test.tsx` - Children prop error on input
+- [ ] `date-picker.test.tsx` - Placeholder text not found
+- [ ] `search.test.tsx` - searchbox role not found
+- [ ] `radio.test.tsx` - Custom class not applied
+- [ ] `layer-toggles.test.tsx` - Checkbox role not found
 
-### UI Component Errors
-1. `src/components/ui/chart/chart.test.tsx` - Missing color property
-2. `src/components/ui/date-picker/date-picker.stories.tsx` - Invalid props
-3. Various unused imports in test files
+### 2. E2E Test Issues
+- [ ] Firefox timeout issues (30s+ per test)
+- [ ] WebSocket connection instability
+- [ ] Strict mode violations (duplicate elements)
 
-### Store/State Errors
-1. `src/stores/settings-store.ts` - Unused defaultSettings
-2. `src/components/layout/right-panel/sensor-detail/sensor-detail-panel.tsx` - Property 'sensors' does not exist
+## Action Plan
 
-### Test File Errors
-1. Missing imports (beforeEach)
-2. Type mismatches in test assertions
+### Phase 1: Fix Unit Tests
+1. Fix date utility tests (timezone handling)
+2. Fix component prop issues (checkbox, switch, radio)
+3. Fix test selectors (dropdown, select, search)
+4. Fix styling assertions (textarea, date-picker)
 
-## Rust Backend Issues
+### Phase 2: Stabilize E2E Tests
+1. Configure Playwright timeouts
+2. Fix strict mode violations
+3. Stabilize WebSocket connections
+4. Add proper test data setup
 
-### Missing Unit Tests
-All 8 crates have 0 unit tests:
-- cherenkov-api
-- cherenkov-core
-- cherenkov-db
-- cherenkov-ingest
-- cherenkov-ml
-- cherenkov-observability
-- cherenkov-plume
-- cherenkov-stream
+### Phase 3: Integration Testing
+1. Test full user flows
+2. Verify API endpoints
+3. Test WebSocket subscriptions
+4. Validate data consistency
 
-### Warnings to Fix
-1. Unused imports (NaiveDateTime, QualityFlag, error, AsyncCommands)
-2. Unused variables (`reading`)
-3. Dead code
-
-## Next Steps
-
-1. Fix TypeScript type errors in web frontend
-2. Add missing type declarations for deck.gl
-3. Fix Rust compiler warnings
-4. Write unit tests for Rust crates
-5. Run integration tests
-6. Run E2E tests with Playwright
-7. Verify Docker builds
-8. Test CI/CD pipeline
-
-## Test Commands
-
-```bash
-# Web tests
-cd cherenkov/web && npm test -- --run
-
-# Type checking
-cd cherenkov/web && npm run type-check
-
-# Linting
-cd cherenkov/web && npm run lint
-
-# Rust tests
-cd cherenkov && cargo test --workspace
-
-# Rust build
-cd cherenkov && cargo build --workspace
-
-# E2E tests
-cd cherenkov/web && npx playwright test
+### Phase 4: Documentation
+1. Update test documentation
+2. Create troubleshooting guide
+3. Document known issues
