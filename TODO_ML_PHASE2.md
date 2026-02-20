@@ -3,16 +3,16 @@
 ## Tasks
 
 ### 1. Fix ONNX Model Loading
-- [ ] Update candle-onnx dependency to current version
-- [ ] Replace stub OnnxModel with proper implementation
-- [ ] Add model validation and error handling
-- [ ] Test with sample ONNX model
+- [x] Update candle-onnx dependency to current version
+- [x] Replace stub OnnxModel with proper implementation
+- [x] Add model validation and error handling
+- [x] Test with sample ONNX model
 
 ### 2. Training Pipeline Integration
-- [ ] Add ONNX export functionality
-- [ ] Connect to real radiation spectra datasets
-- [ ] Implement model conversion from trained weights
-- [ ] Add training data pipeline
+- [x] Add ONNX export functionality
+- [x] Connect to real radiation spectra datasets
+- [x] Implement model conversion from trained weights
+- [x] Add training data pipeline
 
 ### 3. Model Versioning and Hot-Swapping
 - [ ] Enhance model versioning with ONNX metadata

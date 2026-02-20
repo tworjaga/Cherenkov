@@ -129,18 +129,21 @@ impl SpectraDataset {
             device,
         };
         
-        match &dataset.config.source {
+        // Clone source to avoid borrow issues
+        let source = dataset.config.source.clone();
+        
+        match source {
             DataSource::Local { path } => {
-                dataset.load_local(path).await?;
+                dataset.load_local(&path).await?;
             }
             DataSource::Http { url } => {
-                dataset.load_http(url).await?;
+                dataset.load_http(&url).await?;
             }
             DataSource::S3 { bucket, prefix, region } => {
-                dataset.load_s3(bucket, prefix, region).await?;
+                dataset.load_s3(&bucket, &prefix, &region).await?;
             }
-            DataSource::HuggingFace { dataset, subset } => {
-                dataset.load_huggingface(dataset, subset.as_deref()).await?;
+            DataSource::HuggingFace { dataset: ds, subset } => {
+                dataset.load_huggingface(&ds, subset.as_deref()).await?;
             }
         }
         
@@ -252,16 +255,16 @@ impl SpectraDataset {
     pub fn preprocess(&mut self) -> anyhow::Result<()> {
         info!("Preprocessing {} samples", self.samples.len());
         
+        let config = &self.config.preprocessing;
+        
         for sample in &mut self.samples {
-            self.preprocess_sample(sample)?;
+            Self::preprocess_sample_with_config(sample, config)?;
         }
         
         Ok(())
     }
     
-    fn preprocess_sample(&self, sample: &mut SpectraSample) -> anyhow::Result<()> {
-        let config = &self.config.preprocessing;
-        
+    fn preprocess_sample_with_config(sample: &mut SpectraSample, config: &PreprocessingConfig) -> anyhow::Result<()> {
         // Normalize counts
         if config.normalize {
             let max_count = sample.counts.iter().copied().fold(0.0, f64::max);
@@ -274,12 +277,12 @@ impl SpectraDataset {
         
         // Apply smoothing
         if let Some(smoothing) = &config.smoothing {
-            sample.counts = self.apply_smoothing(&sample.counts, smoothing)?;
+            sample.counts = Self::apply_smoothing_with_config(&sample.counts, smoothing)?;
         }
         
         // Baseline correction
         if config.baseline_correction {
-            sample.counts = self.apply_baseline_correction(&sample.counts)?;
+            sample.counts = Self::apply_baseline_correction_static(&sample.counts)?;
         }
         
         // Energy calibration
@@ -293,6 +296,10 @@ impl SpectraDataset {
     }
     
     fn apply_smoothing(&self, data: &[f64], config: &SmoothingConfig) -> anyhow::Result<Vec<f64>> {
+        Self::apply_smoothing_with_config(data, config)
+    }
+    
+    fn apply_smoothing_with_config(data: &[f64], config: &SmoothingConfig) -> anyhow::Result<Vec<f64>> {
         match config.method {
             SmoothingMethod::MovingAverage => {
                 let window = config.window_size;
@@ -315,6 +322,10 @@ impl SpectraDataset {
     }
     
     fn apply_baseline_correction(&self, data: &[f64]) -> anyhow::Result<Vec<f64>> {
+        Self::apply_baseline_correction_static(data)
+    }
+    
+    fn apply_baseline_correction_static(data: &[f64]) -> anyhow::Result<Vec<f64>> {
         // Simple linear baseline correction
         let n = data.len();
         if n < 2 {
