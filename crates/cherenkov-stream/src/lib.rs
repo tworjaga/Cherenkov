@@ -7,10 +7,11 @@ pub mod correlation;
 pub mod processor;
 pub mod window;
 
-pub use anomaly::{AnomalyDetector, AnomalyResult, DetectionConfig};
-pub use correlation::{CorrelationEngine, CorrelationResult, CorrelationConfig};
-pub use processor::{StreamProcessor, ProcessingConfig};
-pub use window::{TimeWindow, WindowConfig, WindowedData};
+pub use anomaly::{Anomaly, AnomalyDetector, Severity, Algorithm, Reading};
+pub use correlation::CorrelationEngine;
+pub use processor::StreamProcessor;
+pub use window::SlidingWindow;
+
 
 use thiserror::Error;
 
