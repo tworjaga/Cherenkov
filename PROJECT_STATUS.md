@@ -245,6 +245,35 @@ All changes committed with conventional commit format:
 - `docs: add comprehensive testing validation plan`
 
 
+## Roadmap - In Progress
+
+The following features are currently under active development:
+
+### 1. Plume Dispersion Modeling
+- [ ] Atmospheric dispersion calculations for radioactive releases
+- [ ] Integration with NOAA GFS weather data
+- [ ] Real-time plume visualization on globe
+- [ ] Evacuation zone calculations
+
+### 2. ML-Based Anomaly Classification
+- [ ] Training pipeline for radiation anomaly detection
+- [ ] Model inference integration in stream processor
+- [ ] Classification confidence scoring
+- [ ] Automated alert generation for detected anomalies
+
+### 3. Mobile Application
+- [ ] React Native mobile app scaffold
+- [ ] Push notification support
+- [ ] Mobile-optimized dashboard views
+- [ ] Offline data caching
+
+### 4. Alert Notification System
+- [ ] Email notification service
+- [ ] SMS gateway integration
+- [ ] Telegram bot notifications (@al7exy)
+- [ ] Webhook support for third-party integrations
+- [ ] Configurable alert thresholds per sensor
+
 ## Conclusion
 
 The Cherenkov project is in a **production-ready state** with:
@@ -255,5 +284,9 @@ The Cherenkov project is in a **production-ready state** with:
 - All 8 backend crates operational
 - All 12 Rust test suites passed
 - All frontend systems functional
+- Web GUI optimization completed (collapsible panels, responsive design, accessibility)
 
 The remaining 25 Rust warnings are cosmetic (dead code warnings for placeholder implementations) and do not affect runtime functionality. All core features, pipelines, plugins, and modules work as designed.
+
+**GitHub**: https://github.com/tworjaga/Cherenkov  
+**Contact**: @al7exy (Telegram)
