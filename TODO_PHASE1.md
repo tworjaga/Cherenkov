@@ -23,9 +23,9 @@
 
 
 ### 1.4 Enhance Evacuation Zones
-- [ ] Add dose threshold-based contour rendering
-- [ ] Implement zone visualization on globe
-- [ ] Connect to alert notification system
+- [x] Add dose threshold-based contour rendering
+- [x] Implement zone visualization on globe
+- [x] Connect to alert notification system
 
 ## Git Commit Plan
 1. `feat(plume): add WebSocket subscription hook for real-time data`
