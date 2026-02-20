@@ -19,12 +19,15 @@
   - [ ] Add time-slider integration
 
 ### In Progress
-- [ ] Connect weather data sources (NOAA GFS, Open-Meteo) to dispersion calculations
-  - [ ] Update weather.rs with real-time data fetching
-  - [ ] Integrate with dispersion.rs
-
+- [ ] Implement evacuation zone calculations based on dose thresholds
+  - [ ] Update evacuation-zones.tsx component
+  - [ ] Add contour generation for dose thresholds
 
 ### Completed
+- [x] Connect weather data sources (NOAA GFS, Open-Meteo) to dispersion calculations
+  - [x] weather.rs: WeatherDataProvider trait with GfsWeatherProvider, OpenMeteoWeatherProvider, CompositeWeatherProvider
+  - [x] dispersion.rs: LagrangianDispersion with weather_provider integration, new_with_weather() constructor
+
 - [x] Analysis of current codebase state
 - [x] Plan approval
 
