@@ -13,7 +13,7 @@ pub use data_loader::{
     SpectraDataset, SpectraSample, DatasetConfig, DataSource, DataFormat,
     PreprocessingConfig, SourceType, public_datasets
 };
-pub use inference::{InferenceService, OnnxModel, OnnxError, ModelMetadata, BatchRequest, Classification as InferenceClassification};
+pub use inference::{InferenceService, OnnxModel, OnnxError, ModelMetadata, BatchRequest};
 pub use model_registry::{ModelRegistry, ModelVersionInfo, OnnxModelMetadata, PerformanceMetrics, RegistryError};
 pub use onnx_export::{OnnxExporter, ExportConfig, export_model_to_onnx};
 pub use training::{TrainingPipeline, TrainingConfig, TrainingResult, ModelVersion, run_training_job};
