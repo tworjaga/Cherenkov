@@ -50,7 +50,8 @@ describe('Search', () => {
   });
 
   it('applies custom className', () => {
-    render(<Search className="custom-search" />);
-    expect(screen.getByPlaceholderText('Search...').parentElement).toHaveClass('custom-search');
+    const { container } = render(<Search className="custom-search" />);
+    expect(container.firstChild).toHaveClass('custom-search');
   });
+
 });

@@ -37,13 +37,14 @@ describe('LayerToggles', () => {
   it('reflects correct toggle states from store', () => {
     render(<LayerToggles />);
 
-    const switches = screen.getAllByRole('button', { name: /toggle/i });
+    const switches = screen.getAllByRole('switch');
     expect(switches[0]).toHaveAttribute('aria-checked', 'true'); // sensors: true
     expect(switches[1]).toHaveAttribute('aria-checked', 'false'); // facilities: false
     expect(switches[2]).toHaveAttribute('aria-checked', 'true'); // anomalies: true
     expect(switches[3]).toHaveAttribute('aria-checked', 'false'); // plumes: false
     expect(switches[4]).toHaveAttribute('aria-checked', 'false'); // heatmap: false
   });
+
 
 
 

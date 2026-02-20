@@ -50,10 +50,10 @@ describe('SensorList', () => {
 
   it('displays sensor readings', () => {
     render(<SensorList {...defaultProps} />);
-    expect(screen.getByText('0.150')).toBeInTheDocument();
-    expect(screen.getByText('0.450')).toBeInTheDocument();
-    expect(screen.getAllByText('μSv/h').length).toBe(2);
+    expect(screen.getByText('0.150 μSv/h')).toBeInTheDocument();
+    expect(screen.getByText('0.450 μSv/h')).toBeInTheDocument();
   });
+
 
 
 
@@ -64,11 +64,18 @@ describe('SensorList', () => {
     expect(defaultProps.onSensorClick).toHaveBeenCalledWith(mockSensors[0]);
   });
 
-  it('shows selected state when sensor is clicked', () => {
+  it('shows selected state when sensor is clicked', async () => {
     render(<SensorList {...defaultProps} />);
     const tokyoElement = screen.getByTestId('sensor-item-sensor-1');
     fireEvent.click(tokyoElement);
-    expect(tokyoElement).toHaveClass('border-accent-primary');
+    // Re-query element after React re-render to get updated classes
+    const updatedElement = screen.getByTestId('sensor-item-sensor-1');
+    expect(updatedElement).toHaveClass('border-accent-primary');
+    expect(updatedElement).toHaveClass('bg-accent-primary/5');
   });
+
+
+
+
 
 });
