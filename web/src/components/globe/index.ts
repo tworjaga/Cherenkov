@@ -1,4 +1,5 @@
 export { Globe } from './globe';
+export { GlobeLazy } from './globe-lazy';
 export { GlobeContainer } from './globe-container';
 export { GlobeProvider, useGlobeContext } from './globe-provider';
 export * from './layers';

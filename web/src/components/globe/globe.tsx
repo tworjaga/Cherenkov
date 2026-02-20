@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, memo } from 'react';
+
 import { DeckGL } from '@deck.gl/react';
 import { ScatterplotLayer } from '@deck.gl/layers';
 import { HeatmapLayer } from '@deck.gl/aggregation-layers';
@@ -51,7 +52,8 @@ const DEFAULT_LAYERS = {
   heatmap: false,
 };
 
-export const Globe = ({ 
+export const Globe = memo(({ 
+
   sensors = [], 
   facilities: _facilities = [], 
   anomalies = [], 
@@ -249,4 +251,6 @@ export const Globe = ({
       </div>
     </div>
   );
-};
+});
+
+Globe.displayName = 'Globe';
