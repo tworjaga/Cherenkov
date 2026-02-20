@@ -32,13 +32,20 @@ pub enum ExportError {
 /// Result type for export operations
 pub type ExportResult<T> = Result<T, ExportError>;
 
+/// Dynamic axis configuration for ONNX export
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DynamicAxis {
+    pub name: String,
+    pub dimensions: Vec<Option<i64>>,
+}
+
 /// Export configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ExportConfig {
     pub opset_version: i64,
     pub input_names: Vec<String>,
     pub output_names: Vec<String>,
-    pub dynamic_axes: Option<Vec<(String, Vec<Option<i64>>>>,
+    pub dynamic_axes: Option<Vec<DynamicAxis>>,
     pub metadata: Option<ModelMetadata>,
     pub optimize: bool,
     pub validate: bool,
