@@ -11,13 +11,13 @@
 
 ### 1.2 Update Plume Visualization Component
 - [x] Integrate live simulation data fetching
-- [ ] Add simulation controls (play/pause/reset)
-- [ ] Implement time slider for animation
-- [ ] Connect evacuation zones overlay
+- [x] Add simulation controls (play/pause/reset)
+- [x] Implement time slider for animation
+- [x] Connect evacuation zones overlay
 
 
 ### 1.3 Create Plume Simulation API Integration
-- [ ] Add GraphQL queries for simulation requests
+- [x] Add GraphQL queries for simulation requests
 - [x] Implement WebSocket subscription for updates
 - [x] Add simulation state management
 

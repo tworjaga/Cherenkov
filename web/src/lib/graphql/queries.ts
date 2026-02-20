@@ -73,3 +73,105 @@ export const GET_GLOBAL_STATUS = gql`
     }
   }
 `;
+
+export const RUN_PLUME_SIMULATION = gql`
+  query RunPlumeSimulation($input: PlumeSimulationInput!) {
+    runPlumeSimulation(input: $input) {
+      id
+      status
+      particles {
+        id
+        latitude
+        longitude
+        altitude
+        concentration
+        timestamp
+      }
+      evacuationZones {
+        id
+        level
+        boundary {
+          latitude
+          longitude
+        }
+        maxDoseRate
+        timeToEvacuate
+      }
+      weatherConditions {
+        windSpeed
+        windDirection
+        temperature
+        pressure
+        stabilityClass
+      }
+      createdAt
+      completedAt
+    }
+  }
+`;
+
+export const GET_PLUME_SIMULATION = gql`
+  query PlumeSimulation($id: ID!) {
+    plumeSimulation(id: $id) {
+      id
+      status
+      particles {
+        id
+        latitude
+        longitude
+        altitude
+        concentration
+        timestamp
+      }
+      evacuationZones {
+        id
+        level
+        boundary {
+          latitude
+          longitude
+        }
+        maxDoseRate
+        timeToEvacuate
+      }
+      weatherConditions {
+        windSpeed
+        windDirection
+        temperature
+        pressure
+        stabilityClass
+      }
+      createdAt
+      completedAt
+    }
+  }
+`;
+
+export const GET_EVACUATION_ZONES = gql`
+  query EvacuationZones($simulationId: ID!) {
+    evacuationZones(simulationId: $simulationId) {
+      id
+      level
+      boundary {
+        latitude
+        longitude
+      }
+      maxDoseRate
+      timeToEvacuate
+      populationAffected
+    }
+  }
+`;
+
+export const GET_WEATHER_FOR_LOCATION = gql`
+  query WeatherForLocation($latitude: Float!, $longitude: Float!, $timestamp: Timestamp) {
+    weatherForLocation(latitude: $latitude, longitude: $longitude, timestamp: $timestamp) {
+      windSpeed
+      windDirection
+      temperature
+      pressure
+      humidity
+      stabilityClass
+      timestamp
+    }
+  }
+`;
