@@ -20,7 +20,6 @@ export {
 
 export { usePlumeSimulation } from './use-plume-simulation';
 export type {
-  PlumeParticle,
-  SimulationParams,
-  SimulationState,
+  PlumeSimulationState,
+  PlumeSimulationControls,
 } from './use-plume-simulation';

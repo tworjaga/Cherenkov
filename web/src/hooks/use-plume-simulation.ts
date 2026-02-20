@@ -1,209 +1,169 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { getWsClient } from '@/lib/graphql/client';
-import { PLUME_PARTICLES } from '@/lib/graphql/subscriptions';
+import { useState, useCallback, useRef, useEffect } from 'react';
 
-
-export interface PlumeParticle {
-  id: string;
-  x: number;
-  y: number;
-  z: number;
-  concentration: number;
-  timestamp: number;
-}
-
-export interface PlumeParticleBatch {
-  simulationId: string;
-  particles: PlumeParticle[];
-  timestamp: number;
-}
-
-
-export interface SimulationParams {
-  releaseLat: number;
-  releaseLng: number;
-  releaseHeight: number;
-  releaseRate: number;
-  duration: number;
-  isotope: string;
-  windSpeed: number;
-  windDirection: number;
-  stabilityClass: 'A' | 'B' | 'C' | 'D' | 'E' | 'F';
-}
-
-export interface SimulationState {
-  particles: PlumeParticle[];
+export interface PlumeSimulationState {
+  isPlaying: boolean;
   currentTime: number;
-  maxTime: number;
-  isRunning: boolean;
+  duration: number;
   progress: number;
-  simulationId: string | null;
+  speed: number;
+  isLooping: boolean;
 }
 
+export interface PlumeSimulationControls {
+  play: () => void;
+  pause: () => void;
+  reset: () => void;
+  seekToTime: (time: number) => void;
+  seekToProgress: (progress: number) => void;
+  setSpeed: (speed: number) => void;
+  toggleLoop: () => void;
+  setDuration: (duration: number) => void;
+}
 
-export function usePlumeSimulation() {
-  const [state, setState] = useState<SimulationState>({
-    particles: [],
+export function usePlumeSimulation(
+  initialDuration: number = 3600000
+): [PlumeSimulationState, PlumeSimulationControls] {
+  const [state, setState] = useState<PlumeSimulationState>({
+    isPlaying: false,
     currentTime: 0,
-    maxTime: 24,
-    isRunning: false,
+    duration: initialDuration,
     progress: 0,
-    simulationId: null,
+    speed: 1,
+    isLooping: false,
   });
 
+  const animationRef = useRef<number | null>(null);
+  const lastTimeRef = useRef<number>(0);
 
-  const [params, setParams] = useState<SimulationParams>({
-    releaseLat: 0,
-    releaseLng: 0,
-    releaseHeight: 0,
-    releaseRate: 1000,
-    duration: 24,
-    isotope: 'Cs-137',
-    windSpeed: 5,
-    windDirection: 0,
-    stabilityClass: 'D',
-  });
+  const play = useCallback(() => {
+    setState((prev) => ({ ...prev, isPlaying: true }));
+    lastTimeRef.current = performance.now();
+  }, []);
 
-  const [connected, setConnected] = useState(false);
-  const unsubscribeRef = useRef<(() => void) | null>(null);
-
-  const startSimulation = useCallback(() => {
-    const client = getWsClient();
-    const simulationId = `sim-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-
-    setState((prev) => ({ ...prev, simulationId }));
-
-    const unsubscribe = client.subscribe(
-      {
-        query: PLUME_PARTICLES,
-        variables: {
-          simulationId,
-          batchSize: 100,
-        },
-      },
-      {
-        next: (data) => {
-          setConnected(true);
-          if (data.data?.plumeParticles) {
-            const batch = data.data.plumeParticles as PlumeParticleBatch;
-            setState((prev) => ({
-              ...prev,
-              particles: [...prev.particles, ...batch.particles],
-              currentTime: batch.timestamp,
-              progress: (batch.timestamp / params.duration) * 100,
-            }));
-          }
-        },
-        error: (err) => {
-          console.error('Plume simulation error:', err);
-          setConnected(false);
-        },
-        complete: () => {
-          setConnected(false);
-        },
-      }
-    );
-
-    unsubscribeRef.current = unsubscribe;
-
-    // Send start command via mutation
-    client.subscribe(
-      {
-        query: `
-          mutation {
-            startPlumeSimulation(
-              releaseLat: ${params.releaseLat}
-              releaseLng: ${params.releaseLng}
-              releaseHeight: ${params.releaseHeight}
-              releaseRate: ${params.releaseRate}
-              duration: ${params.duration}
-              isotope: "${params.isotope}"
-              windSpeed: ${params.windSpeed}
-              windDirection: ${params.windDirection}
-              stabilityClass: "${params.stabilityClass}"
-            )
-          }
-        `,
-      },
-      {
-        next: () => {
-          setState((prev) => ({ ...prev, isRunning: true, currentTime: 0 }));
-        },
-        error: (err) => {
-          console.error('Failed to start simulation:', err);
-        },
-        complete: () => {},
-      }
-    );
-  }, [params]);
-
-
-  const stopSimulation = useCallback(() => {
-    const client = getWsClient();
-    
-    client.subscribe(
-      {
-        query: `
-          mutation {
-            stopPlumeSimulation
-          }
-        `,
-      },
-      {
-        next: () => {
-          setState((prev) => ({ ...prev, isRunning: false }));
-        },
-        error: (err) => {
-          console.error('Failed to stop simulation:', err);
-        },
-        complete: () => {},
-      }
-    );
-
-    if (unsubscribeRef.current) {
-      unsubscribeRef.current();
-      unsubscribeRef.current = null;
+  const pause = useCallback(() => {
+    setState((prev) => ({ ...prev, isPlaying: false }));
+    if (animationRef.current) {
+      cancelAnimationFrame(animationRef.current);
     }
   }, []);
 
-  const resetSimulation = useCallback(() => {
-    setState({
-      particles: [],
+  const reset = useCallback(() => {
+    setState((prev) => ({
+      ...prev,
       currentTime: 0,
-      maxTime: params.duration,
-      isRunning: false,
       progress: 0,
-      simulationId: null,
-    });
-    
-    if (unsubscribeRef.current) {
-      unsubscribeRef.current();
-      unsubscribeRef.current = null;
+      isPlaying: false,
+    }));
+    if (animationRef.current) {
+      cancelAnimationFrame(animationRef.current);
     }
-  }, [params.duration]);
+  }, []);
 
+  const seekToTime = useCallback((time: number) => {
+    setState((prev) => {
+      const clampedTime = Math.max(0, Math.min(time, prev.duration));
+      return {
+        ...prev,
+        currentTime: clampedTime,
+        progress: (clampedTime / prev.duration) * 100,
+      };
+    });
+  }, []);
 
-  const updateParams = useCallback((newParams: Partial<SimulationParams>) => {
-    setParams((prev) => ({ ...prev, ...newParams }));
+  const seekToProgress = useCallback((progress: number) => {
+    setState((prev) => {
+      const clampedProgress = Math.max(0, Math.min(progress, 100));
+      return {
+        ...prev,
+        progress: clampedProgress,
+        currentTime: (clampedProgress / 100) * prev.duration,
+      };
+    });
+  }, []);
+
+  const setSpeed = useCallback((speed: number) => {
+    setState((prev) => ({ ...prev, speed: Math.max(0.1, Math.min(speed, 10)) }));
+  }, []);
+
+  const toggleLoop = useCallback(() => {
+    setState((prev) => ({ ...prev, isLooping: !prev.isLooping }));
+  }, []);
+
+  const setDuration = useCallback((duration: number) => {
+    setState((prev) => ({
+      ...prev,
+      duration: Math.max(60000, duration),
+      currentTime: Math.min(prev.currentTime, duration),
+      progress: Math.min(prev.progress, 100),
+    }));
   }, []);
 
   useEffect(() => {
-    return () => {
-      if (unsubscribeRef.current) {
-        unsubscribeRef.current();
+    if (!state.isPlaying) {
+      return;
+    }
+
+    const animate = (currentTime: number) => {
+      const deltaTime = currentTime - lastTimeRef.current;
+      lastTimeRef.current = currentTime;
+
+      setState((prev) => {
+        const timeIncrement = deltaTime * prev.speed;
+        let newTime = prev.currentTime + timeIncrement;
+        let newProgress = (newTime / prev.duration) * 100;
+
+        if (newTime >= prev.duration) {
+          if (prev.isLooping) {
+            newTime = 0;
+            newProgress = 0;
+          } else {
+            newTime = prev.duration;
+            newProgress = 100;
+            return {
+              ...prev,
+              currentTime: newTime,
+              progress: newProgress,
+              isPlaying: false,
+            };
+          }
+        }
+
+        return {
+          ...prev,
+          currentTime: newTime,
+          progress: newProgress,
+        };
+      });
+
+      if (state.isPlaying) {
+        animationRef.current = requestAnimationFrame(animate);
       }
     };
-  }, []);
 
-  return {
+    animationRef.current = requestAnimationFrame(animate);
+
+    return () => {
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+    };
+  }, [state.isPlaying, state.speed, state.isLooping, state.duration]);
+
+  return [
     state,
-    params,
-    connected,
-    startSimulation,
-    stopSimulation,
-    resetSimulation,
-    updateParams,
-  };
+    {
+      play,
+      pause,
+      reset,
+      seekToTime,
+      seekToProgress,
+      setSpeed,
+      toggleLoop,
+      setDuration,
+    },
+  ];
 }
+
+export default usePlumeSimulation;
