@@ -35,17 +35,23 @@ export function PlumeLayer({
   }, [state.particles, timeRange]);
 
   // Prepare heatmap data from particle concentrations
+  // Note: x, y are in meters from release point, need to convert to lat/lng for visualization
   const heatmapData = useMemo(() => {
     return filteredData.map((particle: PlumeParticle) => ({
-      position: [particle.lng, particle.lat] as [number, number],
+      // Convert local coordinates (meters) to approximate lat/lng offset
+      // 1 degree latitude ≈ 111km, 1 degree longitude varies by latitude
+      position: [
+        particle.x / 111000, 
+        particle.y / 111000
+      ] as [number, number],
       weight: particle.concentration,
     }));
   }, [filteredData]);
 
-  // Calculate color based on dose rate (higher = more red)
+  // Calculate color based on concentration (higher = more red)
   const getFillColor = (d: PlumeParticle): [number, number, number, number] => {
-    // Color by dose rate (yellow to red scale)
-    const intensity = Math.min(d.doseRate / 100, 1);
+    // Color by concentration (yellow to red scale)
+    const intensity = Math.min(d.concentration / 1000, 1);
     return [
       255, 
       Math.round(255 - intensity * 155), 
@@ -82,7 +88,12 @@ export function PlumeLayer({
       id: 'plume-particles-layer',
       data: filteredData,
       visible: visible && state.isRunning,
-      getPosition: (d: PlumeParticle) => [d.lng, d.lat, d.altitude],
+      // x, y, z are in meters from release point
+      getPosition: (d: PlumeParticle) => [
+        d.x / 111000,  // Convert to approximate degrees
+        d.y / 111000, 
+        d.z
+      ],
       getRadius: (d: PlumeParticle) => Math.max(50, d.concentration * 10),
       getFillColor,
       getLineColor: () => [255, 200, 50, 200],

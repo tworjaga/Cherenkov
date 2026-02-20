@@ -2,17 +2,24 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { getWsClient } from '@/lib/graphql/client';
+import { PLUME_PARTICLES } from '@/lib/graphql/subscriptions';
+
 
 export interface PlumeParticle {
   id: string;
-  lat: number;
-  lng: number;
-  altitude: number;
+  x: number;
+  y: number;
+  z: number;
   concentration: number;
-  doseRate: number;
   timestamp: number;
-  isotope: string;
 }
+
+export interface PlumeParticleBatch {
+  simulationId: string;
+  particles: PlumeParticle[];
+  timestamp: number;
+}
+
 
 export interface SimulationParams {
   releaseLat: number;
@@ -32,7 +39,9 @@ export interface SimulationState {
   maxTime: number;
   isRunning: boolean;
   progress: number;
+  simulationId: string | null;
 }
+
 
 export function usePlumeSimulation() {
   const [state, setState] = useState<SimulationState>({
@@ -41,7 +50,9 @@ export function usePlumeSimulation() {
     maxTime: 24,
     isRunning: false,
     progress: 0,
+    simulationId: null,
   });
+
 
   const [params, setParams] = useState<SimulationParams>({
     releaseLat: 0,
@@ -60,44 +71,31 @@ export function usePlumeSimulation() {
 
   const startSimulation = useCallback(() => {
     const client = getWsClient();
+    const simulationId = `sim-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+    setState((prev) => ({ ...prev, simulationId }));
 
     const unsubscribe = client.subscribe(
       {
-        query: `
-          subscription {
-            plumeSimulation {
-              particles {
-                id
-                lat
-                lng
-                altitude
-                concentration
-                doseRate
-                timestamp
-                isotope
-              }
-              currentTime
-              maxTime
-              isRunning
-            }
-          }
-        `,
+        query: PLUME_PARTICLES,
+        variables: {
+          simulationId,
+          batchSize: 100,
+        },
       },
       {
         next: (data) => {
           setConnected(true);
-          if (data.data?.plumeSimulation) {
-            const sim = data.data.plumeSimulation as SimulationState & { particles: PlumeParticle[] };
-            setState({
-              particles: sim.particles,
-              currentTime: sim.currentTime,
-              maxTime: sim.maxTime,
-              isRunning: sim.isRunning,
-              progress: (sim.currentTime / sim.maxTime) * 100,
-            });
+          if (data.data?.plumeParticles) {
+            const batch = data.data.plumeParticles as PlumeParticleBatch;
+            setState((prev) => ({
+              ...prev,
+              particles: [...prev.particles, ...batch.particles],
+              currentTime: batch.timestamp,
+              progress: (batch.timestamp / params.duration) * 100,
+            }));
           }
         },
-
         error: (err) => {
           console.error('Plume simulation error:', err);
           setConnected(false);
@@ -141,6 +139,7 @@ export function usePlumeSimulation() {
     );
   }, [params]);
 
+
   const stopSimulation = useCallback(() => {
     const client = getWsClient();
     
@@ -176,6 +175,7 @@ export function usePlumeSimulation() {
       maxTime: params.duration,
       isRunning: false,
       progress: 0,
+      simulationId: null,
     });
     
     if (unsubscribeRef.current) {
@@ -183,6 +183,7 @@ export function usePlumeSimulation() {
       unsubscribeRef.current = null;
     }
   }, [params.duration]);
+
 
   const updateParams = useCallback((newParams: Partial<SimulationParams>) => {
     setParams((prev) => ({ ...prev, ...newParams }));
