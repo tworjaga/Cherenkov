@@ -44,10 +44,28 @@
 
 
 ## Phase 2: ML-based Anomaly Classification
-- [ ] Fix ONNX model loading (update to current candle-onnx API)
-- [ ] Implement training pipeline for radiation anomaly detection
-- [ ] Add model versioning and hot-swapping
-- [ ] Integrate classification results into anomaly detection workflow
+
+### Completed
+- [x] Fix ONNX model loading (update to current candle-onnx API)
+  - [x] inference.rs: OnnxModel using candle-onnx 0.3 with ModelProto::from_file()
+  - [x] Proper input/output name extraction from graph
+  - [x] Device parameter threading through load path
+
+- [x] Implement training pipeline for radiation anomaly detection
+  - [x] training.rs: TrainingPipeline with TrainingConfig, LrScheduler, AugmentationConfig
+  - [x] Checkpointing with resume capability
+  - [x] Per-class accuracy and confusion matrix calculation
+
+- [x] Add model versioning and hot-swapping
+  - [x] ModelVersion struct with metadata (git commit, tags, metrics)
+  - [x] hot_swap_model() in InferenceService for zero-downtime updates
+  - [x] ModelManager with rollback capability
+
+- [x] Integrate classification results into anomaly detection workflow
+  - [x] integration.rs: MlAnomalyIntegration with process_reading() and process_batch()
+  - [x] RecommendedAction enum (Monitor, Investigate, Alert, Evacuate, Critical)
+  - [x] TrainingScheduler for automated retraining
+
 
 ## Phase 3: Alert Notification System
 - [ ] Implement email notification service using SMTP
