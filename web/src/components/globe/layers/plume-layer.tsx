@@ -19,6 +19,7 @@ interface PlumeLayerProps {
   onClick?: (info: { object: PlumeParticle | null; x: number; y: number }) => void;
   showHeatmap?: boolean;
   showParticles?: boolean;
+  particles?: PlumeParticle[];
 }
 
 export function PlumeLayer({ 
@@ -26,23 +27,22 @@ export function PlumeLayer({
   onClick,
   showHeatmap = true,
   showParticles = true,
+  particles = [],
 }: PlumeLayerProps): (ScatterplotLayer<PlumeParticle> | HeatmapLayer<{ position: [number, number]; weight: number }>)[] {
   const { timeRange } = useGlobeStore();
   
   // Use real-time simulation data from WebSocket
   const [simState] = usePlumeSimulation();
 
-
   // Filter particles by time range if set
   const filteredData = useMemo(() => {
-    if (!timeRange || !simState.particles.length) return simState.particles;
+    if (!timeRange || !particles.length) return particles;
     
-    return simState.particles.filter((particle: PlumeParticle) => {
+    return particles.filter((particle: PlumeParticle) => {
       const timestamp = particle.timestamp;
       return timestamp >= timeRange[0] && timestamp <= timeRange[1];
     });
-  }, [simState.particles, timeRange]);
-
+  }, [particles, timeRange]);
 
   // Prepare heatmap data from particle concentrations
   // Note: x, y are in meters from release point, need to convert to lat/lng for visualization
