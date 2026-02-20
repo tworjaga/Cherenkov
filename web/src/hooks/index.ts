@@ -17,3 +17,10 @@ export {
   useGlobalStatus,
   useAcknowledgeAlert,
 } from './use-graphql';
+
+export { usePlumeSimulation } from './use-plume-simulation';
+export type {
+  PlumeParticle,
+  SimulationParams,
+  SimulationState,
+} from './use-plume-simulation';
