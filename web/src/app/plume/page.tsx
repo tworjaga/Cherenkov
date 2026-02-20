@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { EvacuationZones } from '@/components/plume/evacuation-zones';
-import { PlumeVisualization } from '@/components/plume/plume-visualization';
+import { PlumeVisualization, PlumePoint } from '@/components/plume/plume-visualization';
 import { useToast } from '@/components/ui/toast';
 import { 
   Wind, 
@@ -45,15 +45,6 @@ interface WeatherData {
   humidity: number;
   stabilityClass: string;
   timestamp: string;
-}
-
-interface PlumeData {
-  id: string;
-  coordinates: [number, number];
-  radius: number;
-  concentration: number;
-  timestamp: Date;
-  doseRate: number;
 }
 
 const ISOTOPES = [
@@ -100,7 +91,7 @@ export default function PlumePage() {
     timestamp: new Date().toISOString(),
   });
 
-  const [plumeData, setPlumeData] = useState<PlumeData[]>([]);
+  const [plumeData, setPlumeData] = useState<PlumePoint[]>([]);
   const [activeTab, setActiveTab] = useState('simulation');
 
   // Fetch NOAA GFS weather data
@@ -123,7 +114,7 @@ export default function PlumePage() {
         addToast({
           title: 'Weather Data Updated',
           description: 'NOAA GFS data loaded successfully',
-          variant: 'success',
+          variant: 'default',
         });
       } else {
         // Simulate weather variations for demo
@@ -139,14 +130,14 @@ export default function PlumePage() {
       addToast({
         title: 'Weather Data Error',
         description: 'Failed to fetch NOAA GFS data',
-        variant: 'error',
+        variant: 'destructive',
       });
     }
   }, [releaseParams.latitude, releaseParams.longitude, addToast]);
 
   // Calculate Gaussian plume dispersion
-  const calculatePlumeDispersion = useCallback((timeHours: number): PlumeData[] => {
-    const data: PlumeData[] = [];
+  const calculatePlumeDispersion = useCallback((timeHours: number): PlumePoint[] => {
+    const data: PlumePoint[] = [];
     const { windSpeed, windDirection } = weatherData;
     const { releaseRate, isotope, stabilityClass } = releaseParams;
     
@@ -190,11 +181,9 @@ export default function PlumePage() {
       const lonOffset = (x * Math.sin(windRad)) / (111000 * Math.cos(releaseParams.latitude * Math.PI / 180));
       
       data.push({
-        id: `plume-${i}`,
-        coordinates: [releaseParams.longitude + lonOffset, releaseParams.latitude + latOffset],
-        radius: Math.max(100, sigmaY * 2),
+        lat: releaseParams.latitude + latOffset,
+        lng: releaseParams.longitude + lonOffset,
         concentration: Math.max(0, concentration),
-        timestamp: new Date(Date.now() + timeHours * 3600000),
         doseRate: Math.max(0, doseRate),
       });
     }
@@ -234,7 +223,7 @@ export default function PlumePage() {
     addToast({
       title: 'Simulation Started',
       description: `Running ${maxSimulationTime}h dispersion model`,
-      variant: 'info',
+      variant: 'default',
     });
   };
 
@@ -270,7 +259,7 @@ export default function PlumePage() {
     addToast({
       title: 'Data Exported',
       description: 'Simulation data saved to file',
-      variant: 'success',
+      variant: 'default',
     });
   };
 
@@ -568,9 +557,18 @@ export default function PlumePage() {
             <CardContent className="h-[500px]">
               <PlumeVisualization 
                 plumeData={plumeData}
-                releasePoint={[releaseParams.longitude, releaseParams.latitude]}
-                windDirection={weatherData.windDirection}
-                simulationTime={simulationTime}
+                simulationData={{
+                  center: [releaseParams.longitude, releaseParams.latitude],
+                  radius: 1000,
+                  concentration: plumeData.map(p => p.concentration),
+                  windDirection: weatherData.windDirection,
+                  windSpeed: weatherData.windSpeed,
+                  stabilityClass: releaseParams.stabilityClass,
+                  timeStep: simulationTime,
+                  maxTime: maxSimulationTime,
+                }}
+                isAnimating={isSimulating}
+                currentTime={simulationTime}
               />
             </CardContent>
           </Card>
@@ -594,8 +592,7 @@ export default function PlumePage() {
                       <div className="w-3 h-3 rounded-full bg-red-500" />
                       <span className="font-semibold">Immediate Evacuation</span>
                     </div>
-                    <span className="text-red-600 dark:text-red-400 font-bold">> 50 mSv/h</span>
-
+                    <span className="text-red-600 dark:text-red-400 font-bold">{'>'} 50 mSv/h</span>
                   </div>
                   
                   <div className="flex items-center justify-between p-3 bg-orange-50 dark:bg-orange-950 rounded-lg">
