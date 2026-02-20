@@ -1,79 +1,226 @@
-use candle_core::{Device, Tensor, DType};
+use candle_core::{Device, Tensor, DType, Shape};
 use candle_onnx::onnx;
 use std::sync::Arc;
 use std::collections::HashMap;
 use tokio::sync::RwLock;
 use tracing::{info, warn, error};
 use std::time::Instant;
+use thiserror::Error;
 
 use crate::{Classification, IsotopePrediction, Spectrum};
 
-/// ONNX model wrapper for isotope classification
+/// ONNX model loading and inference errors
+#[derive(Error, Debug)]
+pub enum OnnxError {
+    #[error("Failed to read model file: {0}")]
+    FileRead(#[source] std::io::Error),
+    
+    #[error("Failed to parse ONNX model: {0}")]
+    ParseError(#[source] prost::DecodeError),
+    
+    #[error("Model has no graph")]
+    MissingGraph,
+    
+    #[error("Model has no inputs")]
+    MissingInputs,
+    
+    #[error("Model has no outputs")]
+    MissingOutputs,
+    
+    #[error("Unsupported ONNX opset version: {0}. Supported: {1}")]
+    UnsupportedOpset(i64, String),
+    
+    #[error("Input shape mismatch: expected {expected:?}, got {actual:?}")]
+    InputShapeMismatch { expected: Vec<usize>, actual: Vec<usize> },
+    
+    #[error("Input name not found: {0}")]
+    InputNotFound(String),
+    
+    #[error("Inference failed: {0}")]
+    InferenceFailed(#[source] candle_core::Error),
+    
+    #[error("No output tensor found")]
+    NoOutput,
+    
+    #[error("Model validation failed: {0}")]
+    ValidationFailed(String),
+}
+
+/// ONNX model metadata for validation
+#[derive(Debug, Clone)]
+pub struct ModelMetadata {
+    pub input_names: Vec<String>,
+    pub output_names: Vec<String>,
+    pub input_shapes: Vec<Vec<usize>>,
+    pub output_shapes: Vec<Vec<usize>>,
+    pub opset_version: i64,
+    pub producer_name: String,
+    pub producer_version: String,
+}
+
+/// ONNX model wrapper for isotope classification with validation
 pub struct OnnxModel {
     model: onnx::ModelProto,
     device: Device,
     input_name: String,
     output_name: String,
+    metadata: ModelMetadata,
 }
 
 impl OnnxModel {
-    pub fn load(path: &str, device: &Device) -> anyhow::Result<Self> {
+    /// Load and validate an ONNX model from file
+    pub fn load(path: &str, device: &Device) -> Result<Self, OnnxError> {
         info!("Loading ONNX model from: {}", path);
         
-        // Read model bytes from file
         let model_bytes = std::fs::read(path)
-            .map_err(|e| {
-                error!("Failed to read ONNX model file: {}", e);
-                anyhow::anyhow!("File read error: {}", e)
-            })?;
+            .map_err(OnnxError::FileRead)?;
         
-        // Parse the model using prost
         let model = onnx::ModelProto::decode(&*model_bytes)
-            .map_err(|e| {
-                error!("Failed to parse ONNX model: {}", e);
-                anyhow::anyhow!("ONNX parse error: {}", e)
-            })?;
+            .map_err(OnnxError::ParseError)?;
         
-        // Extract input/output names from model graph
-        let graph = model.graph.as_ref()
-            .ok_or_else(|| anyhow::anyhow!("Model has no graph"))?;
+        let metadata = Self::extract_metadata(&model)?;
         
-        let input_name = graph.input.first()
-            .and_then(|i| i.name.clone())
-            .unwrap_or_else(|| "input".to_string());
+        // Validate opset version (support 7-21)
+        if metadata.opset_version < 7 || metadata.opset_version > 21 {
+            return Err(OnnxError::UnsupportedOpset(
+                metadata.opset_version,
+                "7-21".to_string()
+            ));
+        }
         
-        let output_name = graph.output.first()
-            .and_then(|o| o.name.clone())
-            .unwrap_or_else(|| "output".to_string());
+        info!(
+            "ONNX model loaded - producer: {} {}, opset: {}, inputs: {:?}, outputs: {:?}",
+            metadata.producer_name,
+            metadata.producer_version,
+            metadata.opset_version,
+            metadata.input_names,
+            metadata.output_names
+        );
         
-        info!("ONNX model loaded - input: {}, output: {}", input_name, output_name);
+        let input_name = metadata.input_names[0].clone();
+        let output_name = metadata.output_names[0].clone();
         
         Ok(Self {
             model,
             device: device.clone(),
             input_name,
             output_name,
+            metadata,
         })
     }
     
-    pub fn forward(&self, input: &Tensor) -> anyhow::Result<Tensor> {
-        // Create input map for the model
+    /// Extract metadata from model for validation
+    fn extract_metadata(model: &onnx::ModelProto) -> Result<ModelMetadata, OnnxError> {
+        let opset_version = model.opset_import.first()
+            .map(|opset| opset.version)
+            .unwrap_or(0);
+        
+        let graph = model.graph.as_ref()
+            .ok_or(OnnxError::MissingGraph)?;
+        
+        if graph.input.is_empty() {
+            return Err(OnnxError::MissingInputs);
+        }
+        
+        if graph.output.is_empty() {
+            return Err(OnnxError::MissingOutputs);
+        }
+        
+        let input_names: Vec<String> = graph.input.iter()
+            .filter_map(|i| i.name.clone())
+            .collect();
+        
+        let output_names: Vec<String> = graph.output.iter()
+            .filter_map(|o| o.name.clone())
+            .collect();
+        
+        let input_shapes: Vec<Vec<usize>> = graph.input.iter()
+            .map(|i| Self::extract_shape(&i.r#type))
+            .collect();
+        
+        let output_shapes: Vec<Vec<usize>> = graph.output.iter()
+            .map(|o| Self::extract_shape(&o.r#type))
+            .collect();
+        
+        Ok(ModelMetadata {
+            input_names,
+            output_names,
+            input_shapes,
+            output_shapes,
+            opset_version,
+            producer_name: model.producer_name.clone(),
+            producer_version: model.producer_version.clone(),
+        })
+    }
+    
+    /// Extract tensor shape from ONNX type
+    fn extract_shape(tensor_type: &Option<onnx::TypeProto>) -> Vec<usize> {
+        tensor_type.as_ref()
+            .and_then(|t| t.tensor_type.as_ref())
+            .and_then(|tt| tt.shape.as_ref())
+            .map(|s| s.dim.iter()
+                .filter_map(|d| d.dim_value.as_ref())
+                .filter_map(|v| if *v > 0 { Some(*v as usize) } else { None })
+                .collect())
+            .unwrap_or_default()
+    }
+    
+    /// Validate input tensor shape against model requirements
+    pub fn validate_input(&self, input: &Tensor) -> Result<(), OnnxError> {
+        let actual_shape: Vec<usize> = input.dims().iter().map(|&d| d).collect();
+        
+        // Get expected shape (handle dynamic dimensions marked as 0)
+        let expected_shape = &self.metadata.input_shapes[0];
+        
+        // Check rank matches
+        if actual_shape.len() != expected_shape.len() {
+            return Err(OnnxError::InputShapeMismatch {
+                expected: expected_shape.clone(),
+                actual: actual_shape,
+            });
+        }
+        
+        // Check each dimension (0 in expected means dynamic)
+        for (i, (actual, expected)) in actual_shape.iter().zip(expected_shape.iter()).enumerate() {
+            if *expected > 0 && actual != expected {
+                return Err(OnnxError::InputShapeMismatch {
+                    expected: expected_shape.clone(),
+                    actual: actual_shape,
+                });
+            }
+        }
+        
+        Ok(())
+    }
+    
+    /// Run inference with validation
+    pub fn forward(&self, input: &Tensor) -> Result<Tensor, OnnxError> {
+        // Validate input before inference
+        self.validate_input(input)?;
+        
         let mut inputs = HashMap::new();
         inputs.insert(self.input_name.clone(), input.clone());
         
-        // Run inference using candle_onnx::simple_eval
         let outputs = candle_onnx::simple_eval(&self.model, inputs)
-            .map_err(|e| {
-                error!("ONNX inference failed: {}", e);
-                anyhow::anyhow!("Inference error: {}", e)
-            })?;
+            .map_err(OnnxError::InferenceFailed)?;
         
-        // Extract output tensor
         let output = outputs.get(&self.output_name)
             .or_else(|| outputs.values().next())
-            .ok_or_else(|| anyhow::anyhow!("No output tensor found"))?;
+            .ok_or(OnnxError::NoOutput)?;
         
         Ok(output.clone())
+    }
+    
+    /// Get model metadata
+    pub fn metadata(&self) -> &ModelMetadata {
+        &self.metadata
+    }
+    
+    /// Check if model supports batch inference
+    pub fn supports_batch(&self) -> bool {
+        self.metadata.input_shapes.get(0)
+            .map(|shape| shape.first() == Some(&0) || shape.is_empty())
+            .unwrap_or(false)
     }
 }
 

@@ -3,7 +3,7 @@ pub mod integration;
 pub mod isotope;
 pub mod training;
 
-pub use inference::{InferenceService, OnnxModel, BatchRequest, Classification as InferenceClassification};
+pub use inference::{InferenceService, OnnxModel, OnnxError, ModelMetadata, BatchRequest, Classification as InferenceClassification};
 pub use training::{TrainingPipeline, TrainingConfig, TrainingResult, ModelVersion, run_training_job};
 pub use integration::{MlAnomalyIntegration, ModelManager, TrainingScheduler, MlAnomalyResult, RecommendedAction};
 
