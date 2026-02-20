@@ -1,6 +1,3 @@
 {
-  "/globe/page": "app/globe/page.js",
-  "/sensors/page": "app/sensors/page.js",
-  "/(dashboard)/page": "app/(dashboard)/page.js",
-  "/(auth)/login/page": "app/(auth)/login/page.js"
+  "/(dashboard)/page": "app/(dashboard)/page.js"
 }
