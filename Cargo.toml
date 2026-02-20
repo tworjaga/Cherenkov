@@ -46,7 +46,7 @@ rand = "=0.8.5"
 
 # Database
 
-scylla = { version = "0.11", features = ["full-serialization"] }
+scylla = { version = "1.5", features = ["full-serialization"] }
 redis = { version = "0.24", features = ["tokio-comp"] }
 
 # HTTP
