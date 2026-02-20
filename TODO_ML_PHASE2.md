@@ -1,0 +1,39 @@
+# Phase 2: ML-based Anomaly Classification - Implementation Tracking
+
+## Tasks
+
+### 1. Fix ONNX Model Loading
+- [ ] Update candle-onnx dependency to current version
+- [ ] Replace stub OnnxModel with proper implementation
+- [ ] Add model validation and error handling
+- [ ] Test with sample ONNX model
+
+### 2. Training Pipeline Integration
+- [ ] Add ONNX export functionality
+- [ ] Connect to real radiation spectra datasets
+- [ ] Implement model conversion from trained weights
+- [ ] Add training data pipeline
+
+### 3. Model Versioning and Hot-Swapping
+- [ ] Enhance model versioning with ONNX metadata
+- [ ] Implement atomic hot-swapping with rollback
+- [ ] Add performance monitoring
+- [ ] Create model registry
+
+### 4. Anomaly Detection Integration
+- [ ] Connect ML classification to stream pipeline
+- [ ] Add confidence thresholds
+- [ ] Implement classification caching
+- [ ] Add multi-class anomaly detection
+
+### 5. Model Management API
+- [ ] Create REST/GraphQL endpoints
+- [ ] Add model performance metrics
+- [ ] Implement retraining triggers
+- [ ] Add model explainability
+
+## Current Status
+- Phase 1 (Plume Simulation): Complete
+- Phase 2 (ML Classification): In Progress
+- ONNX Model Loading: Stubbed, needs fix
+- Training Pipeline: Implemented, needs real data
