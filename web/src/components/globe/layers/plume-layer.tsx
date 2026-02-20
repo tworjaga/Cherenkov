@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
-import { ScatterplotLayer } from 'deck.gl';
+import { ScatterplotLayer, HeatmapLayer } from 'deck.gl';
 
 import { useGlobeStore } from '@/stores/globe-store';
 import { usePlumeSimulation, PlumeParticle } from '@/hooks/use-plume-simulation';
@@ -9,12 +9,16 @@ import { usePlumeSimulation, PlumeParticle } from '@/hooks/use-plume-simulation'
 interface PlumeLayerProps {
   visible?: boolean;
   onClick?: (info: { object: PlumeParticle | null; x: number; y: number }) => void;
+  showHeatmap?: boolean;
+  showParticles?: boolean;
 }
 
 export function PlumeLayer({ 
   visible = true, 
-  onClick 
-}: PlumeLayerProps): ScatterplotLayer<PlumeParticle> {
+  onClick,
+  showHeatmap = true,
+  showParticles = true,
+}: PlumeLayerProps): (ScatterplotLayer<PlumeParticle> | HeatmapLayer<{ position: [number, number]; weight: number }>)[] {
   const { timeRange } = useGlobeStore();
   
   // Use real-time simulation data from WebSocket
@@ -30,6 +34,14 @@ export function PlumeLayer({
     });
   }, [state.particles, timeRange]);
 
+  // Prepare heatmap data from particle concentrations
+  const heatmapData = useMemo(() => {
+    return filteredData.map((particle: PlumeParticle) => ({
+      position: [particle.lng, particle.lat] as [number, number],
+      weight: particle.concentration,
+    }));
+  }, [filteredData]);
+
   // Calculate color based on dose rate (higher = more red)
   const getFillColor = (d: PlumeParticle): [number, number, number, number] => {
     // Color by dose rate (yellow to red scale)
@@ -42,21 +54,48 @@ export function PlumeLayer({
     ];
   };
 
-  return new ScatterplotLayer({
-    id: 'plume-layer',
-    data: filteredData,
-    visible: visible && state.isRunning,
-    getPosition: (d: PlumeParticle) => [d.lng, d.lat, d.altitude],
-    getRadius: (d: PlumeParticle) => Math.max(50, d.concentration * 10),
-    getFillColor,
-    getLineColor: () => [255, 200, 50, 200],
-    lineWidthMinPixels: 1,
-    stroked: true,
-    filled: true,
-    pickable: true,
-    onClick: onClick as (info: { object: PlumeParticle | null; x: number; y: number }) => void,
-    radiusMinPixels: 3,
-    radiusMaxPixels: 50,
-    billboard: false, // 3D particles
-  });
+  const layers: (ScatterplotLayer<PlumeParticle> | HeatmapLayer<{ position: [number, number]; weight: number }>)[] = [];
+
+  // Add heatmap layer for concentration visualization
+  if (showHeatmap) {
+    layers.push(new HeatmapLayer({
+      id: 'plume-heatmap-layer',
+      data: heatmapData,
+      visible: visible && state.isRunning,
+      getPosition: (d: { position: [number, number] }) => d.position,
+      getWeight: (d: { weight: number }) => d.weight,
+      intensity: 2,
+      radiusPixels: 60,
+      colorRange: [
+        [255, 255, 178],
+        [254, 204, 92],
+        [253, 141, 60],
+        [240, 59, 32],
+        [189, 0, 38],
+      ],
+    }));
+  }
+
+  // Add particle scatterplot layer
+  if (showParticles) {
+    layers.push(new ScatterplotLayer({
+      id: 'plume-particles-layer',
+      data: filteredData,
+      visible: visible && state.isRunning,
+      getPosition: (d: PlumeParticle) => [d.lng, d.lat, d.altitude],
+      getRadius: (d: PlumeParticle) => Math.max(50, d.concentration * 10),
+      getFillColor,
+      getLineColor: () => [255, 200, 50, 200],
+      lineWidthMinPixels: 1,
+      stroked: true,
+      filled: true,
+      pickable: true,
+      onClick: onClick as (info: { object: PlumeParticle | null; x: number; y: number }) => void,
+      radiusMinPixels: 3,
+      radiusMaxPixels: 50,
+      billboard: false, // 3D particles
+    }));
+  }
+
+  return layers;
 }
