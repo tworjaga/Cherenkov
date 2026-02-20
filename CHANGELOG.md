@@ -46,6 +46,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Prometheus/Grafana monitoring stack
 - Jaeger distributed tracing
 
+## [1.1.0] - 2024-01-20
+
+### Added
+- Comprehensive test suite with 100% pass rate
+- 253 unit tests (Vitest) covering components, hooks, utilities, stores
+- 100 E2E tests (Playwright) across 5 browsers (Chromium, Firefox, WebKit, Mobile Chrome, Mobile Safari)
+- Mock API server for isolated frontend testing
+- Component documentation with Storybook (50+ stories)
+- WebSocket reconnection and heartbeat handling
+- DEFCON indicator component with status badges
+- Alert feed with filtering and real-time updates
+- Sensor detail panel with metrics and charts
+- Facility detail panel with information display
+- Regional statistics panel with data visualization
+- Global chart controls for time-series data
+- Recent events panel with timeline
+- Keyboard shortcuts for dashboard navigation
+- Responsive design for mobile and tablet devices
+
+### Changed
+- Updated README.md with comprehensive project documentation
+- Enhanced test coverage for all UI components
+- Improved WebSocket stability with reconnection logic
+- Optimized globe rendering performance
+- Updated data source configurations
+
+### Fixed
+- WebSocket connection stability issues
+- Firefox E2E test timeouts
+- React strict mode violations
+- Component prop type definitions
+- Test environment setup and teardown
+
 ## [0.9.0] - 2024-01-01
 
 ### Added
