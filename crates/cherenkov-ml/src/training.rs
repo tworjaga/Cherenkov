@@ -13,6 +13,8 @@ use chrono::Utc;
 use uuid::Uuid;
 
 use crate::data_loader::{SpectraDataset, DatasetConfig, DataSource, DataFormat, PreprocessingConfig};
+use crate::onnx_export::{OnnxExporter, ExportConfig, ExportReport, ExportError};
+use crate::conversion::{VarMapConverter, ConversionConfig};
 
 /// Learning rate scheduler types
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -930,35 +932,78 @@ impl TrainingPipeline {
         Ok(())
     }
     
-    async fn export_model(&self) -> anyhow::Result<String> {
-        let output_dir = PathBuf::from(&self.config.output_path);
-        fs::create_dir_all(&output_dir)?;
+    /// Export model to ONNX format with full configuration
+    pub async fn export_model(
+        &self,
+        output_path: &Path,
+        export_config: Option<ExportConfig>,
+    ) -> anyhow::Result<ExportReport> {
+        info!("Exporting model to ONNX format: {:?}", output_path);
         
-        // Save SafeTensors format
-        let model_path = output_dir.join("model.safetensors");
-        self.varmap.save(&model_path)?;
+        // Create output directory if needed
+        if let Some(parent) = output_path.parent() {
+            fs::create_dir_all(parent)?;
+        }
         
-        // Save config
-        let config_path = output_dir.join("config.json");
-        let config_json = serde_json::to_string_pretty(&self.config)?;
-        fs::write(&config_path, config_json)?;
+        // Build export configuration
+        let config = export_config.unwrap_or_default();
         
-        // Export to ONNX format
-        let onnx_path = output_dir.join("model.onnx");
+        // Use the OnnxExporter for conversion
+        let exporter = OnnxExporter::with_config(config);
+        
         let input_shape = vec![1, self.config.input_size];
         let output_shape = vec![1, self.config.num_classes];
+        let hidden_layers = self.config.hidden_layers.clone();
         
-        crate::onnx_export::export_model_to_onnx(
+        let report = exporter.export_model(
             &self.varmap,
             &input_shape,
             &output_shape,
-            &onnx_path,
-            &self.config.hidden_layers,
+            output_path,
+            &hidden_layers,
         ).await.map_err(|e| anyhow::anyhow!("ONNX export failed: {}", e))?;
         
-        info!("Model exported to ONNX: {:?}", onnx_path);
+        info!("Model exported successfully to {:?} ({} bytes)", 
+            output_path, report.file_size_bytes);
         
-        Ok(onnx_path.to_string_lossy().to_string())
+        Ok(report)
+    }
+    
+    /// Quick export with default settings
+    pub async fn export_model_default(&self, output_path: &Path) -> anyhow::Result<ExportReport> {
+        self.export_model(output_path, None).await
+    }
+    
+    /// Export and validate model
+    pub async fn export_and_validate(
+        &self,
+        output_path: &Path,
+        test_input: &Tensor,
+    ) -> anyhow::Result<(ExportReport, bool)> {
+        let report = self.export_model_default(output_path).await?;
+        
+        // Validate the exported model
+        let converter = VarMapConverter::new();
+        let validation_result = converter.verify_conversion(
+            &self.convert_varmap_to_tensors()?,
+            test_input,
+            &[1, self.config.num_classes],
+        ).map_err(|e| anyhow::anyhow!("Validation failed: {}", e))?;
+        
+        Ok((report, validation_result))
+    }
+    
+    /// Convert VarMap to tensor map for validation
+    fn convert_varmap_to_tensors(&self) -> anyhow::Result<HashMap<String, Tensor>> {
+        let mut tensor_map = HashMap::new();
+        let all_vars = self.varmap.all_vars();
+        
+        for (name, var) in all_vars {
+            let tensor = var.as_tensor().clone();
+            tensor_map.insert(name, tensor);
+        }
+        
+        Ok(tensor_map)
     }
 
     async fn create_model_version(&self, result: &TrainingResult) -> anyhow::Result<ModelVersion> {

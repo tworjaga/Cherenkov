@@ -29,13 +29,13 @@
 - [x] Commit changes
 
 ## Phase 5: API Integration
-- [ ] Add export_to_onnx() mutation to model_management.rs
-- [ ] Add data source configuration endpoints
-- [ ] Add training job monitoring
-- [ ] Commit changes
+- [x] Add export_to_onnx() mutation to model_management.rs
+- [x] Add data source configuration endpoints
+- [x] Add training job monitoring
+- [x] Commit changes
 
 ## Phase 6: Dependencies and Testing
-- [ ] Update Cargo.toml with new dependencies
-- [ ] Add comprehensive tests
-- [ ] End-to-end integration testing
-- [ ] Commit changes
+- [x] Update Cargo.toml with new dependencies
+- [x] Add comprehensive tests
+- [x] End-to-end integration testing
+- [x] Commit changes

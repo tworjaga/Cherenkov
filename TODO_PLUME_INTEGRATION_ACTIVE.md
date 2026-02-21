@@ -1,10 +1,10 @@
 # Plume Integration - Active Tasks
 
 ## Task List
-- [ ] Add particle streaming subscription
-- [ ] Connect plume-layer.tsx to real data
-- [ ] Add dose threshold contour generation
-- [ ] Integrate with dispersion output
+- [x] Add particle streaming subscription
+- [x] Connect plume-layer.tsx to real data
+- [x] Add dose threshold contour generation
+- [x] Integrate with dispersion output
 
 ## Plan
 1. Add GraphQL subscription for particle streaming in cherenkov-api

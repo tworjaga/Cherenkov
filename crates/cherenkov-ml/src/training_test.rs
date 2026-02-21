@@ -954,4 +954,47 @@ mod tests {
         let d_model = 8;
         
         // Create dummy Q, K, V matrices
-        let q = vec![
+        let q: Vec<Vec<f64>> = (0..seq_len)
+            .map(|i| vec![i as f64; d_model])
+            .collect();
+        let k = q.clone();
+        let v = q.clone();
+        
+        // Compute attention scores (Q @ K^T)
+        let scores: Vec<Vec<f64>> = q.iter().map(|q_i| {
+            k.iter().map(|k_j| {
+                q_i.iter().zip(k_j.iter()).map(|(a, b)| a * b).sum::<f64>()
+            }).collect()
+        }).collect();
+        
+        assert_eq!(scores.len(), seq_len);
+        assert_eq!(scores[0].len(), seq_len);
+        
+        // Apply softmax to get attention weights
+        let softmax = |x: &[f64]| {
+            let max_val = x.iter().cloned().fold(f64::NEG_INFINITY, f64::max);
+            let exp_sum: f64 = x.iter().map(|&v| (v - max_val).exp()).sum();
+            x.iter().map(|&v| (v - max_val).exp() / exp_sum).collect::<Vec<f64>>()
+        };
+        
+        let attention_weights: Vec<Vec<f64>> = scores.iter()
+            .map(|row| softmax(row))
+            .collect();
+        
+        // Verify attention weights sum to 1
+        for row in &attention_weights {
+            let sum: f64 = row.iter().sum();
+            assert!((sum - 1.0).abs() < 1e-6);
+        }
+        
+        // Compute output (attention_weights @ V)
+        let output: Vec<Vec<f64>> = attention_weights.iter().map(|weights| {
+            (0..d_model).map(|j| {
+                weights.iter().enumerate().map(|(i, w)| w * v[i][j]).sum::<f64>()
+            }).collect()
+        }).collect();
+        
+        assert_eq!(output.len(), seq_len);
+        assert_eq!(output[0].len(), d_model);
+    }
+}
