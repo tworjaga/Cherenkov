@@ -1,16 +1,15 @@
 use std::path::{Path, PathBuf};
 use std::collections::HashMap;
-use tracing::{info, debug, warn, error};
-use candle_core::{Device, Tensor, DType};
+use tracing::{info, warn};
+use candle_core::{Device, Tensor};
 use serde::{Serialize, Deserialize};
-use tokio::sync::mpsc;
 use std::fs::File;
-use std::io::{BufRead, BufReader};
+use std::io::{BufReader, Read};
 use csv::ReaderBuilder;
 use reqwest;
-use url::Url;
 use tempfile::NamedTempFile;
 use std::io::Write;
+
 
 /// Radiation spectra data sample
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -49,7 +48,67 @@ pub struct DatasetConfig {
     pub test_split: f64,
     pub cache_dir: Option<String>,
     pub max_samples: Option<usize>,
+    pub quality_config: Option<DataQualityConfig>,
 }
+
+/// Data quality validation configuration
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DataQualityConfig {
+    pub min_counts: Option<f64>,
+    pub max_counts: Option<f64>,
+    pub min_energy_bins: usize,
+    pub max_energy_bins: usize,
+    pub required_fields: Vec<String>,
+    pub outlier_threshold: Option<f64>,
+    pub duplicate_detection: bool,
+}
+
+impl Default for DataQualityConfig {
+    fn default() -> Self {
+        Self {
+            min_counts: Some(0.0),
+            max_counts: None,
+            min_energy_bins: 128,
+            max_energy_bins: 8192,
+            required_fields: vec![
+                "id".to_string(),
+                "energy_bins".to_string(),
+                "counts".to_string(),
+            ],
+            outlier_threshold: Some(3.0),
+            duplicate_detection: true,
+        }
+    }
+}
+
+/// Data quality validation result
+#[derive(Debug, Clone)]
+pub struct QualityReport {
+    pub total_samples: usize,
+    pub valid_samples: usize,
+    pub invalid_samples: usize,
+    pub duplicates_removed: usize,
+    pub outliers_removed: usize,
+    pub errors: Vec<QualityError>,
+}
+
+#[derive(Debug, Clone)]
+pub struct QualityError {
+    pub sample_id: String,
+    pub error_type: ErrorType,
+    pub message: String,
+}
+
+#[derive(Debug, Clone)]
+pub enum ErrorType {
+    MissingField,
+    InvalidRange,
+    WrongDimensions,
+    Duplicate,
+    Outlier,
+    ParseError,
+}
+
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum DataSource {
@@ -112,12 +171,77 @@ pub enum NoiseMethod {
     LowPass,
 }
 
+/// Cloud storage client for S3 operations
+pub struct CloudStorageClient {
+    client: Option<aws_sdk_s3::Client>,
+    region: String,
+}
+
+impl CloudStorageClient {
+    pub async fn new(region: &str) -> Self {
+        let config = aws_config::load_from_env().await;
+        let client = aws_sdk_s3::Client::new(&config);
+        
+        Self {
+            client: Some(client),
+            region: region.to_string(),
+        }
+    }
+    
+    pub async fn download_object(
+        &self,
+        bucket: &str,
+        key: &str,
+    ) -> anyhow::Result<Vec<u8>> {
+        let client = self.client.as_ref()
+            .ok_or_else(|| anyhow::anyhow!("S3 client not initialized"))?;
+        
+        let response = client
+            .get_object()
+            .bucket(bucket)
+            .key(key)
+            .send()
+            .await?;
+        
+        let data = response.body.collect().await?;
+        Ok(data.into_bytes().to_vec())
+    }
+    
+    pub async fn list_objects(
+        &self,
+        bucket: &str,
+        prefix: &str,
+    ) -> anyhow::Result<Vec<String>> {
+        let client = self.client.as_ref()
+            .ok_or_else(|| anyhow::anyhow!("S3 client not initialized"))?;
+        
+        let response = client
+            .list_objects_v2()
+            .bucket(bucket)
+            .prefix(prefix)
+            .send()
+            .await?;
+        
+        let keys: Vec<String> = response.contents()
+            .map(|contents| {
+                contents.iter()
+                    .filter_map(|obj| obj.key().map(|k| k.to_string()))
+                    .collect()
+            })
+            .unwrap_or_default();
+        
+        Ok(keys)
+    }
+}
+
 /// Dataset loader for radiation spectra
 pub struct SpectraDataset {
     config: DatasetConfig,
     samples: Vec<SpectraSample>,
     device: Device,
+    quality_report: Option<QualityReport>,
 }
+
 
 impl SpectraDataset {
     pub async fn load(config: DatasetConfig, device: Device) -> anyhow::Result<Self> {
@@ -127,7 +251,9 @@ impl SpectraDataset {
             config,
             samples: Vec::new(),
             device,
+            quality_report: None,
         };
+
         
         // Clone source to avoid borrow issues
         let source = dataset.config.source.clone();
@@ -234,10 +360,106 @@ impl SpectraDataset {
     async fn load_s3(&mut self, bucket: &str, prefix: &str, region: &str) -> anyhow::Result<()> {
         info!("Loading from S3: s3://{}/{} in region {}", bucket, prefix, region);
         
-        // For now, use HTTP endpoint for S3
-        let url = format!("https://{}.s3.{}.amazonaws.com/{}", bucket, region, prefix);
-        self.load_http(&url).await
+        let client = CloudStorageClient::new(region).await;
+        
+        // List all objects with the given prefix
+        let keys = client.list_objects(bucket, prefix).await?;
+        info!("Found {} objects in S3", keys.len());
+        
+        for key in keys {
+            let data = client.download_object(bucket, &key).await?;
+            
+            // Save to temp file
+            let mut temp_file = NamedTempFile::new()?;
+            temp_file.write_all(&data)?;
+            
+            // Determine format from key extension
+            let format = if key.ends_with(".csv") {
+                DataFormat::Csv
+            } else if key.ends_with(".json") {
+                DataFormat::Json
+            } else if key.ends_with(".h5") || key.ends_with(".hdf5") {
+                DataFormat::Hdf5
+            } else {
+                continue; // Skip unknown formats
+            };
+            
+            match format {
+                DataFormat::Csv => {
+                    self.load_csv(temp_file.path()).await?;
+                }
+                DataFormat::Json => {
+                    self.load_json(temp_file.path()).await?;
+                }
+                DataFormat::Hdf5 => {
+                    self.load_hdf5(temp_file.path()).await?;
+                }
+                _ => {}
+            }
+        }
+        
+        Ok(())
     }
+    
+    async fn load_hdf5(&mut self, path: &Path) -> anyhow::Result<()> {
+        info!("Loading HDF5 from: {}", path.display());
+        
+        #[cfg(feature = "hdf5")]
+        {
+            use hdf5::File as Hdf5File;
+            use ndarray::Array1;
+            
+            let file = Hdf5File::open(path)?;
+            
+            // Try to load spectra dataset
+            if let Ok(dataset) = file.dataset("spectra") {
+                let data: Array1<f64> = dataset.read_1d()?;
+                
+                // Create sample from HDF5 data
+                let sample = SpectraSample {
+                    id: format!("hdf5_{}", self.samples.len()),
+                    timestamp: chrono::Utc::now(),
+                    energy_bins: (0..data.len()).map(|i| i as f64).collect(),
+                    counts: data.to_vec(),
+                    count_rate: 0.0,
+                    total_counts: data.sum(),
+                    live_time: 1.0,
+                    real_time: 1.0,
+                    isotope_tags: vec![],
+                    confidence_score: None,
+                    source_type: SourceType::Unknown,
+                    metadata: HashMap::new(),
+                };
+                
+                self.samples.push(sample);
+            }
+            
+            // Try to load labels if available
+            if let Ok(labels_dataset) = file.dataset("labels") {
+                let labels: Array1<i32> = labels_dataset.read_1d()?;
+                // Apply labels to samples
+                for (i, sample) in self.samples.iter_mut().enumerate() {
+                    if i < labels.len() {
+                        sample.source_type = match labels[i] {
+                            0 => SourceType::Background,
+                            1 => SourceType::Medical,
+                            2 => SourceType::Industrial,
+                            3 => SourceType::Nuclear,
+                            _ => SourceType::Unknown,
+                        };
+                    }
+                }
+            }
+        }
+        
+        #[cfg(not(feature = "hdf5"))]
+        {
+            return Err(anyhow::anyhow!("HDF5 support not enabled. Compile with --features hdf5"));
+        }
+        
+        Ok(())
+    }
+
     
     async fn load_huggingface(&mut self, dataset: &str, subset: Option<&str>) -> anyhow::Result<()> {
         info!("Loading from HuggingFace: {}", dataset);
@@ -387,7 +609,48 @@ impl SpectraDataset {
     pub fn is_empty(&self) -> bool {
         self.samples.is_empty()
     }
+    
+    /// Get dataset statistics
+    pub fn statistics(&self) -> DatasetStatistics {
+        let n_samples = self.samples.len();
+        if n_samples == 0 {
+            return DatasetStatistics::default();
+        }
+        
+        let n_bins = self.samples.first().map(|s| s.counts.len()).unwrap_or(0);
+        let total_counts: f64 = self.samples.iter()
+            .map(|s| s.counts.iter().sum::<f64>())
+            .sum();
+        
+        let avg_counts_per_sample = total_counts / n_samples as f64;
+        
+        let source_type_counts: HashMap<String, usize> = self.samples.iter()
+            .fold(HashMap::new(), |mut acc, s| {
+                let key = format!("{:?}", s.source_type);
+                *acc.entry(key).or_insert(0) += 1;
+                acc
+            });
+        
+        DatasetStatistics {
+            n_samples,
+            n_bins,
+            total_counts,
+            avg_counts_per_sample,
+            source_type_distribution: source_type_counts,
+        }
+    }
 }
+
+/// Dataset statistics
+#[derive(Debug, Clone, Default)]
+pub struct DatasetStatistics {
+    pub n_samples: usize,
+    pub n_bins: usize,
+    pub total_counts: f64,
+    pub avg_counts_per_sample: f64,
+    pub source_type_distribution: HashMap<String, usize>,
+}
+
 
 /// Public datasets for radiation spectra
 pub mod public_datasets {
@@ -450,10 +713,14 @@ pub mod public_datasets {
             test_split: 0.1,
             cache_dir: Some("./cache/safecast".to_string()),
             max_samples: Some(50000),
+            quality_config: Some(DataQualityConfig::default()),
         };
         
-        SpectraDataset::load(config, device).await
+        let mut dataset = SpectraDataset::load(config, device).await?;
+        dataset.validate_quality()?;
+        Ok(dataset)
     }
+
 }
 
 #[cfg(test)]
@@ -478,9 +745,32 @@ mod tests {
             test_split: 0.15,
             cache_dir: None,
             max_samples: Some(100),
+            quality_config: Some(DataQualityConfig::default()),
         };
         
         assert_eq!(config.name, "test");
         assert!(config.preprocessing.normalize);
+    }
+    
+    #[test]
+    fn test_quality_config_default() {
+        let config = DataQualityConfig::default();
+        assert_eq!(config.min_energy_bins, 128);
+        assert_eq!(config.max_energy_bins, 8192);
+        assert!(config.duplicate_detection);
+    }
+    
+    #[test]
+    fn test_dataset_statistics() {
+        let stats = DatasetStatistics {
+            n_samples: 100,
+            n_bins: 1024,
+            total_counts: 10000.0,
+            avg_counts_per_sample: 100.0,
+            source_type_distribution: HashMap::new(),
+        };
+        
+        assert_eq!(stats.n_samples, 100);
+        assert_eq!(stats.n_bins, 1024);
     }
 }
