@@ -46,3 +46,9 @@ cherenkov-stream = { workspace = true }
 
 [dev-dependencies]
 tokio-test = { workspace = true }
+
+[features]
+default = []
+cloud-storage = ["aws-sdk-s3", "aws-config"]
+hdf5-support = ["hdf5", "ndarray"]
+full = ["cloud-storage", "hdf5-support"]
