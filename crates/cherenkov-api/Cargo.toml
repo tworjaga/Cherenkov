@@ -7,6 +7,14 @@ license.workspace = true
 repository.workspace = true
 authors.workspace = true
 
+[lib]
+name = "cherenkov_api"
+path = "src/lib.rs"
+
+[[bin]]
+name = "cherenkov-api"
+path = "src/main.rs"
+
 [dependencies]
 axum = { workspace = true }
 async-graphql = { workspace = true }
