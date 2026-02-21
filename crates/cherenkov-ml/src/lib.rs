@@ -10,6 +10,9 @@ pub mod training;
 #[cfg(test)]
 mod inference_test;
 
+#[cfg(test)]
+mod training_test;
+
 pub use conversion::{
     VarMapConverter, ConversionConfig, ConversionReport, ModelArchitecture, TensorMetadata,
     convert_varmap_to_tensors, detect_model_architecture, verify_model_conversion,
