@@ -4,8 +4,9 @@ import { useMemo, useCallback } from 'react';
 import { ScatterplotLayer, HeatmapLayer, PolygonLayer } from 'deck.gl';
 
 import { useGlobeStore } from '@/stores/globe-store';
-import { usePlumeSimulation } from '@/hooks/use-plume-simulation';
+import { usePlumeSimulation, usePlumeParticles, particlesToDeckGlFormat } from '@/hooks';
 import { useToast } from '@/components/ui/toast';
+
 
 // Dose thresholds in μSv/h for evacuation zones
 const DOSE_THRESHOLDS = {
@@ -45,7 +46,12 @@ interface PlumeLayerProps {
   releaseLng?: number;
   isotope?: string;
   onZoneClick?: (zone: EvacuationZone) => void;
+  /** Simulation ID for real-time particle streaming */
+  simulationId?: string;
+  /** Enable real-time particle streaming via WebSocket */
+  enableRealtime?: boolean;
 }
+
 
 
 export function PlumeLayer({ 
@@ -60,12 +66,26 @@ export function PlumeLayer({
   releaseLng = 0,
   isotope = 'Cs-137',
   onZoneClick,
+  simulationId,
+  enableRealtime = false,
 }: PlumeLayerProps): (ScatterplotLayer<PlumeParticle> | HeatmapLayer<{ position: [number, number]; weight: number }> | PolygonLayer<EvacuationZone>)[] {
   const { timeRange } = useGlobeStore();
   const { toast } = useToast();
   
   // Use real-time simulation data from WebSocket
   const [simState] = usePlumeSimulation();
+  
+  // Connect to real-time particle streaming when simulationId is provided
+  const { 
+    particles: realtimeParticles, 
+    isConnected: isRealtimeConnected,
+    totalParticles: realtimeTotal 
+  } = usePlumeParticles({
+    simulationId: simulationId || '',
+    enabled: enableRealtime && !!simulationId && simState.isPlaying,
+    batchSize: 100,
+  });
+
 
   // Calculate dose rate from concentration
   const calculateDoseRate = useCallback((concentration: number): number => {
@@ -80,15 +100,33 @@ export function PlumeLayer({
   }, [isotope]);
 
 
+  // Merge real-time particles with prop-provided particles
+  const allParticles = useMemo(() => {
+    const merged = [...particles];
+    if (enableRealtime && realtimeParticles.length > 0) {
+      // Convert real-time particles to PlumeParticle format
+      const converted = realtimeParticles.map(p => ({
+        x: p.x,
+        y: p.y,
+        z: p.z,
+        concentration: p.concentration,
+        timestamp: new Date(p.timestamp).getTime(),
+      }));
+      merged.push(...converted);
+    }
+    return merged;
+  }, [particles, realtimeParticles, enableRealtime]);
+
   // Filter particles by time range if set
   const filteredData = useMemo(() => {
-    if (!timeRange || !particles.length) return particles;
+    if (!timeRange || !allParticles.length) return allParticles;
     
-    return particles.filter((particle: PlumeParticle) => {
+    return allParticles.filter((particle: PlumeParticle) => {
       const timestamp = particle.timestamp;
       return timestamp >= timeRange[0] && timestamp <= timeRange[1];
     });
-  }, [particles, timeRange]);
+  }, [allParticles, timeRange]);
+
 
   // Prepare heatmap data from particle concentrations
   // Note: x, y are in meters from release point, need to convert to lat/lng for visualization
@@ -119,7 +157,8 @@ export function PlumeLayer({
   // Generate evacuation zones from particles if not provided
   const generatedZones = useMemo((): EvacuationZone[] => {
     if (evacuationZones.length > 0) return evacuationZones;
-    if (!particles.length || !releaseLat || !releaseLng) return [];
+    if (!allParticles.length || !releaseLat || !releaseLng) return [];
+
 
     const zones: EvacuationZone[] = [];
     const thresholds = [
@@ -130,7 +169,8 @@ export function PlumeLayer({
     ];
 
     for (const { level, threshold, name, color } of thresholds) {
-      const exceedingParticles = particles.filter(p => {
+      const exceedingParticles = allParticles.filter(p => {
+
         const doseRate = calculateDoseRate(p.concentration);
         return doseRate >= threshold;
       });
@@ -191,7 +231,8 @@ export function PlumeLayer({
     }
 
     return zones;
-  }, [particles, evacuationZones, releaseLat, releaseLng, calculateDoseRate]);
+  }, [allParticles, evacuationZones, releaseLat, releaseLng, calculateDoseRate]);
+
 
   // Trigger alert for critical zones
   useMemo(() => {
@@ -210,6 +251,21 @@ export function PlumeLayer({
       });
     }
   }, [generatedZones, simState.isPlaying, toast, onZoneClick]);
+
+  // Show connection status toast for real-time streaming
+  useMemo(() => {
+    if (enableRealtime && simulationId) {
+      if (isRealtimeConnected) {
+        toast({
+          title: 'Real-time Streaming Connected',
+          description: `Receiving live particle data (${realtimeTotal} particles)`,
+          variant: 'default',
+          duration: 3000,
+        });
+      }
+    }
+  }, [enableRealtime, simulationId, isRealtimeConnected, realtimeTotal, toast]);
+
 
   const layers: (ScatterplotLayer<PlumeParticle> | HeatmapLayer<{ position: [number, number]; weight: number }> | PolygonLayer<EvacuationZone>)[] = [];
 
