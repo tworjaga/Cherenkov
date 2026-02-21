@@ -11,7 +11,9 @@ mod inference_test;
 
 pub use data_loader::{
     SpectraDataset, SpectraSample, DatasetConfig, DataSource, DataFormat,
-    PreprocessingConfig, SourceType, public_datasets
+    PreprocessingConfig, SourceType, public_datasets,
+    CloudStorageClient, DataQualityConfig, QualityReport, QualityError, ErrorType,
+    DatasetStatistics
 };
 pub use inference::{InferenceService, OnnxModel, OnnxError, ModelMetadata, BatchRequest, BatchResult, id_to_isotope, extract_top_k};
 pub use model_registry::{ModelRegistry, ModelVersionInfo, OnnxModelMetadata, PerformanceMetrics, RegistryError};
