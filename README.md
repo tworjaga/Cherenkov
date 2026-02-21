@@ -304,10 +304,10 @@ See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for detailed deployment guides.
 - [x] Unit and E2E testing (100% pass rate)
 
 ### In Progress
-- [ ] Plume dispersion modeling
-- [ ] ML-based anomaly classification
-- [ ] Mobile application
-- [ ] Alert notification system
+- [x] Plume dispersion modeling
+- [x] ML-based anomaly classification
+- [x] Mobile application
+- [x] Alert notification system
 
 ### Planned
 - [ ] Historical data analysis
