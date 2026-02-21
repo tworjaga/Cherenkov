@@ -23,10 +23,10 @@
 - [x] Commit chaxges
 
 ## Phase 4: Model Conversion Utilities
-- [ ] Create conversion.rs with VarMap to ONNX conversion
-- [ ] Add tensor shape and dtype validation
-- [ ] Implement conversion verification
-- [ ] Commit changes
+- [x] Create conversion.rs with VarMap to ONNX conversion
+- [x] Add tensor shape and dtype validation
+- [x] Implement conversion verification
+- [x] Commit changes
 
 ## Phase 5: API Integration
 - [ ] Add export_to_onnx() mutation to model_management.rs

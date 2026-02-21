@@ -9,7 +9,9 @@ use cherenkov_ml::{
     PerformanceMetrics as MlPerformanceMetrics,
     OnnxModelMetadata,
     RegistryError,
+    OnnxExportConfig, OnnxOpset,
 };
+
 
 /// Model status enumeration
 #[derive(Enum, Copy, Clone, Eq, PartialEq)]
@@ -166,6 +168,112 @@ pub struct ExplainModelInput {
     pub input_data: Vec<f64>,
     pub method: Option<String>,
 }
+
+/// Input for ONNX export
+#[derive(InputObject)]
+pub struct ExportToOnnxInput {
+    pub model_name: String,
+    pub model_path: String,
+    pub output_path: String,
+    pub opset_version: Option<i32>,
+    pub optimize: Option<bool>,
+}
+
+/// Input for data source configuration
+#[derive(InputObject)]
+pub struct DataSourceConfigInput {
+    pub source_id: String,
+    pub source_type: DataSourceType,
+    pub endpoint: String,
+    pub credentials: Option<DataSourceCredentials>,
+    pub format: DataFormat,
+    pub refresh_interval_seconds: Option<i32>,
+    pub enabled: bool,
+}
+
+/// Data source type enumeration
+#[derive(Enum, Copy, Clone, Eq, PartialEq)]
+pub enum DataSourceType {
+    S3,
+    Http,
+    LocalFile,
+    Database,
+    Streaming,
+}
+
+/// Data format enumeration
+#[derive(Enum, Copy, Clone, Eq, PartialEq)]
+pub enum DataFormat {
+    Csv,
+    Hdf5,
+    Json,
+    Parquet,
+    Binary,
+}
+
+/// Data source credentials
+#[derive(InputObject)]
+pub struct DataSourceCredentials {
+    pub access_key: Option<String>,
+    pub secret_key: Option<String>,
+    pub api_token: Option<String>,
+    pub connection_string: Option<String>,
+}
+
+/// Training job status enumeration
+#[derive(Enum, Copy, Clone, Eq, PartialEq)]
+pub enum TrainingJobStatus {
+    Pending,
+    Running,
+    Completed,
+    Failed,
+    Cancelled,
+}
+
+/// Training job information
+#[derive(SimpleObject, Clone)]
+pub struct TrainingJobInfo {
+    pub job_id: ID,
+    pub model_name: String,
+    pub status: TrainingJobStatus,
+    pub progress_percent: f64,
+    pub current_epoch: i32,
+    pub total_epochs: i32,
+    pub current_loss: Option<f64>,
+    pub validation_accuracy: Option<f64>,
+    pub started_at: DateTime<Utc>,
+    pub estimated_completion: Option<DateTime<Utc>>,
+    pub completed_at: Option<DateTime<Utc>>,
+    pub error_message: Option<String>,
+    pub output_model_path: Option<String>,
+}
+
+/// Data source configuration
+#[derive(SimpleObject, Clone)]
+pub struct DataSourceConfig {
+    pub source_id: String,
+    pub source_type: DataSourceType,
+    pub endpoint: String,
+    pub format: DataFormat,
+    pub refresh_interval_seconds: i32,
+    pub enabled: bool,
+    pub last_sync_at: Option<DateTime<Utc>>,
+    pub total_records_fetched: i64,
+}
+
+/// ONNX export result
+#[derive(SimpleObject, Clone)]
+pub struct OnnxExportResult {
+    pub success: bool,
+    pub output_path: String,
+    pub model_name: String,
+    pub file_size_bytes: i64,
+    pub opset_version: i32,
+    pub optimization_applied: bool,
+    pub exported_at: DateTime<Utc>,
+    pub error_message: Option<String>,
+}
+
 
 /// Query root extension for model management
 #[derive(Default)]
@@ -549,7 +657,120 @@ impl ModelMutationRoot {
             },
         })
     }
+    
+    /// Export trained model to ONNX format
+    async fn export_to_onnx(
+        &self,
+        _ctx: &Context<'_>,
+        input: ExportToOnnxInput,
+    ) -> Result<OnnxExportResult> {
+        info!("Exporting model {} to ONNX at {}", input.model_name, input.output_path);
+        
+        // Configure ONNX export
+        let opset = match input.opset_version.unwrap_or(15) {
+            13 => OnnxOpset::V13,
+            14 => OnnxOpset::V14,
+            15 => OnnxOpset::V15,
+            16 => OnnxOpset::V16,
+            17 => OnnxOpset::V17,
+            _ => OnnxOpset::V15,
+        };
+        
+        let config = OnnxExportConfig {
+            opset,
+            optimize: input.optimize.unwrap_or(true),
+            include_metadata: true,
+            custom_metadata: std::collections::HashMap::new(),
+        };
+        
+        // In production, this would call the actual export function
+        // For now, simulate the export
+        let file_size_bytes = 45_000_000i64; // Mock 45MB model
+        
+        Ok(OnnxExportResult {
+            success: true,
+            output_path: input.output_path.clone(),
+            model_name: input.model_name,
+            file_size_bytes,
+            opset_version: config.opset as i32,
+            optimization_applied: config.optimize,
+            exported_at: Utc::now(),
+            error_message: None,
+        })
+    }
+    
+    /// Configure data source for training
+    async fn configure_data_source(
+        &self,
+        _ctx: &Context<'_>,
+        input: DataSourceConfigInput,
+    ) -> Result<DataSourceConfig> {
+        info!("Configuring data source {} of type {:?}", input.source_id, input.source_type);
+        
+        // In production, this would store in database
+        Ok(DataSourceConfig {
+            source_id: input.source_id,
+            source_type: input.source_type,
+            endpoint: input.endpoint,
+            format: input.format,
+            refresh_interval_seconds: input.refresh_interval_seconds.unwrap_or(3600),
+            enabled: input.enabled,
+            last_sync_at: None,
+            total_records_fetched: 0,
+        })
+    }
+    
+    /// Update data source configuration
+    async fn update_data_source(
+        &self,
+        _ctx: &Context<'_>,
+        source_id: String,
+        enabled: Option<bool>,
+        refresh_interval_seconds: Option<i32>,
+    ) -> Result<DataSourceConfig> {
+        info!("Updating data source {}", source_id);
+        
+        // Mock update - in production would fetch and update from database
+        Ok(DataSourceConfig {
+            source_id,
+            source_type: DataSourceType::S3,
+            endpoint: "s3://updated/".to_string(),
+            format: DataFormat::Csv,
+            refresh_interval_seconds: refresh_interval_seconds.unwrap_or(3600),
+            enabled: enabled.unwrap_or(true),
+            last_sync_at: Some(Utc::now()),
+            total_records_fetched: 100_000,
+        })
+    }
+    
+    /// Delete data source configuration
+    async fn delete_data_source(&self, _ctx: &Context<'_>, source_id: String) -> Result<bool> {
+        info!("Deleting data source {}", source_id);
+        Ok(true)
+    }
+    
+    /// Cancel training job
+    async fn cancel_training_job(&self, _ctx: &Context<'_>, job_id: ID) -> Result<TrainingJobInfo> {
+        info!("Cancelling training job {}", job_id);
+        
+        Ok(TrainingJobInfo {
+            job_id,
+            model_name: "cancelled-model".to_string(),
+            status: TrainingJobStatus::Cancelled,
+            progress_percent: 0.0,
+            current_epoch: 0,
+            total_epochs: 0,
+            current_loss: None,
+            validation_accuracy: None,
+            started_at: Utc::now(),
+            estimated_completion: None,
+            completed_at: Some(Utc::now()),
+            error_message: Some("Cancelled by user".to_string()),
+            output_model_path: None,
+        })
+    }
 }
+
 
 /// Performance validation result
 #[derive(SimpleObject, Clone)]
@@ -558,4 +779,112 @@ pub struct PerformanceValidationResult {
     pub is_valid: bool,
     pub current_metrics: Option<PerformanceMetricsGraphQL>,
     pub message: String,
+}
+
+/// Training job query root
+#[derive(Default)]
+pub struct TrainingJobQueryRoot;
+
+#[Object]
+impl TrainingJobQueryRoot {
+    /// List all training jobs
+    async fn training_jobs(
+        &self,
+        _ctx: &Context<'_>,
+        status: Option<TrainingJobStatus>,
+        model_name: Option<String>,
+    ) -> Result<Vec<TrainingJobInfo>> {
+        // In production, this would query from a database or job queue
+        // For now, return mock data
+        let jobs = vec![
+            TrainingJobInfo {
+                job_id: ID::from("job-001"),
+                model_name: "isotope-classifier-v2".to_string(),
+                status: TrainingJobStatus::Running,
+                progress_percent: 67.5,
+                current_epoch: 45,
+                total_epochs: 100,
+                current_loss: Some(0.0234),
+                validation_accuracy: Some(0.945),
+                started_at: Utc::now() - chrono::Duration::hours(2),
+                estimated_completion: Some(Utc::now() + chrono::Duration::hours(1)),
+                completed_at: None,
+                error_message: None,
+                output_model_path: None,
+            },
+            TrainingJobInfo {
+                job_id: ID::from("job-002"),
+                model_name: "anomaly-detector-v3".to_string(),
+                status: TrainingJobStatus::Completed,
+                progress_percent: 100.0,
+                current_epoch: 50,
+                total_epochs: 50,
+                current_loss: Some(0.0156),
+                validation_accuracy: Some(0.982),
+                started_at: Utc::now() - chrono::Duration::days(1),
+                estimated_completion: None,
+                completed_at: Some(Utc::now() - chrono::Duration::hours(12)),
+                error_message: None,
+                output_model_path: Some("/models/anomaly-detector-v3.onnx".to_string()),
+            },
+        ];
+        
+        let filtered: Vec<TrainingJobInfo> = jobs.into_iter()
+            .filter(|j| status.map_or(true, |s| j.status == s))
+            .filter(|j| model_name.as_ref().map_or(true, |m| j.model_name == *m))
+            .collect();
+        
+        Ok(filtered)
+    }
+    
+    /// Get specific training job
+    async fn training_job(&self, ctx: &Context<'_>, job_id: ID) -> Result<Option<TrainingJobInfo>> {
+        let jobs = self.training_jobs(ctx, None, None).await?;
+        Ok(jobs.into_iter().find(|j| j.job_id == job_id))
+    }
+    
+    /// Get active training jobs count
+    async fn active_training_jobs_count(&self, _ctx: &Context<'_>) -> Result<i32> {
+        Ok(1) // Mock: 1 job running
+    }
+}
+
+/// Data source query root
+#[derive(Default)]
+pub struct DataSourceQueryRoot;
+
+#[Object]
+impl DataSourceQueryRoot {
+    /// List all configured data sources
+    async fn data_sources(&self, _ctx: &Context<'_>) -> Result<Vec<DataSourceConfig>> {
+        // Mock data sources
+        Ok(vec![
+            DataSourceConfig {
+                source_id: "s3-radnet".to_string(),
+                source_type: DataSourceType::S3,
+                endpoint: "s3://radnet-data/2024/".to_string(),
+                format: DataFormat::Csv,
+                refresh_interval_seconds: 3600,
+                enabled: true,
+                last_sync_at: Some(Utc::now() - chrono::Duration::minutes(30)),
+                total_records_fetched: 1_250_000,
+            },
+            DataSourceConfig {
+                source_id: "local-spectra".to_string(),
+                source_type: DataSourceType::LocalFile,
+                endpoint: "/data/spectra/".to_string(),
+                format: DataFormat::Hdf5,
+                refresh_interval_seconds: 0,
+                enabled: true,
+                last_sync_at: Some(Utc::now() - chrono::Duration::hours(2)),
+                total_records_fetched: 500_000,
+            },
+        ])
+    }
+    
+    /// Get specific data source
+    async fn data_source(&self, ctx: &Context<'_>, source_id: String) -> Result<Option<DataSourceConfig>> {
+        let sources = self.data_sources(ctx).await?;
+        Ok(sources.into_iter().find(|s| s.source_id == source_id))
+    }
 }

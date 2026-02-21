@@ -1,13 +1,13 @@
 use async_graphql::{Schema, MergedObject, MergedSubscription, EmptySubscription};
 use std::sync::Arc;
 use super::resolvers::QueryRoot;
-use super::model_management::{ModelQueryRoot, ModelMutationRoot};
+use super::model_management::{ModelQueryRoot, ModelMutationRoot, TrainingJobQueryRoot, DataSourceQueryRoot};
 use super::subscription::SubscriptionRoot;
 use cherenkov_db::RadiationDatabase;
 use cherenkov_ml::ModelRegistry;
 
 #[derive(MergedObject, Default)]
-pub struct FullQueryRoot(QueryRoot, ModelQueryRoot);
+pub struct FullQueryRoot(QueryRoot, ModelQueryRoot, TrainingJobQueryRoot, DataSourceQueryRoot);
 
 #[derive(MergedObject, Default)]
 pub struct FullMutationRoot(ModelMutationRoot);
