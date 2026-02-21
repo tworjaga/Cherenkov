@@ -1,14 +1,27 @@
 use async_graphql::{Subscription, ID};
 use futures_util::stream::Stream;
 use std::time::Duration;
+use std::sync::Arc;
 use tokio_stream::StreamExt;
 
-#[allow(dead_code)]
-pub struct SubscriptionRoot;
+use super::plume_service::{PlumeService, ParticlePosition};
+
+/// GraphQL subscription root with plume service integration
+pub struct SubscriptionRoot {
+    plume_service: Arc<PlumeService>,
+}
+
+impl SubscriptionRoot {
+    pub fn new(plume_service: Arc<PlumeService>) -> Self {
+        Self { plume_service }
+    }
+}
 
 impl Default for SubscriptionRoot {
     fn default() -> Self {
-        Self
+        Self {
+            plume_service: Arc::new(PlumeService::default()),
+        }
     }
 }
 
@@ -34,100 +47,67 @@ impl SubscriptionRoot {
             })
     }
     
+    /// Real-time plume particle updates from dispersion calculations
     async fn plume_particles(
         &self,
         simulation_id: ID,
         #[graphql(default = 100)] batch_size: i32,
     ) -> impl Stream<Item = PlumeParticleBatch> {
-        let interval = tokio::time::interval(Duration::from_millis(100));
-        let simulation_id_clone = simulation_id.clone();
+        let plume_service = self.plume_service.clone();
+        let simulation_id_str = simulation_id.to_string();
+        let interval = tokio::time::interval(Duration::from_millis(500));
         
         tokio_stream::wrappers::IntervalStream::new(interval)
             .map(move |_| {
-                // Generate simulated particle positions for the plume
-                // In production, this would fetch from the running simulation
-                let particles = (0..batch_size.min(500))
-                    .map(|i| {
-                        let angle = (i as f64) * 0.1;
-                        let distance = (i as f64) * 2.0;
-                        PlumeParticle {
-                            id: format!("{}-{}", simulation_id_clone.to_string(), i),
-                            x: distance * angle.cos(),
-                            y: distance * angle.sin(),
-                            z: (i as f64) * 0.5,
-                            concentration: 1000.0 / (distance + 1.0),
-                            timestamp: chrono::Utc::now(),
-                        }
+                // Fetch real particle positions from the plume service
+                let particles = tokio::task::block_in_place(|| {
+                    tokio::runtime::Handle::current().block_on(async {
+                        plume_service.get_particles(&simulation_id_str, batch_size.min(500) as usize).await
+                    })
+                });
+                
+                // Convert ParticlePosition to PlumeParticle
+                let plume_particles: Vec<PlumeParticle> = particles
+                    .into_iter()
+                    .map(|p| PlumeParticle {
+                        id: p.id,
+                        x: (p.longitude - 139.6503) * 111000.0 * (35.6762_f64.to_radians().cos()),
+                        y: (p.latitude - 35.6762) * 111000.0,
+                        z: p.altitude,
+                        concentration: p.concentration,
+                        timestamp: chrono::Utc::now(),
                     })
                     .collect();
                 
                 PlumeParticleBatch {
-                    simulation_id: simulation_id_clone.clone(),
-                    particles,
+                    simulation_id: simulation_id.clone(),
+                    particles: plume_particles,
                     timestamp: chrono::Utc::now(),
                 }
             })
     }
     
-    async fn evacuation_zones(
+    /// Real-time evacuation zone updates from dispersion calculations
+    async fn evacuation_zone_updates(
         &self,
         simulation_id: ID,
     ) -> impl Stream<Item = EvacuationZoneUpdate> {
+        let plume_service = self.plume_service.clone();
+        let simulation_id_str = simulation_id.to_string();
         let interval = tokio::time::interval(Duration::from_secs(5));
-        let simulation_id_clone = simulation_id.clone();
         
         tokio_stream::wrappers::IntervalStream::new(interval)
             .map(move |_| {
-                let zones = vec![
-                    EvacuationZone {
-                        id: ID::from(format!("{}-immediate", simulation_id_clone.to_string())),
-                        simulation_id: simulation_id_clone.clone(),
-                        zone_type: "immediate".to_string(),
-                        radius_meters: 1000.0,
-                        center_lat: 35.6762,
-                        center_lon: 139.6503,
-                        recommended_evacuation_time: 1,
-                        dose_threshold: 0.1,
-                        affected_population_estimate: Some(5000),
-                        timestamp: chrono::Utc::now(),
-                    },
-                    EvacuationZone {
-                        id: ID::from(format!("{}-extended", simulation_id_clone.to_string())),
-                        simulation_id: simulation_id_clone.clone(),
-                        zone_type: "extended".to_string(),
-                        radius_meters: 5000.0,
-                        center_lat: 35.6762,
-                        center_lon: 139.6503,
-                        recommended_evacuation_time: 24,
-                        dose_threshold: 0.01,
-                        affected_population_estimate: Some(50000),
-                        timestamp: chrono::Utc::now(),
-                    },
-                ];
-                
-                let contours = vec![
-                    DoseContour {
-                        level: 1.0,
-                        threshold_sieverts: 0.1,
-                        coordinates: vec![
-                            ContourPoint { latitude: 35.6862, longitude: 139.6403, dose_rate: 0.15 },
-                            ContourPoint { latitude: 35.6662, longitude: 139.6603, dose_rate: 0.12 },
-                        ],
-                        label: "Immediate Evacuation".to_string(),
-                    },
-                    DoseContour {
-                        level: 2.0,
-                        threshold_sieverts: 0.01,
-                        coordinates: vec![
-                            ContourPoint { latitude: 35.6962, longitude: 139.6303, dose_rate: 0.02 },
-                            ContourPoint { latitude: 35.6562, longitude: 139.6703, dose_rate: 0.018 },
-                        ],
-                        label: "Extended Monitoring".to_string(),
-                    },
-                ];
+                // Fetch real evacuation zones from the plume service
+                let (zones, contours) = tokio::task::block_in_place(|| {
+                    tokio::runtime::Handle::current().block_on(async {
+                        plume_service.generate_evacuation_zones(&simulation_id_str).await
+                            .unwrap_or_else(|| (Vec::new(), Vec::new()))
+                    })
+                });
                 
                 EvacuationZoneUpdate {
-                    simulation_id: simulation_id_clone.clone(),
+                    simulation_id: simulation_id.clone(),
                     zones,
                     contours,
                     timestamp: chrono::Utc::now(),
@@ -135,6 +115,7 @@ impl SubscriptionRoot {
             })
     }
 }
+
 
 #[derive(async_graphql::SimpleObject)]
 #[allow(dead_code)]

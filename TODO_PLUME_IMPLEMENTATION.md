@@ -24,11 +24,11 @@
 - [x] Commit: `feat: Connect plume-layer to real dispersion data`
 
 ### Task 4: Backend Integration
-- [ ] Update `crates/cherenkov-api/src/graphql/subscription.rs`
-- [ ] Connect to cherenkov-plume dispersion calculations
-- [ ] Real-time particle position updates
-- [ ] Dose contour generation from dispersion output
-- [ ] Commit: `feat: Integrate dispersion calculations with GraphQL subscriptions`
+- [x] Update `crates/cherenkov-api/src/graphql/subscription.rs`
+- [x] Connect to cherenkov-plume dispersion calculations
+- [x] Real-time particle position updates
+- [x] Dose contour generation from dispersion output
+- [x] Commit: `feat: Integrate dispersion calculations with GraphQL subscriptions`
 
 ### Task 5: Testing and Validation
 - [ ] Test WebSocket connections
