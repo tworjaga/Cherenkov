@@ -5,7 +5,8 @@ use tokio::sync::RwLock;
 use tracing::{info, warn, error};
 use serde::{Serialize, Deserialize};
 use thiserror::Error;
-use candle_onnx::onnx::ModelProto;
+use candle_onnx::onnx;
+
 
 use crate::{OnnxModel, OnnxError, ModelMetadata};
 
@@ -57,8 +58,9 @@ pub struct OnnxModelMetadata {
     pub num_initializers: usize,
 }
 
-impl From<&ModelProto> for OnnxModelMetadata {
-    fn from(model: &ModelProto) -> Self {
+impl From<&onnx::ModelProto> for OnnxModelMetadata {
+    fn from(model: &onnx::ModelProto) -> Self {
+
 
         let graph = model.graph.as_ref();
         
