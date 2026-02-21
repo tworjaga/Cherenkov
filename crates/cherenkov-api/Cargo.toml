@@ -43,6 +43,7 @@ metrics = "0.22"
 # Internal crates
 cherenkov-core = { path = "../cherenkov-core" }
 cherenkov-db = { path = "../cherenkov-db" }
+cherenkov-ml = { path = "../cherenkov-ml" }
 cherenkov-observability = { path = "../cherenkov-observability" }
 cherenkov-plume = { path = "../cherenkov-plume" }
 

@@ -1,6 +1,7 @@
 pub mod schema;
 pub mod resolvers;
 pub mod subscription;
+pub mod model_management;
 
 use async_graphql_axum::{GraphQLRequest, GraphQLResponse};
 use axum::extract::Extension;

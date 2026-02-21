@@ -21,10 +21,10 @@
 - [x] Create model registry
 
 ### 4. Anomaly Detection Integration
-- [ ] Connect ML classification to stream pipeline
-- [ ] Add confidence thresholds
-- [ ] Implement classification caching
-- [ ] Add multi-class anomaly detection
+- [x] Connect ML classification to stream pipeline
+- [x] Add confidence thresholds
+- [x] Implement classification caching
+- [x] Add multi-class anomaly detection
 
 ### 5. Model Management API
 - [ ] Create REST/GraphQL endpoints
