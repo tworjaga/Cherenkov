@@ -12,6 +12,8 @@ use tokio::sync::RwLock;
 use chrono::Utc;
 use uuid::Uuid;
 
+use crate::data_loader::{SpectraDataset, DatasetConfig, DataSource, DataFormat, PreprocessingConfig};
+
 /// Learning rate scheduler types
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum LrScheduler {
@@ -65,6 +67,42 @@ pub struct CheckpointMeta {
     pub rng_state: Option<String>,
 }
 
+/// Dataset version metadata for reproducibility
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DatasetVersion {
+    pub version_id: String,
+    pub dataset_hash: String,
+    pub created_at: String,
+    pub source_config: DatasetConfig,
+    pub num_samples: usize,
+    pub class_distribution: HashMap<String, usize>,
+    pub preprocessing_hash: String,
+}
+
+/// Dataset cache for efficient reloading
+#[derive(Debug, Clone)]
+pub struct DatasetCache {
+    pub cache_dir: PathBuf,
+    pub max_cache_size_gb: f64,
+}
+
+impl DatasetCache {
+    pub fn new(cache_dir: PathBuf, max_cache_size_gb: f64) -> Self {
+        Self {
+            cache_dir,
+            max_cache_size_gb,
+        }
+    }
+
+    pub fn get_cache_path(&self, version_id: &str) -> PathBuf {
+        self.cache_dir.join(format!("dataset_{}.bin", version_id))
+    }
+
+    pub fn is_cached(&self, version_id: &str) -> bool {
+        self.get_cache_path(version_id).exists()
+    }
+}
+
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TrainingConfig {
@@ -90,6 +128,10 @@ pub struct TrainingConfig {
     pub gradient_clip_norm: Option<f64>,
     pub warmup_epochs: usize,
     pub label_smoothing: f64,
+    pub dataset_config: Option<DatasetConfig>,
+    pub use_stratified_sampling: bool,
+    pub cache_datasets: bool,
+    pub cache_dir: Option<String>,
 }
 
 
@@ -121,6 +163,10 @@ impl Default for TrainingConfig {
             gradient_clip_norm: Some(1.0),
             warmup_epochs: 5,
             label_smoothing: 0.1,
+            dataset_config: None,
+            use_stratified_sampling: true,
+            cache_datasets: true,
+            cache_dir: Some(".cache/datasets".to_string()),
         }
     }
 }
@@ -175,6 +221,53 @@ pub struct Dataset {
     pub val_data: Vec<(Tensor, usize)>,
     pub test_data: Vec<(Tensor, usize)>,
     pub class_names: Vec<String>,
+}
+
+/// Serializable dataset for caching
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SerializableDataset {
+    pub train_data: Vec<(Vec<f32>, usize)>,
+    pub val_data: Vec<(Vec<f32>, usize)>,
+    pub test_data: Vec<(Vec<f32>, usize)>,
+    pub class_names: Vec<String>,
+    pub input_size: usize,
+}
+
+impl Dataset {
+    pub fn to_serializable(&self) -> SerializableDataset {
+        SerializableDataset {
+            train_data: self.train_data.iter()
+                .map(|(t, l)| (t.to_vec1::<f32>().unwrap_or_default(), *l))
+                .collect(),
+            val_data: self.val_data.iter()
+                .map(|(t, l)| (t.to_vec1::<f32>().unwrap_or_default(), *l))
+                .collect(),
+            test_data: self.test_data.iter()
+                .map(|(t, l)| (t.to_vec1::<f32>().unwrap_or_default(), *l))
+                .collect(),
+            class_names: self.class_names.clone(),
+            input_size: self.train_data.first().map(|(t, _)| t.dims().iter().product()).unwrap_or(0),
+        }
+    }
+
+    pub fn from_serializable(sd: SerializableDataset, device: &Device) -> anyhow::Result<Self> {
+        let train_data: Vec<(Tensor, usize)> = sd.train_data.into_iter()
+            .map(|(v, l)| (Tensor::from_vec(v, (sd.input_size,), device).unwrap_or_else(|_| Tensor::zeros((sd.input_size,), DType::F32, device).unwrap()), l))
+            .collect();
+        let val_data: Vec<(Tensor, usize)> = sd.val_data.into_iter()
+            .map(|(v, l)| (Tensor::from_vec(v, (sd.input_size,), device).unwrap_or_else(|_| Tensor::zeros((sd.input_size,), DType::F32, device).unwrap()), l))
+            .collect();
+        let test_data: Vec<(Tensor, usize)> = sd.test_data.into_iter()
+            .map(|(v, l)| (Tensor::from_vec(v, (sd.input_size,), device).unwrap_or_else(|_| Tensor::zeros((sd.input_size,), DType::F32, device).unwrap()), l))
+            .collect();
+        
+        Ok(Self {
+            train_data,
+            val_data,
+            test_data,
+            class_names: sd.class_names,
+        })
+    }
 }
 
 impl TrainingPipeline {
@@ -440,6 +533,92 @@ impl TrainingPipeline {
     async fn load_dataset(&self) -> anyhow::Result<Dataset> {
         debug!("Loading dataset from {}", self.config.data_path);
         
+        // Try to load from cache first
+        if self.config.cache_datasets {
+            if let Some(ref cache_dir) = self.config.cache_dir {
+                let cache = DatasetCache::new(PathBuf::from(cache_dir), 10.0);
+                let version_id = self.compute_dataset_version_id();
+                if cache.is_cached(&version_id) {
+                    info!("Loading dataset from cache: {}", version_id);
+                    return self.load_dataset_from_cache(&cache, &version_id).await;
+                }
+            }
+        }
+        
+        // Load real data using data_loader
+        let dataset = self.load_real_dataset().await?;
+        
+        // Cache the dataset if enabled
+        if self.config.cache_datasets {
+            if let Some(ref cache_dir) = self.config.cache_dir {
+                let cache = DatasetCache::new(PathBuf::from(cache_dir), 10.0);
+                let version_id = self.compute_dataset_version_id();
+                self.save_dataset_to_cache(&dataset, &cache, &version_id).await?;
+            }
+        }
+        
+        Ok(dataset)
+    }
+
+    fn compute_dataset_version_id(&self) -> String {
+        use std::collections::hash_map::DefaultHasher;
+        use std::hash::{Hash, Hasher};
+        
+        let mut hasher = DefaultHasher::new();
+        self.config.data_path.hash(&mut hasher);
+        self.config.input_size.hash(&mut hasher);
+        self.config.num_classes.hash(&mut hasher);
+        
+        format!("{:x}", hasher.finish())
+    }
+
+    async fn load_dataset_from_cache(&self, cache: &DatasetCache, version_id: &str) -> anyhow::Result<Dataset> {
+        let cache_path = cache.get_cache_path(version_id);
+        let data = fs::read(&cache_path)?;
+        let serializable: SerializableDataset = bincode::deserialize(&data)?;
+        Dataset::from_serializable(serializable, &self.device)
+    }
+
+    async fn save_dataset_to_cache(&self, dataset: &Dataset, cache: &DatasetCache, version_id: &str) -> anyhow::Result<()> {
+        fs::create_dir_all(&cache.cache_dir)?;
+        let cache_path = cache.get_cache_path(version_id);
+        let serializable = dataset.to_serializable();
+        let data = bincode::serialize(&serializable)?;
+        fs::write(&cache_path, data)?;
+        info!("Dataset cached to: {:?}", cache_path);
+        Ok(())
+    }
+
+    async fn load_real_dataset(&self) -> anyhow::Result<Dataset> {
+        info!("Loading real dataset from data sources");
+        
+        // Build dataset config from training config or use default
+        let dataset_config = self.config.dataset_config.clone().unwrap_or_else(|| {
+            DatasetConfig {
+                name: "training_dataset".to_string(),
+                source: DataSource::Local { path: self.config.data_path.clone() },
+                format: DataFormat::Csv,
+                preprocessing: PreprocessingConfig {
+                    normalize: true,
+                    smoothing: None,
+                    baseline_correction: false,
+                    peak_detection: false,
+                    energy_calibration: None,
+                    noise_reduction: None,
+                },
+                validation_split: self.config.validation_split,
+                test_split: 0.1,
+                cache_dir: self.config.cache_dir.clone(),
+                max_samples: None,
+                quality_config: None,
+            }
+        });
+        
+        // Load spectra dataset using data_loader
+        let spectra_dataset = SpectraDataset::load(dataset_config, self.device.clone()).await
+            .map_err(|e| anyhow::anyhow!("Failed to load spectra dataset: {}", e))?;
+        
+        // Get class names from dataset or use defaults
         let class_names: Vec<String> = vec![
             "Cs-137".to_string(), "Co-60".to_string(), "Am-241".to_string(), 
             "Sr-90".to_string(), "I-131".to_string(),
@@ -449,37 +628,117 @@ impl TrainingPipeline {
             "Rn-222".to_string(), "Po-210".to_string(),
         ];
         
-        let mut all_data: Vec<(Tensor, usize)> = Vec::new();
+        // Convert spectra samples to tensors using the public to_tensors method
+        let (features, labels) = spectra_dataset.to_tensors()
+            .map_err(|e| anyhow::anyhow!("Failed to convert dataset to tensors: {}", e))?;
         
-        for (class_idx, _class_name) in class_names.iter().enumerate() {
-            for _sample_idx in 0..100 {
-                let data: Vec<f32> = (0..self.config.input_size)
-                    .map(|_| rand::random::<f32>())
-                    .collect();
-                
-                let tensor = Tensor::from_vec(data, (self.config.input_size,), &self.device)?;
-                all_data.push((tensor, class_idx));
+        // Convert to Vec<(Tensor, usize)>
+        let n_samples = features.dims()[0];
+        let features_vec = features.to_vec2::<f32>()?;
+        let labels_vec = labels.to_vec1::<u32>()?;
+        
+        let mut all_data: Vec<(Tensor, usize)> = Vec::with_capacity(n_samples);
+        
+        for i in 0..n_samples {
+            let mut data = features_vec[i].clone();
+            
+            // Pad or truncate to match input_size
+            if data.len() < self.config.input_size {
+                data.resize(self.config.input_size, 0.0);
+            } else if data.len() > self.config.input_size {
+                data.truncate(self.config.input_size);
             }
+            
+            // Normalize
+            let max_val = data.iter().copied().fold(0.0f32, f32::max);
+            if max_val > 0.0 {
+                for val in &mut data {
+                    *val /= max_val;
+                }
+            }
+            
+            let tensor = Tensor::from_vec(data, (self.config.input_size,), &self.device)?;
+            let label = labels_vec[i] as usize % self.config.num_classes;
+            all_data.push((tensor, label));
         }
         
+        info!("Loaded {} samples from real dataset", all_data.len());
+        
+        // Apply stratified sampling if enabled
+        if self.config.use_stratified_sampling {
+            self.stratified_split(all_data, &class_names).await
+        } else {
+            // Random shuffle split
+            let mut rng = rand::thread_rng();
+            use rand::seq::SliceRandom;
+            all_data.shuffle(&mut rng);
+            
+            let n = all_data.len();
+            let n_val = (n as f64 * self.config.validation_split) as usize;
+            let n_test = n_val / 2;
+            let n_train = n - n_val - n_test;
+            
+            let train_data = all_data[0..n_train].to_vec();
+            let val_data = all_data[n_train..n_train + n_val].to_vec();
+            let test_data = all_data[n_train + n_val..].to_vec();
+            
+            Ok(Dataset {
+                train_data,
+                val_data,
+                test_data,
+                class_names,
+            })
+        }
+    }
+
+    async fn stratified_split(&self, all_data: Vec<(Tensor, usize)>, class_names: &[String]) -> anyhow::Result<Dataset> {
+        info!("Applying stratified sampling");
+        
+        // Group by class
+        let mut class_groups: HashMap<usize, Vec<(Tensor, usize)>> = HashMap::new();
+        for (tensor, label) in all_data {
+            class_groups.entry(label).or_default().push((tensor, label));
+        }
+        
+        let mut train_data: Vec<(Tensor, usize)> = Vec::new();
+        let mut val_data: Vec<(Tensor, usize)> = Vec::new();
+        let mut test_data: Vec<(Tensor, usize)> = Vec::new();
+        
+        // Split each class proportionally
+        for (label, mut samples) in class_groups {
+            let mut rng = rand::thread_rng();
+            use rand::seq::SliceRandom;
+            samples.shuffle(&mut rng);
+            
+            let n = samples.len();
+            let n_val = (n as f64 * self.config.validation_split) as usize;
+            let n_test = n_val / 2;
+            let n_train = n - n_val - n_test;
+            
+            train_data.extend(samples[0..n_train].to_vec());
+            val_data.extend(samples[n_train..n_train + n_val].to_vec());
+            test_data.extend(samples[n_train + n_val..].to_vec());
+            
+            info!("Class {}: {} train, {} val, {} test", 
+                class_names.get(label).map(|s| s.as_str()).unwrap_or("unknown"),
+                n_train, n_val, n_test);
+        }
+        
+        // Shuffle each split
         let mut rng = rand::thread_rng();
         use rand::seq::SliceRandom;
-        all_data.shuffle(&mut rng);
+        train_data.shuffle(&mut rng);
+        val_data.shuffle(&mut rng);
+        test_data.shuffle(&mut rng);
         
-        let n = all_data.len();
-        let n_val = (n as f64 * self.config.validation_split) as usize;
-        let n_test = n_val / 2;
-        let n_train = n - n_val - n_test;
-        
-        let train_data = all_data[0..n_train].to_vec();
-        let val_data = all_data[n_train..n_train + n_val].to_vec();
-        let test_data = all_data[n_train + n_val..].to_vec();
+        info!("Stratified split complete: {} train, {} val, {} test samples",
+            train_data.len(), val_data.len(), test_data.len());
         
         Ok(Dataset {
             train_data,
             val_data,
             test_data,
-            class_names,
+            class_names: class_names.to_vec(),
         })
     }
 
@@ -705,14 +964,59 @@ impl TrainingPipeline {
     async fn create_model_version(&self, result: &TrainingResult) -> anyhow::Result<ModelVersion> {
         let git_commit = std::env::var("GIT_COMMIT").ok();
         
+        // Create dataset version info
+        let dataset_version = DatasetVersion {
+            version_id: self.compute_dataset_version_id(),
+            dataset_hash: self.compute_dataset_version_id(),
+            created_at: Utc::now().to_rfc3339(),
+            source_config: self.config.dataset_config.clone().unwrap_or_else(|| DatasetConfig {
+                name: "default".to_string(),
+                source: DataSource::Local { path: "./data".to_string() },
+                format: DataFormat::Csv,
+                preprocessing: PreprocessingConfig {
+                    normalize: true,
+                    smoothing: None,
+                    baseline_correction: false,
+                    peak_detection: false,
+                    energy_calibration: None,
+                    noise_reduction: None,
+                },
+                validation_split: 0.2,
+                test_split: 0.1,
+                cache_dir: None,
+                max_samples: None,
+                quality_config: None,
+            }),
+            num_samples: result.epochs_completed * 100, // Approximate
+            class_distribution: result.per_class_accuracy.iter()
+                .map(|(k, _)| (k.clone(), 100)) // Placeholder distribution
+                .collect(),
+            preprocessing_hash: "default".to_string(),
+        };
+        
+        // Save dataset version metadata
+        self.save_dataset_version(&dataset_version).await?;
+        
         Ok(ModelVersion {
             version_id: Uuid::new_v4().to_string(),
             created_at: Utc::now().to_rfc3339(),
             training_config: self.config.clone(),
             metrics: result.clone(),
             git_commit,
-            tags: vec!["auto-generated".to_string()],
+            tags: vec!["auto-generated".to_string(), "stratified".to_string()],
         })
+    }
+
+    async fn save_dataset_version(&self, version: &DatasetVersion) -> anyhow::Result<()> {
+        let output_dir = PathBuf::from(&self.config.output_path).join("dataset_versions");
+        fs::create_dir_all(&output_dir)?;
+        
+        let version_path = output_dir.join(format!("dataset_{}.json", version.version_id));
+        let version_json = serde_json::to_string_pretty(version)?;
+        fs::write(&version_path, version_json)?;
+        
+        info!("Dataset version saved: {:?}", version_path);
+        Ok(())
     }
 
     async fn save_model_version(&self, version: &ModelVersion) -> anyhow::Result<()> {

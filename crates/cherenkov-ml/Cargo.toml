@@ -39,6 +39,7 @@ ndarray = { version = "0.15", optional = true }
 
 # Caching for classification results
 lru = "0.12"
+bincode = "1.3"
 
 # Workspace crates
 cherenkov-core = { workspace = true }
@@ -48,7 +49,7 @@ cherenkov-stream = { workspace = true }
 tokio-test = { workspace = true }
 
 [features]
-default = []
+default = ["cloud-storage"]
 cloud-storage = ["aws-sdk-s3", "aws-config"]
 hdf5-support = ["hdf5", "ndarray"]
 full = ["cloud-storage", "hdf5-support"]
