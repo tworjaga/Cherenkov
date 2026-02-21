@@ -23,3 +23,11 @@ export type {
   PlumeSimulationState,
   PlumeSimulationControls,
 } from './use-plume-simulation';
+
+export { usePlumeParticles, useParticleAnimation, particlesToDeckGlFormat } from './use-plume-particles';
+export type {
+  PlumeParticle,
+  PlumeParticlesBatch,
+  UsePlumeParticlesOptions,
+  UsePlumeParticlesReturn,
+} from './use-plume-particles';
