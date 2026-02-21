@@ -1,9 +1,9 @@
 use std::collections::HashMap;
-use candle_core::{Tensor, Device, DType};
+use candle_core::{Tensor, DType};
 use candle_nn::VarMap;
-use tracing::{info, debug, warn, error};
+use tracing::{info, debug, warn};
 use thiserror::Error;
-use serde::{Serialize, Deserialize};
+
 
 /// Errors that can occur during model conversion
 #[derive(Error, Debug)]
@@ -34,7 +34,7 @@ pub enum ConversionError {
 pub type ConversionResult<T> = Result<T, ConversionError>;
 
 /// Tensor metadata for validation
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct TensorMetadata {
     pub name: String,
     pub shape: Vec<usize>,
@@ -43,7 +43,7 @@ pub struct TensorMetadata {
 }
 
 /// Model architecture specification
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct ModelArchitecture {
     pub input_shape: Vec<usize>,
     pub output_shape: Vec<usize>,
@@ -52,13 +52,14 @@ pub struct ModelArchitecture {
 }
 
 /// Conversion configuration
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct ConversionConfig {
     pub validate_shapes: bool,
     pub validate_dtypes: bool,
     pub strict_mode: bool,
     pub allow_partial_conversion: bool,
 }
+
 
 impl Default for ConversionConfig {
     fn default() -> Self {
@@ -72,7 +73,7 @@ impl Default for ConversionConfig {
 }
 
 /// Conversion report with detailed information
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct ConversionReport {
     pub success: bool,
     pub tensors_converted: usize,
@@ -84,6 +85,7 @@ pub struct ConversionReport {
     pub input_shape: Vec<usize>,
     pub output_shape: Vec<usize>,
 }
+
 
 /// VarMap to ONNX converter with validation
 pub struct VarMapConverter {
@@ -160,7 +162,8 @@ impl VarMapConverter {
                 }
             }
             
-            tensor_map.insert(name.clone(), tensor.clone());
+            tensor_map.insert(name.clone(), tensor.as_tensor().clone());
+
             report.tensors_converted += 1;
         }
         
