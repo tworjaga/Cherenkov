@@ -38,8 +38,9 @@ impl PlumeService {
             model,
         };
         
-        self.simulations.lock().unwrap().insert(simulation_id, state);
+        self.simulations.lock().unwrap().insert(simulation_id.clone(), state);
         info!("Started plume simulation: {}", simulation_id);
+
     }
     
     /// Update weather conditions for a simulation
@@ -75,7 +76,8 @@ impl PlumeService {
         for (threshold, zone_type, evac_time, radius) in &thresholds {
 
             // Generate contour for this threshold
-            let contour_points = model.contour(threshold, radius);
+            let contour_points = model.contour(*threshold, *radius);
+
             
             if contour_points.is_empty() {
                 continue;

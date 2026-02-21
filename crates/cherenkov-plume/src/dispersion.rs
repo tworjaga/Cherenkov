@@ -1,4 +1,4 @@
-use crate::{ReleaseParameters, PlumeSimulation, ConcentrationGrid, ArrivalTime};
+    use crate::{ReleaseParameters, PlumeSimulation, ConcentrationGrid, ArrivalTime};
 use crate::weather::{WeatherDataProvider, WeatherGrid, LocalWeather, CompositeWeatherProvider};
 use nalgebra::Vector3;
 use tracing::{info, debug, warn};
@@ -723,6 +723,7 @@ fn get_half_life_hours(isotope: &str) -> f64 {
 
 /// Simplified Gaussian plume model for atmospheric dispersion
 /// C(x,y,z) = Q / (2π σ_y σ_z u) * exp(-y²/2σ_y²) * [exp(-(z-H)²/2σ_z²) + exp(-(z+H)²/2σ_z²)]
+#[derive(Clone)]
 pub struct GaussianPlumeModel {
     pub weather: WeatherConditions,
     pub release: ReleaseParameters,

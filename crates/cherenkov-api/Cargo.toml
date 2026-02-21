@@ -48,6 +48,9 @@ tokio-stream = "0.1"
 async-stream = "0.3"
 metrics = "0.22"
 
+# ML dependencies
+candle-core = { workspace = true }
+
 # Internal crates
 cherenkov-core = { path = "../cherenkov-core" }
 cherenkov-db = { path = "../cherenkov-db" }

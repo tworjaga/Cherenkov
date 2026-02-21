@@ -21,6 +21,8 @@ use graphql::schema::build_schema;
 use cherenkov_db::{RadiationDatabase, DatabaseConfig, scylla::ScyllaConfig};
 use cherenkov_observability::init_observability;
 use cherenkov_core::{EventBus, CherenkovEvent};
+use cherenkov_ml::ModelRegistry;
+use candle_core::Device;
 
 
 #[tokio::main]
@@ -45,8 +47,12 @@ async fn main() -> anyhow::Result<()> {
         .unwrap_or_else(|_| "cherenkov-dev-secret-change-in-production".to_string());
     let auth_state = Arc::new(AuthState::new(jwt_secret));
     
+    // Initialize ModelRegistry
+    let device = Device::cuda_if_available(0).unwrap_or(Device::Cpu);
+    let model_registry = Arc::new(ModelRegistry::new(device));
+    
     // Build GraphQL schema
-    let _schema = build_schema(db.clone()).await?;
+    let _schema = build_schema(db.clone(), model_registry.clone()).await?;
     
     // Initialize EventBus for inter-crate communication
     let event_bus = Arc::new(EventBus::new(10000));

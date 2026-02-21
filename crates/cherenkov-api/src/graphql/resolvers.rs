@@ -9,6 +9,12 @@ use cherenkov_plume::ReleaseParameters;
 
 pub struct QueryRoot;
 
+impl Default for QueryRoot {
+    fn default() -> Self {
+        Self
+    }
+}
+
 #[Object]
 impl QueryRoot {
     async fn sensors(&self, _ctx: &Context<'_>) -> Result<Vec<Sensor>> {
@@ -257,6 +263,12 @@ use tokio::sync::broadcast;
 pub struct SubscriptionRoot {
     sensor_tx: broadcast::Sender<SensorReading>,
     anomaly_tx: broadcast::Sender<AnomalyEvent>,
+}
+
+impl Default for SubscriptionRoot {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl SubscriptionRoot {

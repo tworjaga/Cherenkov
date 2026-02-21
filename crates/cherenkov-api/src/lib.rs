@@ -4,6 +4,6 @@ pub mod rate_limit;
 pub mod rest;
 pub mod websocket;
 
-pub use auth::AuthService;
-pub use graphql::Schema;
-pub use rate_limit::RateLimiter;
+pub use auth::AuthState;
+pub use graphql::schema::{CherenkovSchema, build_schema};
+pub use rate_limit::{RateLimitLayer, RateLimiterState};

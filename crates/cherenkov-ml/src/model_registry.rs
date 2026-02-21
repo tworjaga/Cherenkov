@@ -118,23 +118,25 @@ impl PerformanceMetrics {
 }
 
 /// Active model entry with runtime statistics
-struct ActiveModel {
+pub struct ActiveModel {
     model: Arc<OnnxModel>,
-    version_info: ModelVersionInfo,
+    pub version_info: ModelVersionInfo,
     loaded_at: Instant,
     inference_count: std::sync::atomic::AtomicU64,
     error_count: std::sync::atomic::AtomicU64,
     total_latency_ms: std::sync::atomic::AtomicU64,
 }
 
+
 /// Model registry with versioning and hot-swap support
 pub struct ModelRegistry {
     models: Arc<RwLock<HashMap<String, Vec<ModelVersionInfo>>>>,
-    active_models: Arc<RwLock<HashMap<String, ActiveModel>>>,
+    pub active_models: Arc<RwLock<HashMap<String, ActiveModel>>>,
     previous_versions: Arc<RwLock<HashMap<String, ModelVersionInfo>>>,
     device: candle_core::Device,
     performance_tolerance: f64,
 }
+
 
 impl ModelRegistry {
     pub fn new(device: candle_core::Device) -> Self {

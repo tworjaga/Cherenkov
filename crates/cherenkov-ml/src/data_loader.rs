@@ -222,13 +222,34 @@ impl CloudStorageClient {
             .send()
             .await?;
         
-        let keys: Vec<String> = response.contents()
-            .map(|contents| {
-                contents.iter()
-                    .filter_map(|obj| obj.key().map(|k| k.to_string()))
-                    .collect()
-            })
-            .unwrap_or_default();
+        let contents = response.contents();
+        let mut keys: Vec<String> = Vec::new();
+        for obj in contents {
+            if let Some(key) = obj.key() {
+                keys.push(key.to_string());
+            }
+        }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         
         Ok(keys)
     }
@@ -610,8 +631,140 @@ impl SpectraDataset {
         self.samples.is_empty()
     }
     
+    /// Validate data quality based on quality configuration
+    pub fn validate_quality(&mut self) -> anyhow::Result<QualityReport> {
+        let config = self.config.quality_config.as_ref()
+            .ok_or_else(|| anyhow::anyhow!("No quality configuration set"))?;
+        
+        let mut valid_samples = Vec::new();
+        let mut errors = Vec::new();
+        let mut duplicates_removed = 0;
+        let mut outliers_removed = 0;
+        
+        // Track seen IDs for duplicate detection
+        let mut seen_ids: std::collections::HashSet<String> = std::collections::HashSet::new();
+        
+        for sample in &self.samples {
+            let mut is_valid = true;
+            
+            // Check required fields
+            for field in &config.required_fields {
+                let field_valid = match field.as_str() {
+                    "id" => !sample.id.is_empty(),
+                    "energy_bins" => !sample.energy_bins.is_empty(),
+                    "counts" => !sample.counts.is_empty(),
+                    _ => true,
+                };
+                if !field_valid {
+                    errors.push(QualityError {
+                        sample_id: sample.id.clone(),
+                        error_type: ErrorType::MissingField,
+                        message: format!("Missing or empty field: {}", field),
+                    });
+                    is_valid = false;
+                }
+            }
+            
+            // Check energy bins count
+            let n_bins = sample.energy_bins.len();
+            if n_bins < config.min_energy_bins || n_bins > config.max_energy_bins {
+                errors.push(QualityError {
+                    sample_id: sample.id.clone(),
+                    error_type: ErrorType::WrongDimensions,
+                    message: format!("Energy bins count {} out of range [{}-{}]", 
+                        n_bins, config.min_energy_bins, config.max_energy_bins),
+                });
+                is_valid = false;
+            }
+            
+            // Check count range
+            let total_counts: f64 = sample.counts.iter().sum();
+            if let Some(min) = config.min_counts {
+                if total_counts < min {
+                    errors.push(QualityError {
+                        sample_id: sample.id.clone(),
+                        error_type: ErrorType::InvalidRange,
+                        message: format!("Total counts {} below minimum {}", total_counts, min),
+                    });
+                    is_valid = false;
+                }
+            }
+            if let Some(max) = config.max_counts {
+                if total_counts > max {
+                    errors.push(QualityError {
+                        sample_id: sample.id.clone(),
+                        error_type: ErrorType::InvalidRange,
+                        message: format!("Total counts {} above maximum {}", total_counts, max),
+                    });
+                    is_valid = false;
+                }
+            }
+            
+            // Check for duplicates
+            if config.duplicate_detection {
+                if seen_ids.contains(&sample.id) {
+                    errors.push(QualityError {
+                        sample_id: sample.id.clone(),
+                        error_type: ErrorType::Duplicate,
+                        message: "Duplicate sample ID".to_string(),
+                    });
+                    duplicates_removed += 1;
+                    is_valid = false;
+                } else {
+                    seen_ids.insert(sample.id.clone());
+                }
+            }
+            
+            // Check for outliers
+            if let Some(threshold) = config.outlier_threshold {
+                let mean = total_counts / n_bins as f64;
+                let variance: f64 = sample.counts.iter()
+                    .map(|&c| (c - mean).powi(2))
+                    .sum::<f64>() / n_bins as f64;
+                let std_dev = variance.sqrt();
+                
+                let max_count = sample.counts.iter().copied().fold(0.0f64, f64::max);
+                if max_count > mean + threshold * std_dev {
+                    errors.push(QualityError {
+                        sample_id: sample.id.clone(),
+                        error_type: ErrorType::Outlier,
+                        message: format!("Outlier detected: max count {} exceeds threshold", max_count),
+                    });
+                    outliers_removed += 1;
+                    is_valid = false;
+                }
+            }
+            
+            if is_valid {
+                valid_samples.push(sample.clone());
+            }
+        }
+        
+        let total_samples = self.samples.len();
+        let valid_count = valid_samples.len();
+        let invalid_count = total_samples - valid_count;
+        
+        // Replace samples with validated ones
+        self.samples = valid_samples;
+        
+        let report = QualityReport {
+            total_samples,
+            valid_samples: valid_count,
+            invalid_samples: invalid_count,
+            duplicates_removed,
+            outliers_removed,
+            errors,
+        };
+        
+        self.quality_report = Some(report.clone());
+        info!("Quality validation complete: {}/{} samples valid", valid_count, total_samples);
+        
+        Ok(report)
+    }
+    
     /// Get dataset statistics
     pub fn statistics(&self) -> DatasetStatistics {
+
         let n_samples = self.samples.len();
         if n_samples == 0 {
             return DatasetStatistics::default();
@@ -688,7 +841,9 @@ pub mod public_datasets {
             test_split: 0.15,
             cache_dir: Some("./cache/iaea".to_string()),
             max_samples: Some(10000),
+            quality_config: Some(DataQualityConfig::default()),
         };
+
         
         SpectraDataset::load(config, device).await
     }

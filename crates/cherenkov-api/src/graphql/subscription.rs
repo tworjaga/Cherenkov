@@ -6,6 +6,12 @@ use tokio_stream::StreamExt;
 #[allow(dead_code)]
 pub struct SubscriptionRoot;
 
+impl Default for SubscriptionRoot {
+    fn default() -> Self {
+        Self
+    }
+}
+
 #[Subscription]
 impl SubscriptionRoot {
     async fn reading_updates(&self, sensor_id: ID) -> impl Stream<Item = ReadingUpdate> {

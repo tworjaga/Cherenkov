@@ -484,7 +484,7 @@ mod tests {
     #[tokio::test]
     async fn test_architecture_detection() {
         let device = Device::Cpu;
-        let varmap = VarMap::new();
+        let mut varmap = VarMap::new();
         
         // Create simple model weights
         let w0 = Tensor::zeros(&[10, 20], DType::F32, &device).unwrap();
@@ -496,6 +496,7 @@ mod tests {
         varmap.set_one("b0", b0).unwrap();
         varmap.set_one("w_out", w_out).unwrap();
         varmap.set_one("b_out", b_out).unwrap();
+
         
         let converter = VarMapConverter::new();
         let arch = converter.detect_architecture(&varmap).unwrap();
