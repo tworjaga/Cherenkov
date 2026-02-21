@@ -74,94 +74,93 @@ impl PlumeService {
     ) -> Option<(Vec<EvacuationZone>, Vec<DoseContour>)> {
         let simulations = self.simulations.read().await;
         let state = simulations.get(simulation_id)?;
-        
         let release = &state.release;
-        let model = GaussianPlumeModel::new(state.weather.clone(), release.clone());
+        let weather = &state.weather;
         
-        // Define dose thresholds (in microsieverts per hour)
-        let thresholds: Vec<(f64, &str, i32, f64)> = vec![
-            (0.1, "immediate", 1, 1000.0),    // 0.1 uSv/h - immediate evacuation
-            (0.01, "extended", 24, 5000.0),   // 0.01 uSv/h - extended monitoring
-            (0.001, "monitoring", 72, 10000.0), // 0.001 uSv/h - monitoring zone
-        ];
+        // Create Gaussian plume model
+        let model = GaussianPlumeModel::new(
+            release.release_height_m,
+            weather.wind_speed_ms,
+            weather.stability_class,
+        );
         
+        // Generate evacuation zones based on dose thresholds
         let mut zones = Vec::new();
         let mut contours = Vec::new();
         
-        for (threshold, zone_type, evac_time, max_radius) in &thresholds {
-            // Generate contour using Gaussian model
-            let contour_points = model.contour(*threshold, *max_radius);
+        // Define dose thresholds for different evacuation zones (in Sieverts)
+        let thresholds = vec![
+            (0.0001, "immediate", "Immediate evacuation required", 3600), // 0.1 mSv/h
+            (0.00001, "extended", "Extended evacuation zone", 86400),     // 0.01 mSv/h
+            (0.000001, "monitoring", "Monitoring zone", 604800),            // 0.001 mSv/h
+        ];
+        
+        for (threshold, zone_type, description, evac_time) in thresholds {
+            // Find the distance where concentration drops below threshold
+            let mut max_distance = 0.0;
+            let mut contour_points = Vec::new();
             
-            if contour_points.is_empty() {
-                continue;
-            }
-            
-            let center_lat = release.latitude;
-            let center_lon = release.longitude;
-            
-            // Estimate affected population based on zone type
-            let affected_pop = match *zone_type {
-                "immediate" => Some(5000),
-                "extended" => Some(50000),
-                _ => Some(100000),
-            };
-            
-            let zone = EvacuationZone {
-                id: ID::from(format!("{}-{}", simulation_id, zone_type)),
-                simulation_id: ID::from(simulation_id),
-                zone_type: zone_type.to_string(),
-                radius_meters: *max_radius,
-                center_lat,
-                center_lon,
-                recommended_evacuation_time: *evac_time,
-                dose_threshold: *threshold,
-                affected_population_estimate: affected_pop,
-                timestamp: chrono::Utc::now(),
-            };
-            
-            zones.push(zone);
-            
-            // Convert contour points to lat/lon and calculate dose rates
-            let coordinates: Vec<ContourPoint> = contour_points
-                .iter()
-                .map(|(x, y)| {
-                    let lat = center_lat + y / 111000.0;
-                    let lon = center_lon + x / (111000.0 * center_lat.to_radians().cos());
-                    let dose = model.ground_level_dose_rate(*x, *y);
+            for distance_m in (100..10000).step_by(100) {
+                let distance = distance_m as f64;
+                let angle = weather.wind_direction_deg.to_radians();
+                
+                // Calculate position downwind
+                let x = distance * angle.cos();
+                let y = distance * angle.sin();
+                
+                // Get concentration at ground level
+                let concentration = model.ground_level_concentration(x, y);
+                
+                // Convert concentration to dose rate (simplified conversion)
+                let dose_rate = concentration * 1.0e6; // Convert to appropriate units
+                
+                if dose_rate > threshold {
+                    max_distance = distance;
                     
-                    ContourPoint {
+                    // Convert to lat/lon
+                    let lat = release.latitude + y / 111000.0;
+                    let lon = release.longitude + x / (111000.0 * release.latitude.to_radians().cos());
+                    
+                    contour_points.push(ContourPoint {
                         latitude: lat,
                         longitude: lon,
-                        dose_rate: dose,
-                    }
-                })
-                .collect();
+                        dose_rate,
+                    });
+                } else {
+                    break;
+                }
+            }
             
-            let contour = DoseContour {
-                level: match *zone_type {
-                    "immediate" => 1.0,
-                    "extended" => 2.0,
-                    _ => 3.0,
-                },
-                threshold_sieverts: *threshold / 1_000_000.0,
-                coordinates,
-                label: format!("{} Zone", zone_type.to_uppercase()),
-            };
-            
-            contours.push(contour);
+            if max_distance > 0.0 {
+                let zone = EvacuationZone {
+                    id: ID::from(format!("{}-{}", simulation_id, zone_type)),
+                    simulation_id: ID::from(simulation_id.to_string()),
+                    zone_type: zone_type.to_string(),
+                    radius_meters: max_distance,
+                    center_lat: release.latitude,
+                    center_lon: release.longitude,
+                    recommended_evacuation_time: evac_time,
+                    dose_threshold: threshold,
+                    affected_population_estimate: None,
+                    timestamp: chrono::Utc::now(),
+                };
+                
+                zones.push(zone);
+                
+                let contour = DoseContour {
+                    level: threshold,
+                    threshold_sieverts: threshold,
+                    coordinates: contour_points,
+                    label: description.to_string(),
+                };
+                
+                contours.push(contour);
+            }
         }
-        
-        debug!(
-            "Generated {} zones and {} contours for simulation: {}",
-            zones.len(),
-            contours.len(),
-            simulation_id
-        );
         
         Some((zones, contours))
     }
 
-    
     /// Get particle positions for visualization
     pub async fn get_particles(&self, simulation_id: &str, count: usize) -> Vec<ParticlePosition> {
         let simulations = self.simulations.read().await;
@@ -170,10 +169,18 @@ impl PlumeService {
             None => return Vec::new(),
         };
         
-        let model = GaussianPlumeModel::new(state.weather.clone(), state.release.clone());
         let release = &state.release;
+        let weather = &state.weather;
+        
+        // Create Gaussian plume model
+        let model = GaussianPlumeModel::new(
+            release.release_height_m,
+            weather.wind_speed_ms,
+            weather.stability_class,
+        );
         
         // Generate particles along the plume centerline
+
         (0..count)
             .map(|i| {
                 let distance = (i as f64) * 100.0; // 100m spacing
