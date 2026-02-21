@@ -281,17 +281,23 @@ impl MlAnomalyIntegration {
         use std::collections::hash_map::DefaultHasher;
         
         let mut hasher = DefaultHasher::new();
-        spectrum.energies.hash(&mut hasher);
-        spectrum.counts.hash(&mut hasher);
+        // Hash channels by converting f32 to bits
+        for &channel in &spectrum.channels {
+            channel.to_bits().hash(&mut hasher);
+        }
+        spectrum.calibration.slope.to_bits().hash(&mut hasher);
+        spectrum.calibration.intercept.to_bits().hash(&mut hasher);
         format!("{:x}", hasher.finish())
     }
+
+
     
     /// Detect anomaly classes from classification
     fn detect_anomaly_classes(&self, classification: &Classification) -> Vec<AnomalyClass> {
         let mut classes = Vec::new();
         
         for pred in &classification.isotopes {
-            let class = match pred.isotope.as_str() {
+            let class = match pred.symbol.as_str() {
                 "Cs-137" | "Co-60" | "Ir-192" => AnomalyClass::IndustrialSource,
                 "Tc-99m" | "I-131" | "F-18" => AnomalyClass::MedicalIsotope,
                 "U-235" | "Pu-239" | "Am-241" => AnomalyClass::NuclearMaterial,
@@ -310,13 +316,14 @@ impl MlAnomalyIntegration {
         
         classes
     }
+
     
     /// Get class confidences from classification
     fn get_class_confidences(&self, classification: &Classification) -> HashMap<String, f64> {
         let mut confidences = HashMap::new();
         
         for pred in &classification.isotopes {
-            let class = match pred.isotope.as_str() {
+            let class = match pred.symbol.as_str() {
                 "Cs-137" | "Co-60" | "Ir-192" => "industrial_source",
                 "Tc-99m" | "I-131" | "F-18" => "medical_isotope",
                 "U-235" | "Pu-239" | "Am-241" => "nuclear_material",
@@ -324,12 +331,15 @@ impl MlAnomalyIntegration {
                 _ => "unknown",
             };
             
-            let entry = confidences.entry(class.to_string()).or_insert(0.0);
-            *entry = (*entry).max(pred.confidence as f64);
+            let entry = confidences.entry(class.to_string()).or_insert(0.0f64);
+            let current: f64 = *entry;
+            let new_val: f64 = pred.confidence as f64;
+            *entry = current.max(new_val);
         }
         
         confidences
     }
+
 
     
     /// Process sensor reading with ML classification and caching
@@ -441,6 +451,7 @@ impl MlAnomalyIntegration {
     ) -> anyhow::Result<Vec<MlAnomalyResult>> {
         let mut results = Vec::new();
         let start_time = Instant::now();
+        let total_readings = readings.len();
         
         // Filter to anomalous readings
         let anomalous: Vec<_> = {
@@ -461,6 +472,7 @@ impl MlAnomalyIntegration {
         if anomalous.is_empty() {
             return Ok(results);
         }
+
         
         // Check cache for each spectrum and collect uncached
         let mut uncached: Vec<(String, crate::Spectrum, (f64, f64), f64)> = Vec::new();
@@ -547,12 +559,13 @@ impl MlAnomalyIntegration {
         info!(
             "Batch processing complete: {} anomalies from {} readings, time: {:.2}ms",
             results.len(),
-            readings.len(),
+            total_readings,
             total_time
         );
         
         Ok(results)
     }
+
 
     
     fn determine_action(&self, radiation_level: f64, confidence: f64) -> RecommendedAction {
