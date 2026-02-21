@@ -484,19 +484,16 @@ mod tests {
     #[tokio::test]
     async fn test_architecture_detection() {
         let device = Device::Cpu;
-        let mut varmap = VarMap::new();
+        let varmap = VarMap::new();
         
-        // Create simple model weights
-        let w0 = Tensor::zeros(&[10, 20], DType::F32, &device).unwrap();
-        let b0 = Tensor::zeros(&[20], DType::F32, &device).unwrap();
-        let w_out = Tensor::zeros(&[20, 5], DType::F32, &device).unwrap();
-        let b_out = Tensor::zeros(&[5], DType::F32, &device).unwrap();
+        // Create simple model weights using VarBuilder
+        let vb = candle_nn::VarBuilder::from_varmap(&varmap, DType::F32, &device);
         
-        varmap.set_one("w0", w0).unwrap();
-        varmap.set_one("b0", b0).unwrap();
-        varmap.set_one("w_out", w_out).unwrap();
-        varmap.set_one("b_out", b_out).unwrap();
-
+        // Initialize weights - this creates them in the VarMap
+        let _w0 = vb.get_with_hints((10, 20), "w0", candle_nn::init::ZERO).unwrap();
+        let _b0 = vb.get_with_hints(20, "b0", candle_nn::init::ZERO).unwrap();
+        let _w_out = vb.get_with_hints((20, 5), "w_out", candle_nn::init::ZERO).unwrap();
+        let _b_out = vb.get_with_hints(5, "b_out", candle_nn::init::ZERO).unwrap();
         
         let converter = VarMapConverter::new();
         let arch = converter.detect_architecture(&varmap).unwrap();
@@ -505,4 +502,5 @@ mod tests {
         assert_eq!(arch.output_shape, vec![1, 5]);
         assert_eq!(arch.hidden_layers, vec![20]);
     }
+
 }

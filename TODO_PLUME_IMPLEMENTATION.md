@@ -17,11 +17,11 @@
 - [x] Commit: `feat: Add useEvacuationZones hook for evacuation zone updates`
 
 ### Task 3: Update plume-layer.tsx
-- [ ] Replace mock data with real subscription data
-- [ ] Integrate usePlumeParticles hook
-- [ ] Integrate useEvacuationZones hook
-- [ ] Add loading states and error handling
-- [ ] Commit: `feat: Connect plume-layer to real dispersion data`
+- [x] Replace mock data with real subscription data
+- [x] Integrate usePlumeParticles hook
+- [x] Integrate useEvacuationZones hook
+- [x] Add loading states and error handling
+- [x] Commit: `feat: Connect plume-layer to real dispersion data`
 
 ### Task 4: Backend Integration
 - [ ] Update `crates/cherenkov-api/src/graphql/subscription.rs`
