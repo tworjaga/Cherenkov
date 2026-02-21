@@ -15,10 +15,10 @@
 - [x] Add training data pipeline
 
 ### 3. Model Versioning and Hot-Swapping
-- [ ] Enhance model versioning with ONNX metadata
-- [ ] Implement atomic hot-swapping with rollback
-- [ ] Add performance monitoring
-- [ ] Create model registry
+- [x] Enhance model versioning with ONNX metadata
+- [x] Implement atomic hot-swapping with rollback
+- [x] Add performance monitoring
+- [x] Create model registry
 
 ### 4. Anomaly Detection Integration
 - [ ] Connect ML classification to stream pipeline

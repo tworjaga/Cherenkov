@@ -6,10 +6,11 @@
 - [x] Commit changes
 
 ## Phase 2: Complete OnnxModel Implementation
-- [ ] Fix OnnxModel struct and methods in inference.rs
-- [ ] Implement proper model loading with candle-onnx
-- [ ] Add model validation methods
-- [ ] Commit changes
+- [x] Fix OnnxModel struct and methods in inference.rs
+- [x] Implement proper model loading with candle-onnx
+- [x] Add model validation methods
+- [x] Commit changes
+
 
 ## Phase 3: Add cherenkov-stream lib target
 - [x] Create lib.rs for cherenkov-stream
@@ -23,5 +24,5 @@
 
 ## Phase 5: Testing
 - [x] Verify compilation succeeds
-- [ ] Test ONNX model loading
+- [x] Test ONNX model loading
 - [x] Push all changes
