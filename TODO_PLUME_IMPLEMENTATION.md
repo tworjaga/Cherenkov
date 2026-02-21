@@ -3,18 +3,18 @@
 ## Tasks
 
 ### Task 1: Create usePlumeParticles Hook
-- [ ] Create `web/src/hooks/use-plume-particles.ts`
-- [ ] Subscribe to PLUME_PARTICLES GraphQL subscription
-- [ ] Transform particle data for deck.gl format
-- [ ] Handle WebSocket connection lifecycle
-- [ ] Commit: `feat: Add usePlumeParticles hook for real-time particle streaming`
+- [x] Create `web/src/hooks/use-plume-particles.ts`
+- [x] Subscribe to PLUME_PARTICLES GraphQL subscription
+- [x] Transform particle data for deck.gl format
+- [x] Handle WebSocket connection lifecycle
+- [x] Commit: `feat: Add usePlumeParticles hook for real-time particle streaming`
 
 ### Task 2: Create useEvacuationZones Hook
-- [ ] Create `web/src/hooks/use-evacuation-zones.ts`
-- [ ] Subscribe to EVACUATION_ZONES GraphQL subscription
-- [ ] Transform zone data for deck.gl PolygonLayer
-- [ ] Parse dose contours from subscription data
-- [ ] Commit: `feat: Add useEvacuationZones hook for evacuation zone updates`
+- [x] Create `web/src/hooks/use-evacuation-zones.ts`
+- [x] Subscribe to EVACUATION_ZONES GraphQL subscription
+- [x] Transform zone data for deck.gl PolygonLayer
+- [x] Parse dose contours from subscription data
+- [x] Commit: `feat: Add useEvacuationZones hook for evacuation zone updates`
 
 ### Task 3: Update plume-layer.tsx
 - [ ] Replace mock data with real subscription data
