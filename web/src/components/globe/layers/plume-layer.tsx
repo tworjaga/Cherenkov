@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useCallback } from 'react';
+import { useMemo, useCallback, useState, useEffect } from 'react';
 import { ScatterplotLayer, HeatmapLayer, PolygonLayer } from 'deck.gl';
 
 import { useGlobeStore } from '@/stores/globe-store';
@@ -12,6 +12,9 @@ import {
   zonesToDeckGlFormat,
 } from '@/hooks';
 import { useToast } from '@/components/ui/toast';
+import { Spinner } from '@/components/ui/spinner';
+import { Alert } from '@/components/ui/alert';
+
 
 
 
@@ -59,12 +62,17 @@ interface PlumeLayerProps {
   enableRealtime?: boolean;
   /** Enable real-time evacuation zone updates via GraphQL subscription */
   enableRealtimeZones?: boolean;
+  /** Callback when loading state changes */
+  onLoadingChange?: (isLoading: boolean) => void;
+  /** Callback when error occurs */
+  onError?: (error: Error) => void;
 }
 
 
 
 
 export function PlumeLayer({ 
+
   visible = true, 
   onClick,
   showHeatmap = true,
@@ -79,9 +87,13 @@ export function PlumeLayer({
   simulationId,
   enableRealtime = false,
   enableRealtimeZones = false,
+  onLoadingChange,
+  onError,
 }: PlumeLayerProps) {
 
-
+  const [isInitializing, setIsInitializing] = useState(true);
+  const [connectionError, setConnectionError] = useState<Error | null>(null);
+  
   const { timeRange } = useGlobeStore();
   const { toast } = useToast();
   
@@ -92,11 +104,16 @@ export function PlumeLayer({
   const { 
     particles: realtimeParticles, 
     isConnected: isRealtimeConnected,
-    totalParticles: realtimeTotal 
+    totalParticles: realtimeTotal,
+    error: particlesError,
+    clearParticles,
   } = usePlumeParticles({
     simulationId: simulationId || '',
     enabled: enableRealtime && !!simulationId && simState.isPlaying,
     batchSize: 100,
+    onBatchReceived: () => {
+      setIsInitializing(false);
+    },
   });
 
   // Connect to real-time evacuation zones when simulationId is provided
@@ -104,10 +121,60 @@ export function PlumeLayer({
     zones: realtimeZones,
     isConnected: isZonesConnected,
     totalZones: realtimeTotalZones,
+    error: zonesError,
+    clearZones,
   } = useEvacuationZones({
     simulationId: simulationId || '',
     enabled: enableRealtimeZones && !!simulationId && simState.isPlaying,
   });
+
+  // Handle initialization and loading states
+  useEffect(() => {
+    const isLoading = (enableRealtime || enableRealtimeZones) && 
+                      !!simulationId && 
+                      simState.isPlaying && 
+                      !isRealtimeConnected && 
+                      !isZonesConnected &&
+                      isInitializing;
+    
+    onLoadingChange?.(isLoading);
+  }, [
+    enableRealtime, 
+    enableRealtimeZones, 
+    simulationId, 
+    simState.isPlaying, 
+    isRealtimeConnected, 
+    isZonesConnected,
+    isInitializing,
+    onLoadingChange
+  ]);
+
+  // Handle errors from subscriptions
+  useEffect(() => {
+    const error = particlesError || zonesError;
+    if (error) {
+      setConnectionError(error);
+      onError?.(error);
+      
+      toast({
+        title: 'Real-time Connection Error',
+        description: error.message,
+        variant: 'destructive',
+        duration: 5000,
+      });
+    }
+  }, [particlesError, zonesError, onError, toast]);
+
+  // Reset initialization state when simulation starts/stops
+  useEffect(() => {
+    if (!simState.isPlaying) {
+      setIsInitializing(true);
+      setConnectionError(null);
+      clearParticles?.();
+      clearZones?.();
+    }
+  }, [simState.isPlaying, clearParticles, clearZones]);
+
 
 
 
@@ -299,8 +366,8 @@ export function PlumeLayer({
 
   // Show connection status toast for real-time streaming
   useMemo(() => {
-    if (enableRealtime && simulationId) {
-      if (isRealtimeConnected) {
+    if (enableRealtime && simulationId && !connectionError) {
+      if (isRealtimeConnected && !isInitializing) {
         toast({
           title: 'Real-time Streaming Connected',
           description: `Receiving live particle data (${realtimeTotal} particles)`,
@@ -309,11 +376,11 @@ export function PlumeLayer({
         });
       }
     }
-  }, [enableRealtime, simulationId, isRealtimeConnected, realtimeTotal, toast]);
+  }, [enableRealtime, simulationId, isRealtimeConnected, realtimeTotal, toast, isInitializing, connectionError]);
 
   // Show connection status toast for real-time zones
   useMemo(() => {
-    if (enableRealtimeZones && simulationId) {
+    if (enableRealtimeZones && simulationId && !connectionError) {
       if (isZonesConnected) {
         toast({
           title: 'Evacuation Zones Connected',
@@ -323,13 +390,34 @@ export function PlumeLayer({
         });
       }
     }
-  }, [enableRealtimeZones, simulationId, isZonesConnected, realtimeTotalZones, toast]);
+  }, [enableRealtimeZones, simulationId, isZonesConnected, realtimeTotalZones, toast, connectionError]);
+
 
 
 
   const layers = [];
+  
+  // Render loading overlay if initializing real-time connection
+  if (isInitializing && (enableRealtime || enableRealtimeZones) && simState.isPlaying) {
+    layers.push(new ScatterplotLayer({
+      id: 'plume-loading-indicator',
+      data: [{ position: [releaseLng, releaseLat] }],
+      visible: visible,
+      getPosition: (d: { position: [number, number] }) => d.position,
+      getRadius: () => 50,
+      getFillColor: () => [255, 165, 0, 100],
+      getLineColor: () => [255, 165, 0, 200],
+      lineWidthMinPixels: 2,
+      stroked: true,
+      filled: true,
+      radiusMinPixels: 20,
+      radiusMaxPixels: 100,
+    }));
+  }
+
 
   // Add evacuation zone polygons
+
   if (showEvacuationZones && generatedZones.length > 0) {
     layers.push(new PolygonLayer<EvacuationZone>({
       id: 'evacuation-zones-layer',
@@ -418,8 +506,50 @@ export function PlumeLayer({
     }));
   }
 
-  return layers;
+  return (
+    <>
+      {/* Error Alert Overlay */}
+      {connectionError && (
+        <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-50 w-96">
+          <Alert variant="error">
+            <div className="flex items-center gap-2">
+              <span className="font-semibold">Connection Error</span>
+            </div>
+            <p className="text-sm mt-1">{connectionError.message}</p>
+            <button 
+              onClick={() => setConnectionError(null)}
+              className="text-xs underline mt-2 hover:text-red-300"
+            >
+              Dismiss
+            </button>
+          </Alert>
+        </div>
+      )}
+
+      
+      {/* Loading Indicator */}
+      {isInitializing && (enableRealtime || enableRealtimeZones) && simState.isPlaying && (
+        <div className="absolute bottom-4 right-4 z-50 flex items-center gap-2 bg-black/70 text-white px-3 py-2 rounded-md">
+          <Spinner size="sm" />
+          <span className="text-sm">Connecting to real-time data...</span>
+        </div>
+      )}
+      
+      {/* Connection Status Badge */}
+      {(enableRealtime || enableRealtimeZones) && simState.isPlaying && !isInitializing && !connectionError && (
+        <div className="absolute bottom-4 right-4 z-50 flex items-center gap-2">
+          <div className={`w-2 h-2 rounded-full ${isRealtimeConnected || isZonesConnected ? 'bg-green-500' : 'bg-yellow-500'}`} />
+          <span className="text-xs text-white bg-black/70 px-2 py-1 rounded">
+            {isRealtimeConnected || isZonesConnected ? 'Live' : 'Connecting...'}
+          </span>
+        </div>
+      )}
+      
+      {layers}
+    </>
+  );
 }
+
 
 function getInstructionsForLevel(level: string): string {
   const instructions: Record<string, string> = {
