@@ -4,8 +4,15 @@ import { useMemo, useCallback } from 'react';
 import { ScatterplotLayer, HeatmapLayer, PolygonLayer } from 'deck.gl';
 
 import { useGlobeStore } from '@/stores/globe-store';
-import { usePlumeSimulation, usePlumeParticles, particlesToDeckGlFormat } from '@/hooks';
+import { 
+  usePlumeSimulation, 
+  usePlumeParticles, 
+  particlesToDeckGlFormat,
+  useEvacuationZones,
+  zonesToDeckGlFormat,
+} from '@/hooks';
 import { useToast } from '@/components/ui/toast';
+
 
 
 // Dose thresholds in μSv/h for evacuation zones
@@ -50,7 +57,10 @@ interface PlumeLayerProps {
   simulationId?: string;
   /** Enable real-time particle streaming via WebSocket */
   enableRealtime?: boolean;
+  /** Enable real-time evacuation zone updates via GraphQL subscription */
+  enableRealtimeZones?: boolean;
 }
+
 
 
 
@@ -68,7 +78,10 @@ export function PlumeLayer({
   onZoneClick,
   simulationId,
   enableRealtime = false,
-}: PlumeLayerProps): (ScatterplotLayer<PlumeParticle> | HeatmapLayer<{ position: [number, number]; weight: number }> | PolygonLayer<EvacuationZone>)[] {
+  enableRealtimeZones = false,
+}: PlumeLayerProps) {
+
+
   const { timeRange } = useGlobeStore();
   const { toast } = useToast();
   
@@ -85,6 +98,17 @@ export function PlumeLayer({
     enabled: enableRealtime && !!simulationId && simState.isPlaying,
     batchSize: 100,
   });
+
+  // Connect to real-time evacuation zones when simulationId is provided
+  const {
+    zones: realtimeZones,
+    isConnected: isZonesConnected,
+    totalZones: realtimeTotalZones,
+  } = useEvacuationZones({
+    simulationId: simulationId || '',
+    enabled: enableRealtimeZones && !!simulationId && simState.isPlaying,
+  });
+
 
 
   // Calculate dose rate from concentration
@@ -154,10 +178,30 @@ export function PlumeLayer({
     ];
   };
 
-  // Generate evacuation zones from particles if not provided
+  // Merge real-time zones with prop-provided zones
+  const allZones = useMemo(() => {
+    const merged = [...evacuationZones];
+    if (enableRealtimeZones && realtimeZones.length > 0) {
+      // Convert real-time zones to EvacuationZone format
+      const converted = realtimeZones.map(z => ({
+        id: z.id,
+        name: z.name,
+        severity: (['low', 'medium', 'high', 'critical'][z.level - 1] || 'low') as 'critical' | 'high' | 'medium' | 'low',
+        contour: z.polygon.coordinates[0].map(coord => [coord[0], coord[1]] as [number, number]),
+        doseRate: z.doseThreshold,
+        population: z.population,
+        instructions: getInstructionsForLevel(['low', 'medium', 'high', 'critical'][z.level - 1] || 'low'),
+      }));
+      merged.push(...converted);
+    }
+    return merged;
+  }, [evacuationZones, realtimeZones, enableRealtimeZones]);
+
+  // Generate evacuation zones from particles if not provided and no real-time data
   const generatedZones = useMemo((): EvacuationZone[] => {
-    if (evacuationZones.length > 0) return evacuationZones;
+    if (allZones.length > 0) return allZones;
     if (!allParticles.length || !releaseLat || !releaseLng) return [];
+
 
 
     const zones: EvacuationZone[] = [];
@@ -231,7 +275,8 @@ export function PlumeLayer({
     }
 
     return zones;
-  }, [allParticles, evacuationZones, releaseLat, releaseLng, calculateDoseRate]);
+  }, [allParticles, allZones, releaseLat, releaseLng, calculateDoseRate]);
+
 
 
   // Trigger alert for critical zones
@@ -266,12 +311,27 @@ export function PlumeLayer({
     }
   }, [enableRealtime, simulationId, isRealtimeConnected, realtimeTotal, toast]);
 
+  // Show connection status toast for real-time zones
+  useMemo(() => {
+    if (enableRealtimeZones && simulationId) {
+      if (isZonesConnected) {
+        toast({
+          title: 'Evacuation Zones Connected',
+          description: `Receiving live zone updates (${realtimeTotalZones} zones)`,
+          variant: 'default',
+          duration: 3000,
+        });
+      }
+    }
+  }, [enableRealtimeZones, simulationId, isZonesConnected, realtimeTotalZones, toast]);
 
-  const layers: (ScatterplotLayer<PlumeParticle> | HeatmapLayer<{ position: [number, number]; weight: number }> | PolygonLayer<EvacuationZone>)[] = [];
+
+
+  const layers = [];
 
   // Add evacuation zone polygons
   if (showEvacuationZones && generatedZones.length > 0) {
-    layers.push(new PolygonLayer({
+    layers.push(new PolygonLayer<EvacuationZone>({
       id: 'evacuation-zones-layer',
       data: generatedZones,
       visible: visible && simState.isPlaying,
@@ -308,6 +368,7 @@ export function PlumeLayer({
       highlightColor: [255, 255, 255, 100],
     }));
   }
+
 
   // Add heatmap layer for concentration visualization
   if (showHeatmap) {

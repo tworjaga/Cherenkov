@@ -473,10 +473,12 @@ impl TrainingPipeline {
         let per_class_accuracy = self.calculate_per_class_accuracy(&dataset.test_data).await?;
         let confusion_matrix = self.calculate_confusion_matrix(&dataset.test_data).await?;
         
-        let model_path = self.export_model().await?;
+        let output_path = PathBuf::from(&self.config.output_path).join("model.onnx");
+        let export_report = self.export_model(&output_path, None).await?;
+        let model_path_str = output_path.to_string_lossy().to_string();
         
         let result = TrainingResult {
-            model_path: model_path.clone(),
+            model_path: model_path_str.clone(),
             final_loss: *self.best_val_loss.read().await,
             validation_accuracy: *self.best_val_loss.read().await,
             test_accuracy: test_metrics.1,
@@ -492,7 +494,7 @@ impl TrainingPipeline {
         let version = self.create_model_version(&result).await?;
         self.save_model_version(&version).await?;
         
-        info!("Training completed. Model saved to {}", model_path);
+        info!("Training completed. Model saved to {:?}", export_report);
         info!("Model version {} created", version.version_id);
         
         Ok(result)
@@ -998,7 +1000,9 @@ impl TrainingPipeline {
         let mut tensor_map = HashMap::new();
         let all_vars = self.varmap.all_vars();
         
-        for (name, var) in all_vars {
+        // all_vars() returns Vec<Var>, not tuples
+        for (i, var) in all_vars.iter().enumerate() {
+            let name = format!("var_{}", i);
             let tensor = var.as_tensor().clone();
             tensor_map.insert(name, tensor);
         }

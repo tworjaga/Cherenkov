@@ -42,6 +42,7 @@ declare module '@deck.gl/layers' {
     onClick?: (info: { object: D | null; x: number; y: number }) => void;
     onHover?: (info: { object: D | null; x: number; y: number }) => void;
     getPosition?: (d: D) => [number, number] | [number, number, number];
+    getPolygon?: (d: D) => Array<[number, number]>;
     getFillColor?: (d: D) => [number, number, number] | [number, number, number, number];
     getLineColor?: (d: D) => [number, number, number] | [number, number, number, number];
     getLineWidth?: number | ((d: D) => number);
@@ -62,7 +63,10 @@ declare module '@deck.gl/layers' {
     iconMapping?: Record<string, unknown>;
     updateTriggers?: Record<string, unknown[]>;
     transitions?: Record<string, number | { duration?: number; easing?: (t: number) => number }>;
+    autoHighlight?: boolean;
+    highlightColor?: [number, number, number, number];
   }
+
   
   export class ScatterplotLayer<D = unknown> {
     constructor(props: LayerProps<D>);

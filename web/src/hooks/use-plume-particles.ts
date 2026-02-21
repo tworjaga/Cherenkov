@@ -1,7 +1,9 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useWebSocket } from './use-websocket';
+import { getWsClient } from '@/lib/graphql/client';
+import { PLUME_PARTICLES } from '@/lib/graphql/subscriptions';
+
 
 export interface PlumeParticle {
   id: string;
@@ -34,58 +36,26 @@ export interface UsePlumeParticlesReturn {
   clearParticles: () => void;
 }
 
+interface PlumeParticlesSubscriptionResponse {
+  plumeParticles: PlumeParticlesBatch;
+}
+
 export function usePlumeParticles(options: UsePlumeParticlesOptions): UsePlumeParticlesReturn {
   const { simulationId, batchSize = 100, enabled = true, onBatchReceived } = options;
   
   const [particles, setParticles] = useState<PlumeParticle[]>([]);
   const [lastBatchTime, setLastBatchTime] = useState<Date | null>(null);
   const [error, setError] = useState<Error | null>(null);
+  const [isConnected, setIsConnected] = useState(false);
   
   const particlesRef = useRef<PlumeParticle[]>([]);
   const maxParticlesRef = useRef(10000); // Limit to prevent memory issues
+  const unsubscribeRef = useRef<(() => void) | null>(null);
   
   // Update ref when particles change
   useEffect(() => {
     particlesRef.current = particles;
   }, [particles]);
-  
-  const handleMessage = useCallback((data: unknown) => {
-    try {
-      const batch = data as PlumeParticlesBatch;
-      
-      if (!batch.particles || !Array.isArray(batch.particles)) {
-        return;
-      }
-      
-      // Add new particles
-      const newParticles = batch.particles;
-      
-      setParticles(prev => {
-        const combined = [...prev, ...newParticles];
-        // Keep only the most recent particles to prevent memory issues
-        if (combined.length > maxParticlesRef.current) {
-          return combined.slice(-maxParticlesRef.current);
-        }
-        return combined;
-      });
-      
-      setLastBatchTime(new Date());
-      
-      // Call optional callback
-      if (onBatchReceived) {
-        onBatchReceived(batch);
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err : new Error('Failed to process particle batch'));
-    }
-  }, [onBatchReceived]);
-  
-  const { isConnected } = useWebSocket({
-    url: enabled ? `/ws/plume/${simulationId}?batchSize=${batchSize}` : null,
-    onMessage: handleMessage,
-    reconnectInterval: 5000,
-    maxReconnectAttempts: 10,
-  });
   
   const clearParticles = useCallback(() => {
     setParticles([]);
@@ -98,6 +68,75 @@ export function usePlumeParticles(options: UsePlumeParticlesOptions): UsePlumePa
     clearParticles();
   }, [simulationId, clearParticles]);
   
+  // Subscribe to plume particles via GraphQL WS
+  useEffect(() => {
+    if (!enabled) {
+      setIsConnected(false);
+      return;
+    }
+    
+    setIsConnected(false);
+    
+    try {
+      const client = getWsClient();
+      
+      const unsubscribe = client.subscribe(
+        {
+          query: PLUME_PARTICLES,
+          variables: { simulationId, batchSize },
+        },
+        {
+          next: (data) => {
+            setIsConnected(true);
+            
+            if (data.data?.plumeParticles) {
+              const batch = data.data.plumeParticles as PlumeParticlesBatch;
+              
+              if (!batch.particles || !Array.isArray(batch.particles)) {
+                return;
+              }
+              
+              setParticles(prev => {
+                const combined = [...prev, ...batch.particles];
+                if (combined.length > maxParticlesRef.current) {
+                  return combined.slice(-maxParticlesRef.current);
+                }
+                return combined;
+              });
+              
+              setLastBatchTime(new Date());
+              
+              if (onBatchReceived) {
+                onBatchReceived(batch);
+              }
+            }
+          },
+          error: (err) => {
+            console.error('Plume particles subscription error:', err);
+            setError(err instanceof Error ? err : new Error('Subscription error'));
+            setIsConnected(false);
+          },
+          complete: () => {
+            setIsConnected(false);
+          },
+        }
+      );
+      
+      unsubscribeRef.current = unsubscribe;
+    } catch (err) {
+      console.error('Failed to subscribe to plume particles:', err);
+      setError(err instanceof Error ? err : new Error('Failed to subscribe'));
+      setIsConnected(false);
+    }
+    
+    return () => {
+      if (unsubscribeRef.current) {
+        unsubscribeRef.current();
+        unsubscribeRef.current = null;
+      }
+    };
+  }, [simulationId, batchSize, enabled, onBatchReceived]);
+  
   return {
     particles,
     isConnected,
@@ -107,6 +146,8 @@ export function usePlumeParticles(options: UsePlumeParticlesOptions): UsePlumePa
     clearParticles,
   };
 }
+
+
 
 // Hook for managing particle animation state
 export function useParticleAnimation(

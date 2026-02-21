@@ -31,3 +31,11 @@ export type {
   UsePlumeParticlesOptions,
   UsePlumeParticlesReturn,
 } from './use-plume-particles';
+
+export { useEvacuationZones, zonesToDeckGlFormat, getZoneStats } from './use-evacuation-zones';
+export type {
+  EvacuationZone,
+  EvacuationZonesUpdate,
+  UseEvacuationZonesOptions,
+  UseEvacuationZonesReturn,
+} from './use-evacuation-zones';

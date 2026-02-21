@@ -53,3 +53,28 @@ export const PLUME_PARTICLES = gql`
     }
   }
 `;
+
+export const EVACUATION_ZONES = gql`
+  subscription EvacuationZones($simulationId: ID!) {
+    evacuationZones(simulationId: $simulationId) {
+      simulationId
+      zones {
+        id
+        name
+        level
+        doseThreshold
+        polygon {
+          coordinates
+        }
+        center {
+          latitude
+          longitude
+        }
+        radius
+        population
+        timestamp
+      }
+      timestamp
+    }
+  }
+`;
