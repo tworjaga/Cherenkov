@@ -17,7 +17,11 @@ pub use inference::{InferenceService, OnnxModel, OnnxError, ModelMetadata, Batch
 pub use model_registry::{ModelRegistry, ModelVersionInfo, OnnxModelMetadata, PerformanceMetrics, RegistryError};
 pub use onnx_export::{OnnxExporter, ExportConfig, export_model_to_onnx};
 pub use training::{TrainingPipeline, TrainingConfig, TrainingResult, ModelVersion, run_training_job};
-pub use integration::{MlAnomalyIntegration, ModelManager, TrainingScheduler, MlAnomalyResult, RecommendedAction};
+pub use integration::{
+    MlAnomalyIntegration, ModelManager, TrainingScheduler, MlAnomalyResult, 
+    RecommendedAction, AnomalyClass, ClassificationCache, CacheStats, 
+    ConfidenceThresholds, StreamPipelineConnector
+};
 
 use serde::{Deserialize, Serialize};
 

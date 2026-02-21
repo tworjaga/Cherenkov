@@ -31,6 +31,9 @@ bytes = "1.5"
 url = "2.5"
 tempfile = "3.9"
 
+# Caching for classification results
+lru = "0.12"
+
 # Workspace crates
 cherenkov-core = { workspace = true }
 cherenkov-stream = { workspace = true }
