@@ -422,7 +422,7 @@ impl InferenceService {
     }
 }
 
-fn extract_top_k(probs: &[f32], k: usize) -> Vec<IsotopePrediction> {
+pub fn extract_top_k(probs: &[f32], k: usize) -> Vec<IsotopePrediction> {
     let mut indexed: Vec<(usize, f32)> = probs.iter()
         .enumerate()
         .map(|(i, &p)| (i, p))
@@ -439,7 +439,7 @@ fn extract_top_k(probs: &[f32], k: usize) -> Vec<IsotopePrediction> {
         .collect()
 }
 
-fn id_to_isotope(id: usize) -> String {
+pub fn id_to_isotope(id: usize) -> String {
     let isotopes = vec![
         "Cs-137", "Co-60", "Am-241", "Sr-90", "I-131",
         "Xe-133", "Ba-133", "Eu-152", "Pu-239", "U-235",

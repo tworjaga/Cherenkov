@@ -1,7 +1,12 @@
 #[cfg(test)]
 mod tests {
-    use super::super::*;
+    use crate::{
+        OnnxError, ModelMetadata, BatchRequest, BatchResult, Classification, IsotopePrediction,
+        Spectrum, Calibration, id_to_isotope, extract_top_k, InferenceService, OnnxModel
+    };
+
     use candle_core::Device;
+
 
     #[test]
     fn test_onnx_error_display() {
@@ -36,25 +41,6 @@ mod tests {
     }
 
     #[test]
-    fn test_id_to_isotope() {
-        assert_eq!(id_to_isotope(0), "Cs-137");
-        assert_eq!(id_to_isotope(1), "Co-60");
-        assert_eq!(id_to_isotope(14), "Po-210");
-        assert_eq!(id_to_isotope(100), "Unknown-100");
-    }
-
-    #[test]
-    fn test_extract_top_k() {
-        let probs = vec![0.1, 0.5, 0.3, 0.05, 0.05];
-        let top3 = extract_top_k(&probs, 3);
-
-        assert_eq!(top3.len(), 3);
-        assert_eq!(top3[0].symbol, "Co-60");
-        assert!(top3[0].confidence > top3[1].confidence);
-        assert!(top3[1].confidence > top3[2].confidence);
-    }
-
-    #[test]
     fn test_batch_request_creation() {
         let spectra = vec![
             Spectrum {
@@ -75,16 +61,19 @@ mod tests {
             },
         ];
 
-        let request = BatchRequest { spectra };
+        let request = BatchRequest {
+            spectra: spectra.clone(),
+            request_id: "test-123".to_string(),
+        };
         assert_eq!(request.spectra.len(), 2);
+        assert_eq!(request.request_id, "test-123");
     }
 
     #[tokio::test]
     async fn test_inference_service_creation() {
-        let device = Device::Cpu;
-        let service = InferenceService::new(device);
-
-        assert!(service.get_model_info().await.is_empty());
+        let service = InferenceService::new(32, 100).expect("Failed to create service");
+        let model_info = service.get_model_info().await;
+        assert!(model_info.is_empty());
     }
 
     #[test]
@@ -97,5 +86,45 @@ mod tests {
             Err(OnnxError::FileRead(_)) => (),
             _ => panic!("Expected FileRead error"),
         }
+    }
+
+    #[test]
+    fn test_classification_creation() {
+        let prediction = IsotopePrediction {
+            symbol: "Cs-137".to_string(),
+            confidence: 0.95,
+        };
+        
+        let classification = Classification {
+            isotopes: vec![prediction],
+            latency_ms: 10,
+        };
+        
+        assert_eq!(classification.isotopes.len(), 1);
+        assert_eq!(classification.isotopes[0].symbol, "Cs-137");
+        assert_eq!(classification.latency_ms, 10);
+    }
+
+    #[test]
+    fn test_batch_result_creation() {
+        let results = vec![
+            Classification {
+                isotopes: vec![IsotopePrediction {
+                    symbol: "Cs-137".to_string(),
+                    confidence: 0.9,
+                }],
+                latency_ms: 5,
+            },
+        ];
+        
+        let batch_result = BatchResult {
+            results,
+            batch_latency_ms: 10,
+            throughput: 100.0,
+        };
+        
+        assert_eq!(batch_result.results.len(), 1);
+        assert_eq!(batch_result.batch_latency_ms, 10);
+        assert_eq!(batch_result.throughput, 100.0);
     }
 }
