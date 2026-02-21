@@ -109,15 +109,18 @@ impl OnnxExporter {
         Self { config }
     }
     
-    /// Export a Candle model to ONNX format
+    /// Export a Candle model to ONNX format with architecture configuration
     pub async fn export_model(
         &self,
         varmap: &VarMap,
         input_shape: &[usize],
         output_shape: &[usize],
         output_path: &Path,
+        hidden_layers: &[usize],
     ) -> ExportResult<ExportReport> {
         info!("Starting ONNX export to {:?}", output_path);
+        info!("Model architecture: input={:?}, hidden={:?}, output={:?}", 
+            input_shape, hidden_layers, output_shape);
         
         // Validate input parameters
         self.validate_shapes(input_shape, output_shape)?;
@@ -127,8 +130,8 @@ impl OnnxExporter {
             fs::create_dir_all(parent)?;
         }
         
-        // Build ONNX model using candle_onnx types
-        let model_proto = self.build_onnx_model(varmap, input_shape, output_shape).await?;
+        // Build ONNX model with proper architecture
+        let model_proto = self.build_onnx_model(varmap, input_shape, output_shape, hidden_layers).await?;
         
         // Serialize to file
         let mut buffer = Vec::new();
@@ -155,12 +158,13 @@ impl OnnxExporter {
         Ok(report)
     }
     
-    /// Build ONNX model protobuf using candle_onnx types
+    /// Build ONNX model protobuf using candle_onnx types with architecture detection
     async fn build_onnx_model(
         &self,
         varmap: &VarMap,
         input_shape: &[usize],
         output_shape: &[usize],
+        hidden_layers: &[usize],
     ) -> ExportResult<candle_onnx::onnx::ModelProto> {
         use candle_onnx::onnx::*;
         
@@ -176,9 +180,13 @@ impl OnnxExporter {
         let mut graph = GraphProto::default();
         graph.name = self.config.metadata.as_ref()
             .map(|m| m.name.clone())
-            .unwrap_or_else(|| "model".to_string());
+            .unwrap_or_else(|| "CherenkovRadiationClassifier".to_string());
         
-        // Add input
+        // Calculate dimensions
+        let input_size = input_shape.iter().product::<usize>();
+        let num_classes = output_shape.iter().product::<usize>();
+        
+        // Add input with proper shape
         let input_tensor = ValueInfoProto {
             name: self.config.input_names[0].clone(),
             r#type: Some(TypeProto {
@@ -200,7 +208,7 @@ impl OnnxExporter {
         };
         graph.input.push(input_tensor);
         
-        // Add output
+        // Add output with proper shape
         let output_tensor = ValueInfoProto {
             name: self.config.output_names[0].clone(),
             r#type: Some(TypeProto {
@@ -222,8 +230,8 @@ impl OnnxExporter {
         };
         graph.output.push(output_tensor);
         
-        // Extract weights and build nodes
-        self.build_neural_network_nodes(varmap, &mut graph).await?;
+        // Build neural network with proper architecture
+        self.build_neural_network_nodes(varmap, &mut graph, hidden_layers, input_size, num_classes).await?;
         
         // Add metadata
         if let Some(metadata) = &self.config.metadata {
@@ -248,14 +256,18 @@ impl OnnxExporter {
         Ok(model)
     }
     
-    /// Build neural network nodes from VarMap
+    /// Build neural network nodes from VarMap with proper multi-layer support
     async fn build_neural_network_nodes(
         &self,
         varmap: &VarMap,
         graph: &mut candle_onnx::onnx::GraphProto,
+        hidden_layers: &[usize],
+        input_size: usize,
+        num_classes: usize,
     ) -> ExportResult<()> {
         let varmap_data = varmap.data().lock().unwrap();
         
+        // Extract all weights and biases as initializers
         for (name, tensor) in varmap_data.iter() {
             debug!("Processing variable: {}", name);
             
@@ -263,22 +275,77 @@ impl OnnxExporter {
             graph.initializer.push(tensor_proto);
         }
         
-        // Add a simple MatMul + Add node as placeholder
-        let node = candle_onnx::onnx::NodeProto {
+        // Build the neural network layer by layer
+        let mut current_input = self.config.input_names[0].clone();
+        let mut current_size = input_size;
+        
+        // Hidden layers with ReLU activation
+        for (layer_idx, hidden_size) in hidden_layers.iter().enumerate() {
+            let w_name = format!("w{}", layer_idx);
+            let b_name = format!("b{}", layer_idx);
+            let matmul_out = format!("matmul_{}", layer_idx);
+            let add_out = format!("add_{}", layer_idx);
+            let relu_out = if layer_idx < hidden_layers.len() - 1 || num_classes > 1 {
+                format!("relu_{}", layer_idx)
+            } else {
+                self.config.output_names[0].clone()
+            };
+            
+            // MatMul: input @ weight
+            let matmul_node = candle_onnx::onnx::NodeProto {
+                op_type: "MatMul".to_string(),
+                input: vec![current_input.clone(), w_name],
+                output: vec![matmul_out.clone()],
+                ..Default::default()
+            };
+            graph.node.push(matmul_node);
+            
+            // Add bias
+            let add_node = candle_onnx::onnx::NodeProto {
+                op_type: "Add".to_string(),
+                input: vec![matmul_out, b_name],
+                output: vec![add_out.clone()],
+                ..Default::default()
+            };
+            graph.node.push(add_node);
+            
+            // ReLU activation (except for last layer if single output)
+            if layer_idx < hidden_layers.len() - 1 || num_classes > 1 {
+                let relu_node = candle_onnx::onnx::NodeProto {
+                    op_type: "Relu".to_string(),
+                    input: vec![add_out],
+                    output: vec![relu_out.clone()],
+                    ..Default::default()
+                };
+                graph.node.push(relu_node);
+                current_input = relu_out;
+            } else {
+                current_input = add_out;
+            }
+            
+            current_size = *hidden_size;
+        }
+        
+        // Output layer
+        let w_out_name = "w_out".to_string();
+        let b_out_name = "b_out".to_string();
+        let matmul_out = "matmul_out".to_string();
+        
+        let matmul_node = candle_onnx::onnx::NodeProto {
             op_type: "MatMul".to_string(),
-            input: vec![self.config.input_names[0].clone(), "weight".to_string()],
-            output: vec!["matmul_out".to_string()],
+            input: vec![current_input, w_out_name],
+            output: vec![matmul_out.clone()],
             ..Default::default()
         };
-        graph.node.push(node);
+        graph.node.push(matmul_node);
         
-        let bias_node = candle_onnx::onnx::NodeProto {
+        let add_node = candle_onnx::onnx::NodeProto {
             op_type: "Add".to_string(),
-            input: vec!["matmul_out".to_string(), "bias".to_string()],
+            input: vec![matmul_out, b_out_name],
             output: vec![self.config.output_names[0].clone()],
             ..Default::default()
         };
-        graph.node.push(bias_node);
+        graph.node.push(add_node);
         
         Ok(())
     }
@@ -414,15 +481,29 @@ pub struct ExportReport {
     pub exported_at: String,
 }
 
-/// Convenience function to export a model
+/// Convenience function to export a model with configurable architecture
 pub async fn export_model_to_onnx(
     varmap: &VarMap,
     input_shape: &[usize],
     output_shape: &[usize],
     output_path: &Path,
+    hidden_layers: &[usize],
 ) -> ExportResult<ExportReport> {
     let exporter = OnnxExporter::new();
-    exporter.export_model(varmap, input_shape, output_shape, output_path).await
+    exporter.export_model(varmap, input_shape, output_shape, output_path, hidden_layers).await
+}
+
+
+/// Export model with custom architecture configuration
+pub async fn export_model_with_architecture(
+    varmap: &VarMap,
+    input_shape: &[usize],
+    output_shape: &[usize],
+    output_path: &Path,
+    hidden_layers: &[usize],
+) -> ExportResult<ExportReport> {
+    let exporter = OnnxExporter::new();
+    exporter.export_model(varmap, input_shape, output_shape, output_path, hidden_layers).await
 }
 
 #[cfg(test)]

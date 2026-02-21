@@ -675,18 +675,29 @@ impl TrainingPipeline {
         let output_dir = PathBuf::from(&self.config.output_path);
         fs::create_dir_all(&output_dir)?;
         
+        // Save SafeTensors format
         let model_path = output_dir.join("model.safetensors");
         self.varmap.save(&model_path)?;
         
+        // Save config
         let config_path = output_dir.join("config.json");
         let config_json = serde_json::to_string_pretty(&self.config)?;
         fs::write(&config_path, config_json)?;
         
-        // Create model version metadata
-        let version_id = Uuid::new_v4().to_string();
-        let _version_path = output_dir.join(format!("version_{}.json", version_id));
-        
+        // Export to ONNX format
         let onnx_path = output_dir.join("model.onnx");
+        let input_shape = vec![1, self.config.input_size];
+        let output_shape = vec![1, self.config.num_classes];
+        
+        crate::onnx_export::export_model_to_onnx(
+            &self.varmap,
+            &input_shape,
+            &output_shape,
+            &onnx_path,
+            &self.config.hidden_layers,
+        ).await.map_err(|e| anyhow::anyhow!("ONNX export failed: {}", e))?;
+        
+        info!("Model exported to ONNX: {:?}", onnx_path);
         
         Ok(onnx_path.to_string_lossy().to_string())
     }

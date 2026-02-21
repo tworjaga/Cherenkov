@@ -15,7 +15,7 @@ pub use data_loader::{
 };
 pub use inference::{InferenceService, OnnxModel, OnnxError, ModelMetadata, BatchRequest, BatchResult, id_to_isotope, extract_top_k};
 pub use model_registry::{ModelRegistry, ModelVersionInfo, OnnxModelMetadata, PerformanceMetrics, RegistryError};
-pub use onnx_export::{OnnxExporter, ExportConfig, export_model_to_onnx};
+pub use onnx_export::{OnnxExporter, ExportConfig, export_model_to_onnx, export_model_with_architecture};
 pub use training::{TrainingPipeline, TrainingConfig, TrainingResult, ModelVersion, run_training_job};
 pub use integration::{
     MlAnomalyIntegration, ModelManager, TrainingScheduler, MlAnomalyResult, 
