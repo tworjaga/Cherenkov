@@ -1,3 +1,4 @@
+pub mod conversion;
 pub mod data_loader;
 pub mod inference;
 pub mod integration;
@@ -9,6 +10,11 @@ pub mod training;
 #[cfg(test)]
 mod inference_test;
 
+pub use conversion::{
+    VarMapConverter, ConversionConfig, ConversionReport, ModelArchitecture, TensorMetadata,
+    convert_varmap_to_tensors, detect_model_architecture, verify_model_conversion,
+    ConversionError, ConversionResult
+};
 pub use data_loader::{
     SpectraDataset, SpectraSample, DatasetConfig, DataSource, DataFormat,
     PreprocessingConfig, SourceType, public_datasets,

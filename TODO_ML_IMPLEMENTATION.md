@@ -17,10 +17,10 @@
 - [x] Commit changes
 
 ## Phase 3: Connect Training to Real Data
-- [ ] Replace synthetic data with real data loader in training.rs
-- [ ] Add dataset versioning and caching
-- [ ] Implement stratified sampling
-- [ ] Commit changes
+- [x] Replace synthetic data with real data loader in training.rs
+- [x] Add dataset versioning and caching
+- [x] Implement stratified sampling
+- [x] Commit chaxges
 
 ## Phase 4: Model Conversion Utilities
 - [ ] Create conversion.rs with VarMap to ONNX conversion
