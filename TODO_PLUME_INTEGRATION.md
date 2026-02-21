@@ -8,18 +8,18 @@
 - [x] Replace placeholder simulate_plume resolver
   - Completed: 42127c4 feat(api): integrate GaussianPlumeModel into simulate_plume resolver
   - Completed: 717d0f7 feat(api): integrate cherenkov-plume crate for dispersion simulation
-- [ ] Add particle streaming subscription
+- [x] Add particle streaming subscription
 
 
 ## Step 3: Connect frontend to real API
 - [x] Update use-plume-simulation.ts with GraphQL mutations
   - Completed: 6d3a420 feat(graphql): add plume simulation queries
-- [ ] Connect plume-layer.tsx to real data
+- [x] Connect plume-layer.tsx to real data
 
 
 ## Step 4: Implement evacuation zones
-- [ ] Add dose threshold contour generation
-- [ ] Integrate with dispersion output
+- [x] Add dose threshold contour generation
+- [x] Integrate with dispersion output
 
 ## Step 5: Weather data integration
 - [x] Connect weather.rs to NOAA GFS/Open-Meteo

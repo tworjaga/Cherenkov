@@ -27,10 +27,10 @@
 - [x] Add multi-class anomaly detection
 
 ### 5. Model Management API
-- [ ] Create REST/GraphQL endpoints
-- [ ] Add model performance metrics
-- [ ] Implement retraining triggers
-- [ ] Add model explainability
+- [x] Create REST/GraphQL endpoints
+- [x] Add model performance metrics
+- [x] Implement retraining triggers
+- [x] Add model explainability
 
 ## Current Status
 - Phase 1 (Plume Simulation): Complete
