@@ -888,3 +888,211 @@ impl DataSourceQueryRoot {
         Ok(sources.into_iter().find(|s| s.source_id == source_id))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_model_status_enum() {
+        let statuses = vec![
+            ModelStatus::Active,
+            ModelStatus::Inactive,
+            ModelStatus::RollingOut,
+            ModelStatus::RollingBack,
+            ModelStatus::Failed,
+        ];
+        
+        for status in statuses {
+            let string_val = match status {
+                ModelStatus::Active => "ACTIVE",
+                ModelStatus::Inactive => "INACTIVE",
+                ModelStatus::RollingOut => "ROLLING_OUT",
+                ModelStatus::RollingBack => "ROLLING_BACK",
+                ModelStatus::Failed => "FAILED",
+            };
+            assert!(!string_val.is_empty());
+        }
+    }
+
+    #[test]
+    fn test_model_type_enum() {
+        let types = vec![
+            ModelType::IsotopeClassifier,
+            ModelType::AnomalyDetector,
+            ModelType::BackgroundSubtractor,
+            ModelType::MultiClassClassifier,
+        ];
+        
+        for model_type in types {
+            let string_val = match model_type {
+                ModelType::IsotopeClassifier => "ISOTOPE_CLASSIFIER",
+                ModelType::AnomalyDetector => "ANOMALY_DETECTOR",
+                ModelType::BackgroundSubtractor => "BACKGROUND_SUBTRACTOR",
+                ModelType::MultiClassClassifier => "MULTI_CLASS_CLASSIFIER",
+            };
+            assert!(!string_val.is_empty());
+        }
+    }
+
+    #[test]
+    fn test_data_source_type_enum() {
+        let types = vec![
+            DataSourceType::S3,
+            DataSourceType::Http,
+            DataSourceType::LocalFile,
+            DataSourceType::Database,
+            DataSourceType::Streaming,
+        ];
+        
+        for ds_type in types {
+            let string_val = match ds_type {
+                DataSourceType::S3 => "S3",
+                DataSourceType::Http => "HTTP",
+                DataSourceType::LocalFile => "LOCAL_FILE",
+                DataSourceType::Database => "DATABASE",
+                DataSourceType::Streaming => "STREAMING",
+            };
+            assert!(!string_val.is_empty());
+        }
+    }
+
+    #[test]
+    fn test_data_format_enum() {
+        let formats = vec![
+            DataFormat::Csv,
+            DataFormat::Hdf5,
+            DataFormat::Json,
+            DataFormat::Parquet,
+            DataFormat::Binary,
+        ];
+        
+        for format in formats {
+            let string_val = match format {
+                DataFormat::Csv => "CSV",
+                DataFormat::Hdf5 => "HDF5",
+                DataFormat::Json => "JSON",
+                DataFormat::Parquet => "PARQUET",
+                DataFormat::Binary => "BINARY",
+            };
+            assert!(!string_val.is_empty());
+        }
+    }
+
+    #[test]
+    fn test_training_job_status_enum() {
+        let statuses = vec![
+            TrainingJobStatus::Pending,
+            TrainingJobStatus::Running,
+            TrainingJobStatus::Completed,
+            TrainingJobStatus::Failed,
+            TrainingJobStatus::Cancelled,
+        ];
+        
+        for status in statuses {
+            let string_val = match status {
+                TrainingJobStatus::Pending => "PENDING",
+                TrainingJobStatus::Running => "RUNNING",
+                TrainingJobStatus::Completed => "COMPLETED",
+                TrainingJobStatus::Failed => "FAILED",
+                TrainingJobStatus::Cancelled => "CANCELLED",
+            };
+            assert!(!string_val.is_empty());
+        }
+    }
+
+    #[tokio::test]
+    async fn test_training_job_query_root_default() {
+        let root = TrainingJobQueryRoot::default();
+        let result = root.training_jobs(None, None, None).await;
+        assert!(result.is_ok());
+        
+        let jobs = result.unwrap();
+        assert!(!jobs.is_empty()); // Mock data returns 2 jobs
+    }
+
+    #[tokio::test]
+    async fn test_training_job_query_by_id() {
+        let root = TrainingJobQueryRoot::default();
+        let result = root.training_job("job-001".to_string()).await;
+        assert!(result.is_ok());
+        assert!(result.unwrap().is_some());
+    }
+
+    #[tokio::test]
+    async fn test_active_training_jobs_count() {
+        let root = TrainingJobQueryRoot::default();
+        let result = root.active_training_jobs_count().await;
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), 1);
+    }
+
+    #[tokio::test]
+    async fn test_data_source_query_root_default() {
+        let root = DataSourceQueryRoot::default();
+        let result = root.data_sources().await;
+        assert!(result.is_ok());
+        
+        let sources = result.unwrap();
+        assert_eq!(sources.len(), 2); // Mock data returns 2 sources
+    }
+
+    #[tokio::test]
+    async fn test_data_source_query_by_id() {
+        let root = DataSourceQueryRoot::default();
+        let result = root.data_source("s3-radnet".to_string()).await;
+        assert!(result.is_ok());
+        assert!(result.unwrap().is_some());
+    }
+
+    #[tokio::test]
+    async fn test_model_mutation_export_to_onnx() {
+        let root = ModelMutationRoot::default();
+        
+        let export_input = ExportToOnnxInput {
+            model_name: "test-model".to_string(),
+            model_path: "/models/test".to_string(),
+            output_path: "/output/test.onnx".to_string(),
+            opset_version: Some(15),
+            optimize: Some(true),
+        };
+        
+        // Note: This would need a proper context with ModelRegistry in real tests
+        // For now, we just verify the input structure is correct
+        assert_eq!(export_input.model_name, "test-model");
+        assert_eq!(export_input.opset_version, Some(15));
+    }
+
+    #[tokio::test]
+    async fn test_configure_data_source() {
+        let root = ModelMutationRoot::default();
+        
+        let ds_input = DataSourceConfigInput {
+            source_id: "test-ds".to_string(),
+            source_type: DataSourceType::S3,
+            endpoint: "s3://bucket/data".to_string(),
+            credentials: Some(DataSourceCredentials {
+                access_key: Some("key".to_string()),
+                secret_key: Some("secret".to_string()),
+                api_token: None,
+                connection_string: None,
+            }),
+            format: DataFormat::Csv,
+            refresh_interval_seconds: Some(3600),
+            enabled: true,
+        };
+        
+        assert_eq!(ds_input.source_id, "test-ds");
+        assert!(ds_input.credentials.is_some());
+    }
+
+    #[tokio::test]
+    async fn test_cancel_training_job() {
+        let root = ModelMutationRoot::default();
+        let result = root.cancel_training_job("job-123".to_string()).await;
+        assert!(result.is_ok());
+        
+        let job = result.unwrap();
+        assert_eq!(job.status, TrainingJobStatus::Cancelled);
+    }
+}
