@@ -39,7 +39,7 @@ argon2 = "0.5"
 rand = "0.8"
 
 # Rate limiting
-governor = "0.6"
+governor = "0.10"
 dashmap = "5.5"
 
 # Streaming and async utilities
