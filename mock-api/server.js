@@ -132,13 +132,48 @@ const alerts = [
   }
 ];
 
+// Root route
+app.get('/', (req, res) => {
+  res.json({
+    name: 'Cherenkov Mock API',
+    version: '1.0.0',
+    endpoints: {
+      health: '/health',
+      graphql: '/graphql',
+      websocket: '/ws',
+      api: {
+        sensors: '/api/sensors',
+        facilities: '/api/facilities',
+        anomalies: '/api/anomalies',
+        alerts: '/api/alerts'
+      }
+    },
+    timestamp: new Date().toISOString()
+  });
+});
+
 // Health check
 app.get('/health', (req, res) => {
   res.json({ status: 'healthy', timestamp: new Date().toISOString() });
 });
 
-// GraphQL endpoint
+// GraphQL endpoint - GET for introspection/playground
+app.get('/graphql', (req, res) => {
+  res.json({
+    data: {
+      __schema: {
+        queryType: { name: 'Query' },
+        mutationType: { name: 'Mutation' },
+        subscriptionType: { name: 'Subscription' },
+        types: []
+      }
+    }
+  });
+});
+
+// GraphQL endpoint - POST for queries
 app.post('/graphql', (req, res) => {
+
   const { query, variables } = req.body;
   
   // Simple GraphQL mock responses
