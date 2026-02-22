@@ -290,37 +290,11 @@ const wss = new WebSocketServer({ server, path: '/ws' });
 wss.on('connection', (ws) => {
   console.log('WebSocket client connected');
   
-  // Send initial data
-  ws.send(JSON.stringify({
-    type: 'connection',
-    message: 'Connected to Cherenkov Mock API',
-    timestamp: new Date().toISOString()
-  }));
-  
-  // Simulate real-time updates
-  const interval = setInterval(() => {
-    const randomSensor = sensors[Math.floor(Math.random() * sensors.length)];
-    const variation = (Math.random() - 0.5) * 0.1;
-    const newReading = {
-      value: Math.max(0.01, randomSensor.lastReading.value + variation),
-      unit: randomSensor.lastReading.unit,
-      timestamp: new Date().toISOString()
-    };
-    
-    // Update the sensor's last reading
-    randomSensor.lastReading = newReading;
-    
-    ws.send(JSON.stringify({
-      type: 'sensor_update',
-      sensorId: randomSensor.id,
-      reading: newReading
-    }));
-  }, 5000);
-
+  let interval = null;
   
   ws.on('close', () => {
     console.log('WebSocket client disconnected');
-    clearInterval(interval);
+    if (interval) clearInterval(interval);
   });
   
   ws.on('message', (message) => {
@@ -328,17 +302,60 @@ wss.on('connection', (ws) => {
       const data = JSON.parse(message);
       console.log('Received:', data);
       
-      // Echo back with acknowledgment
-      ws.send(JSON.stringify({
-        type: 'ack',
-        received: data,
-        timestamp: new Date().toISOString()
-      }));
+      // Handle GraphQL subscription protocol
+      if (data.type === 'connection_init') {
+        ws.send(JSON.stringify({
+          type: 'connection_ack',
+          payload: {}
+        }));
+        
+        // Start sending real-time updates after connection acknowledged
+        interval = setInterval(() => {
+          const randomSensor = sensors[Math.floor(Math.random() * sensors.length)];
+          const variation = (Math.random() - 0.5) * 0.1;
+          const newReading = {
+            value: Math.max(0.01, randomSensor.lastReading.value + variation),
+            unit: randomSensor.lastReading.unit,
+            timestamp: new Date().toISOString()
+          };
+          
+          // Update the sensor's last reading
+          randomSensor.lastReading = newReading;
+          
+          // Send as GraphQL subscription data
+          ws.send(JSON.stringify({
+            type: 'data',
+            id: 'sensor-subscription',
+            payload: {
+              data: {
+                sensorUpdate: {
+                  sensorId: randomSensor.id,
+                  reading: newReading
+                }
+              }
+            }
+          }));
+        }, 5000);
+      } else if (data.type === 'subscribe') {
+        // Acknowledge subscription
+        ws.send(JSON.stringify({
+          type: 'data',
+          id: data.id,
+          payload: {
+            data: {
+              sensors: sensors
+            }
+          }
+        }));
+      } else if (data.type === 'ping') {
+        ws.send(JSON.stringify({ type: 'pong' }));
+      }
     } catch (e) {
-      console.error('Invalid message format');
+      console.error('Invalid message format:', e);
     }
   });
 });
+
 
 const PORT = process.env.PORT || 8080;
 server.listen(PORT, () => {
