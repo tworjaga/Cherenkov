@@ -4,8 +4,7 @@ Thank you to all the contributors who have helped make Cherenkov possible.
 
 ## Core Team
 
-- **Alex Cherenkov** (@tworjaga) - Project Lead, Architecture
-- **Nuclear Engineering Team** - Domain expertise and requirements
+- **Alexey** (@tworjaga) - Project Lead, Architecture
 
 ## Contributors
 
