@@ -1,7 +1,56 @@
-import { describe, it, expect, beforeAll } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { GraphQLClient } from 'graphql-request';
 
 const client = new GraphQLClient('http://localhost:8080/graphql');
+
+interface Sensor {
+  id: string;
+  name: string;
+  latitude: number;
+  longitude: number;
+  status: string;
+}
+
+interface Facility {
+  id: string;
+  name: string;
+  facilityType: string;
+  latitude: number;
+  longitude: number;
+  status: string;
+}
+
+interface Anomaly {
+  id: string;
+  sensorId: string;
+  severity: string;
+  zScore: number;
+  detectedAt: string;
+}
+
+interface GlobalStatus {
+  level: number;
+  defcon: number;
+  status: string;
+  activeAlerts: number;
+  activeSensors: number;
+}
+
+interface SensorsResponse {
+  sensors: Sensor[];
+}
+
+interface FacilitiesResponse {
+  facilities: Facility[];
+}
+
+interface AnomaliesResponse {
+  anomalies: Anomaly[];
+}
+
+interface GlobalStatusResponse {
+  globalStatus: GlobalStatus;
+}
 
 describe('GraphQL API Integration', () => {
   describe('sensors query', () => {
@@ -18,7 +67,7 @@ describe('GraphQL API Integration', () => {
         }
       `;
       
-      const data = await client.request(query);
+      const data = await client.request(query) as SensorsResponse;
       
       expect(data.sensors).toBeDefined();
       expect(Array.isArray(data.sensors)).toBe(true);
@@ -48,7 +97,7 @@ describe('GraphQL API Integration', () => {
         }
       `;
       
-      const data = await client.request(query);
+      const data = await client.request(query) as FacilitiesResponse;
       
       expect(data.facilities).toBeDefined();
       expect(Array.isArray(data.facilities)).toBe(true);
@@ -76,7 +125,7 @@ describe('GraphQL API Integration', () => {
         }
       `;
       
-      const data = await client.request(query);
+      const data = await client.request(query) as AnomaliesResponse;
       
       expect(data.anomalies).toBeDefined();
       expect(Array.isArray(data.anomalies)).toBe(true);
@@ -105,7 +154,7 @@ describe('GraphQL API Integration', () => {
         }
       `;
       
-      const data = await client.request(query);
+      const data = await client.request(query) as GlobalStatusResponse;
       
       expect(data.globalStatus).toBeDefined();
       expect(typeof data.globalStatus.level).toBe('number');
