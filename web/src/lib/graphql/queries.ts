@@ -66,13 +66,16 @@ export const GET_FACILITIES = gql`
 export const GET_GLOBAL_STATUS = gql`
   query GlobalStatus {
     globalStatus {
-      defconLevel
+      level
+      defcon
       status
-      activeAnomalies
-      lastUpdated
+      activeAlerts
+      activeSensors
+      lastUpdate
     }
   }
 `;
+
 
 export const RUN_PLUME_SIMULATION = gql`
   query RunPlumeSimulation($input: PlumeSimulationInput!) {
