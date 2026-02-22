@@ -7,52 +7,47 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Mock data
+// Mock data - formatted to match frontend GraphQL schema
 const sensors = [
   {
     id: 'sensor-001',
     name: 'Fukushima Daiichi North',
-    type: 'radiation',
-    location: { lat: 37.4213, lng: 141.0325 },
+    latitude: 37.4213,
+    longitude: 141.0325,
     status: 'active',
-    reading: { value: 0.12, unit: 'uSv/h', timestamp: new Date().toISOString() },
-    facility: 'Fukushima Daiichi NPP'
+    lastReading: { value: 0.12, unit: 'uSv/h', timestamp: new Date().toISOString() }
   },
   {
     id: 'sensor-002',
     name: 'Chernobyl Exclusion Zone',
-    type: 'radiation',
-    location: { lat: 51.3896, lng: 30.0991 },
+    latitude: 51.3896,
+    longitude: 30.0991,
     status: 'active',
-    reading: { value: 2.45, unit: 'uSv/h', timestamp: new Date().toISOString() },
-    facility: 'Chernobyl NPP'
+    lastReading: { value: 2.45, unit: 'uSv/h', timestamp: new Date().toISOString() }
   },
   {
     id: 'sensor-003',
     name: 'Hanford Site Monitor',
-    type: 'radiation',
-    location: { lat: 46.5507, lng: -119.4882 },
+    latitude: 46.5507,
+    longitude: -119.4882,
     status: 'active',
-    reading: { value: 0.08, unit: 'uSv/h', timestamp: new Date().toISOString() },
-    facility: 'Hanford Site'
+    lastReading: { value: 0.08, unit: 'uSv/h', timestamp: new Date().toISOString() }
   },
   {
     id: 'sensor-004',
     name: 'Sellafield Coast',
-    type: 'radiation',
-    location: { lat: 54.4205, lng: -3.4976 },
+    latitude: 54.4205,
+    longitude: -3.4976,
     status: 'warning',
-    reading: { value: 0.35, unit: 'uSv/h', timestamp: new Date().toISOString() },
-    facility: 'Sellafield'
+    lastReading: { value: 0.35, unit: 'uSv/h', timestamp: new Date().toISOString() }
   },
   {
     id: 'sensor-005',
     name: 'Three Mile Island',
-    type: 'radiation',
-    location: { lat: 40.1539, lng: -76.7247 },
+    latitude: 40.1539,
+    longitude: -76.7247,
     status: 'active',
-    reading: { value: 0.06, unit: 'uSv/h', timestamp: new Date().toISOString() },
-    facility: 'Three Mile Island'
+    lastReading: { value: 0.06, unit: 'uSv/h', timestamp: new Date().toISOString() }
   }
 ];
 
@@ -60,54 +55,53 @@ const facilities = [
   {
     id: 'facility-001',
     name: 'Fukushima Daiichi NPP',
-    type: 'nuclear_power_plant',
-    location: { lat: 37.4213, lng: 141.0325 },
-    status: 'decommissioning',
-    reactorCount: 6,
-    description: 'Nuclear power plant undergoing decommissioning after 2011 accident'
+    facilityType: 'nuclear_power_plant',
+    latitude: 37.4213,
+    longitude: 141.0325,
+    status: 'decommissioning'
   },
   {
     id: 'facility-002',
     name: 'Chernobyl NPP',
-    type: 'nuclear_power_plant',
-    location: { lat: 51.3896, lng: 30.0991 },
-    status: 'decommissioned',
-    reactorCount: 4,
-    description: 'Site of 1986 nuclear disaster, now under confinement'
+    facilityType: 'nuclear_power_plant',
+    latitude: 51.3896,
+    longitude: 30.0991,
+    status: 'decommissioned'
   },
   {
     id: 'facility-003',
     name: 'Hanford Site',
-    type: 'nuclear_research',
-    location: { lat: 46.5507, lng: -119.4882 },
-    status: 'active',
-    reactorCount: 0,
-    description: 'Former plutonium production site, now environmental cleanup'
+    facilityType: 'nuclear_research',
+    latitude: 46.5507,
+    longitude: -119.4882,
+    status: 'active'
   }
 ];
 
 const anomalies = [
   {
     id: 'anomaly-001',
-    type: 'radiation_spike',
-    severity: 'high',
     sensorId: 'sensor-002',
-    location: { lat: 51.3896, lng: 30.0991 },
-    timestamp: new Date().toISOString(),
-    description: 'Radiation level 3x above baseline detected',
-    status: 'investigating'
+    severity: 'high',
+    zScore: 3.5,
+    detectedAt: new Date().toISOString()
   },
   {
     id: 'anomaly-002',
-    type: 'sensor_offline',
-    severity: 'medium',
     sensorId: 'sensor-004',
-    location: { lat: 54.4205, lng: -3.4976 },
-    timestamp: new Date(Date.now() - 3600000).toISOString(),
-    description: 'Sensor communication timeout',
-    status: 'resolved'
+    severity: 'medium',
+    zScore: 2.1,
+    detectedAt: new Date(Date.now() - 3600000).toISOString()
   }
 ];
+
+const globalStatus = {
+  defconLevel: 3,
+  status: 'monitoring',
+  activeAnomalies: 2,
+  lastUpdated: new Date().toISOString()
+};
+
 
 const alerts = [
   {
@@ -173,47 +167,40 @@ app.get('/graphql', (req, res) => {
 
 // GraphQL endpoint - POST for queries
 app.post('/graphql', (req, res) => {
-
   const { query, variables } = req.body;
   
-  // Simple GraphQL mock responses
-  if (query.includes('sensors')) {
+  // Simple GraphQL mock responses matching frontend schema
+  if (query.includes('sensors') && !query.includes('sensor(')) {
     res.json({
       data: {
-        sensors: {
-          nodes: sensors,
-          totalCount: sensors.length
-        }
+        sensors: sensors
       }
     });
   } else if (query.includes('facilities')) {
     res.json({
       data: {
-        facilities: {
-          nodes: facilities,
-          totalCount: facilities.length
-        }
+        facilities: facilities
       }
     });
   } else if (query.includes('anomalies')) {
     res.json({
       data: {
-        anomalies: {
-          nodes: anomalies,
-          totalCount: anomalies.length
-        }
+        anomalies: anomalies
       }
     });
   } else if (query.includes('alerts')) {
     res.json({
       data: {
-        alerts: {
-          nodes: alerts,
-          totalCount: alerts.length
-        }
+        alerts: alerts
       }
     });
-  } else if (query.includes('sensor')) {
+  } else if (query.includes('globalStatus')) {
+    res.json({
+      data: {
+        globalStatus: globalStatus
+      }
+    });
+  } else if (query.includes('sensor(')) {
     const sensorId = variables?.id || 'sensor-001';
     const sensor = sensors.find(s => s.id === sensorId) || sensors[0];
     res.json({
@@ -221,10 +208,49 @@ app.post('/graphql', (req, res) => {
         sensor
       }
     });
+  } else if (query.includes('readings')) {
+    // Mock readings data
+    const mockReadings = sensors.map(s => ({
+      id: `reading-${s.id}`,
+      sensorId: s.id,
+      timestamp: new Date().toISOString(),
+      doseRate: s.lastReading.value,
+      unit: s.lastReading.unit
+    }));
+    res.json({
+      data: {
+        readings: mockReadings
+      }
+    });
+  } else if (query.includes('runPlumeSimulation') || query.includes('PlumeSimulation')) {
+    res.json({
+      data: {
+        runPlumeSimulation: {
+          id: 'sim-001',
+          status: 'completed',
+          particles: [
+            { id: 'p1', latitude: 37.4213, longitude: 141.0325, altitude: 100, concentration: 0.5, timestamp: new Date().toISOString() }
+          ],
+          evacuationZones: [
+            { id: 'z1', level: 1, boundary: [{ latitude: 37.4213, longitude: 141.0325 }], maxDoseRate: 1.0, timeToEvacuate: 3600 }
+          ],
+          weatherConditions: {
+            windSpeed: 5.5,
+            windDirection: 180,
+            temperature: 20,
+            pressure: 1013,
+            stabilityClass: 'D'
+          },
+          createdAt: new Date().toISOString(),
+          completedAt: new Date().toISOString()
+        }
+      }
+    });
   } else {
     res.json({ data: {} });
   }
 });
+
 
 // REST API endpoints
 app.get('/api/sensors', (req, res) => {
@@ -273,10 +299,13 @@ wss.on('connection', (ws) => {
     const randomSensor = sensors[Math.floor(Math.random() * sensors.length)];
     const variation = (Math.random() - 0.5) * 0.1;
     const newReading = {
-      ...randomSensor.reading,
-      value: Math.max(0.01, randomSensor.reading.value + variation),
+      value: Math.max(0.01, randomSensor.lastReading.value + variation),
+      unit: randomSensor.lastReading.unit,
       timestamp: new Date().toISOString()
     };
+    
+    // Update the sensor's last reading
+    randomSensor.lastReading = newReading;
     
     ws.send(JSON.stringify({
       type: 'sensor_update',
@@ -284,6 +313,7 @@ wss.on('connection', (ws) => {
       reading: newReading
     }));
   }, 5000);
+
   
   ws.on('close', () => {
     console.log('WebSocket client disconnected');
