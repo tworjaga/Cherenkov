@@ -291,9 +291,28 @@ wss.on('connection', (ws) => {
   console.log('WebSocket client connected');
   
   let interval = null;
+  let isAlive = true;
+  
+  // Set up ping/pong to keep connection alive
+  ws.on('pong', () => {
+    isAlive = true;
+  });
+  
+  const pingInterval = setInterval(() => {
+    if (!isAlive) {
+      console.log('WebSocket client unresponsive, terminating');
+      ws.terminate();
+      clearInterval(pingInterval);
+      if (interval) clearInterval(interval);
+      return;
+    }
+    isAlive = false;
+    ws.ping();
+  }, 30000);
   
   ws.on('close', () => {
     console.log('WebSocket client disconnected');
+    clearInterval(pingInterval);
     if (interval) clearInterval(interval);
   });
   
@@ -308,7 +327,9 @@ wss.on('connection', (ws) => {
           type: 'connection_ack',
           payload: {}
         }));
+        console.log('Sent connection_ack');
       } else if (data.type === 'subscribe') {
+
         const subscriptionId = data.id;
         const query = data.payload?.query || '';
         
