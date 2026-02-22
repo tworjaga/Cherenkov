@@ -77,11 +77,10 @@ impl PlumeService {
         let release = &state.release;
         let weather = &state.weather;
         
-        // Create Gaussian plume model
+        // Create Gaussian plume model with correct API
         let model = GaussianPlumeModel::new(
-            release.release_height_m,
-            weather.wind_speed_ms,
-            weather.stability_class,
+            weather.clone(),
+            release.clone(),
         );
         
         // Generate evacuation zones based on dose thresholds
@@ -102,7 +101,7 @@ impl PlumeService {
             
             for distance_m in (100..10000).step_by(100) {
                 let distance = distance_m as f64;
-                let angle = weather.wind_direction_deg.to_radians();
+                let angle = state.weather.wind_direction_deg.to_radians();
                 
                 // Calculate position downwind
                 let x = distance * angle.cos();
@@ -172,15 +171,13 @@ impl PlumeService {
         let release = &state.release;
         let weather = &state.weather;
         
-        // Create Gaussian plume model
+        // Create Gaussian plume model with correct API
         let model = GaussianPlumeModel::new(
-            release.release_height_m,
-            weather.wind_speed_ms,
-            weather.stability_class,
+            weather.clone(),
+            release.clone(),
         );
         
         // Generate particles along the plume centerline
-
         (0..count)
             .map(|i| {
                 let distance = (i as f64) * 100.0; // 100m spacing
