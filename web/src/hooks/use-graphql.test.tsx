@@ -33,26 +33,49 @@ describe('useSensors', () => {
   });
 
   it('fetches sensors successfully', async () => {
-    const mockSensors = [
+    const mockApiSensors = [
       {
         id: '1',
         name: 'Sensor 1',
         latitude: 35.6762,
         longitude: 139.6503,
         status: 'active',
+        type: 'geiger',
+        source: 'mock',
+      },
+    ];
+
+    const expectedTransformedSensors = [
+      {
+        id: '1',
+        name: 'Sensor 1',
+        type: 'geiger',
+        location: {
+          lat: 35.6762,
+          lon: 139.6503,
+          latitude: 35.6762,
+          longitude: 139.6503,
+        },
+        longitude: 139.6503,
+        latitude: 35.6762,
+        status: 'active',
+        source: 'mock',
+        unit: undefined,
+        lastReading: null,
       },
     ];
 
     (graphqlClient.request as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
-      sensors: mockSensors,
+      sensors: mockApiSensors,
     });
 
     const { result } = renderHook(() => useSensors(), { wrapper: createWrapper() });
 
     await waitFor(() => {
-      expect(result.current.data).toEqual(mockSensors);
+      expect(result.current.data).toEqual(expectedTransformedSensors);
     });
   });
+
 
   it('handles error state', async () => {
     (graphqlClient.request as ReturnType<typeof vi.fn>).mockRejectedValueOnce(
@@ -66,6 +89,7 @@ describe('useSensors', () => {
     });
   });
 });
+
 
 describe.skip('useReadings', () => {
   beforeEach(() => {
@@ -103,23 +127,36 @@ describe('useAnomalies', () => {
   });
 
   it('fetches anomalies with filters', async () => {
-    const mockAnomalies = [
+    const mockApiAnomalies = [
       {
         id: '1',
         severity: 'critical',
         message: 'Test anomaly',
-        timestamp: Date.now(),
+        detectedAt: new Date().toISOString(),
+        sensorId: 'sensor-1',
+        description: 'Test anomaly description',
+        type: 'spike',
+        zScore: 3.5,
+        doseRate: 1.2,
+        baseline: 0.5,
+        algorithm: 'zscore',
+        acknowledged: false,
+        latitude: 35.6762,
+        longitude: 139.6503,
       },
     ];
 
     (graphqlClient.request as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
-      anomalies: mockAnomalies,
+      anomalies: mockApiAnomalies,
     });
 
     const { result } = renderHook(() => useAnomalies(['critical']), { wrapper: createWrapper() });
 
     await waitFor(() => {
-      expect(result.current.data).toEqual(mockAnomalies);
+      expect(result.current.data).toBeDefined();
+      expect(result.current.data?.length).toBe(1);
+      expect(result.current.data?.[0].id).toBe('1');
+      expect(result.current.data?.[0].severity).toBe('critical');
     });
   });
 });
