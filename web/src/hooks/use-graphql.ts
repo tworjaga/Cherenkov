@@ -91,11 +91,13 @@ interface GlobalStatusResponse {
   globalStatus: {
     level: number;
     defcon: number;
+    status: string;
     activeAlerts: number;
     activeSensors: number;
-    lastUpdate: string;
+    lastUpdate: number;
   };
 }
+
 
 interface AcknowledgeAlertResponse {
   acknowledgeAlert: {
