@@ -17,10 +17,25 @@ impl Default for QueryRoot {
 
 #[Object]
 impl QueryRoot {
-    async fn sensors(&self, _ctx: &Context<'_>) -> Result<Vec<Sensor>> {
-        // list_sensors API not available in current database implementation
-        // Return empty list for now
-        Ok(vec![])
+    async fn sensors(&self, ctx: &Context<'_>) -> Result<Vec<Sensor>> {
+        let db = ctx.data::<Arc<RadiationDatabase>>()?;
+        
+        let records = db.list_sensors().await
+            .map_err(|e| async_graphql::Error::new(format!("Database error: {}", e)))?;
+        
+        let sensors: Vec<Sensor> = records.into_iter()
+            .map(|r| Sensor {
+                id: ID::from(r.sensor_id.to_string()),
+                name: format!("Sensor {}", r.sensor_id),
+                latitude: r.latitude,
+                longitude: r.longitude,
+                status: "active".to_string(),
+                last_reading: Some(DateTime::from_timestamp(r.timestamp, 0)
+                    .unwrap_or_else(|| Utc::now())),
+            })
+            .collect();
+        
+        Ok(sensors)
     }
     
     async fn sensor(&self, ctx: &Context<'_>, id: ID) -> Result<Option<Sensor>> {
