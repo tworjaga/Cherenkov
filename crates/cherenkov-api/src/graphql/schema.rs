@@ -1,4 +1,4 @@
-use async_graphql::{Schema, MergedObject, MergedSubscription, EmptySubscription};
+use async_graphql::{Schema, MergedObject, MergedSubscription};
 use std::sync::Arc;
 use super::resolvers::QueryRoot;
 use super::model_management::{ModelQueryRoot, ModelMutationRoot, TrainingJobQueryRoot, DataSourceQueryRoot};
