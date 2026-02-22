@@ -1,11 +1,13 @@
 use async_graphql::ID;
 use cherenkov_plume::ReleaseParameters;
-use cherenkov_plume::dispersion::{GaussianPlumeModel, WeatherConditions, StabilityClass};
+use cherenkov_plume::dispersion::{GaussianPlumeModel, WeatherConditions};
+
 use cherenkov_plume::weather::{WeatherDataProvider, CompositeWeatherProvider};
 use std::sync::Arc;
 use std::collections::HashMap;
 use tokio::sync::RwLock;
-use tracing::{info, debug, warn};
+use tracing::{info, debug};
+
 
 use super::subscription::{EvacuationZone, DoseContour, ContourPoint, PlumeParticle};
 
