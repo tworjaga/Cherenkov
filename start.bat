@@ -4,9 +4,21 @@ echo   Cherenkov Radiation Monitoring System
 echo ==========================================
 echo.
 
-REM Check if we're in the right directory
+REM Get the directory where this script is located
+set "SCRIPT_DIR=%~dp0"
+cd /d "%SCRIPT_DIR%"
+
+REM Check if required directories exist
 if not exist "web\package.json" (
-    echo Error: Please run this script from the cherenkov root directory
+    echo Error: web\package.json not found
+    echo Please ensure this script is in the cherenkov root directory
+    pause
+    exit /b 1
+)
+
+if not exist "mock-api\package.json" (
+    echo Error: mock-api\package.json not found
+    echo Please ensure this script is in the cherenkov root directory
     pause
     exit /b 1
 )
@@ -16,14 +28,15 @@ echo.
 
 REM Start Mock API Server in new window
 echo [1/2] Starting Mock API Server on port 8080...
-start "Cherenkov Mock API" cmd /k "cd mock-api && if not exist node_modules (echo Installing API dependencies... && npm install) && npm start"
+start "Cherenkov Mock API" cmd /k "cd /d "%SCRIPT_DIR%mock-api" && if not exist node_modules (echo Installing API dependencies... && npm install) && npm start"
 
 REM Wait a moment for API to initialize
 timeout /t 3 /nobreak > nul
 
 REM Start Web Frontend in new window
 echo [2/2] Starting Web Frontend on port 3000...
-start "Cherenkov Web" cmd /k "cd web && if not exist node_modules (echo Installing Web dependencies... && npm install) && npm run dev"
+start "Cherenkov Web" cmd /k "cd /d "%SCRIPT_DIR%web" && if not exist node_modules (echo Installing Web dependencies... && npm install) && npm run dev"
+
 
 echo.
 echo ==========================================
