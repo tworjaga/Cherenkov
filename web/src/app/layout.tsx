@@ -1,15 +1,10 @@
 import type { Metadata, Viewport } from 'next';
 import { Inter, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
-import { Header } from '@/components/layout/header';
-import { Sidebar } from '@/components/layout/sidebar';
-import { RightPanel } from '@/components/layout/right-panel';
-import { BottomPanel } from '@/components/layout/bottom-panel';
 import { ClientProviders } from '@/components/providers';
-import { LayoutProvider } from '@/components/providers/layout-provider';
 import { Toaster } from 'react-hot-toast';
-
 import { SkipLink } from '@/components/ui/skip-link';
+
 
 
 
@@ -59,46 +54,10 @@ export default function RootLayout({
     >
       <body className="bg-bg-primary text-text-primary antialiased overflow-hidden touch-manipulation">
         <ClientProviders>
-          <LayoutProvider>
-            <SkipLink />
-            
-            <div 
-              className="flex flex-col h-screen w-screen"
-              role="application"
-              aria-label="Cherenkov Radiological Intelligence Dashboard"
-            >
-              <Header />
-              
-              <div 
-                className="flex flex-1 overflow-hidden relative"
-                role="main"
-                aria-label="Main content area"
-              >
-                <Sidebar />
-                
-                <main 
-                  id="main-content"
-                  className="flex-1 relative overflow-hidden focus:outline-none focus:ring-2 focus:ring-accent-primary/50"
-                  tabIndex={-1}
-                >
-                  {children}
-                </main>
-                
-                <RightPanel />
-              </div>
-              
-              <BottomPanel 
-                globalTimeSeries={[]}
-                regionalStats={[]}
-                recentEvents={[]}
-              />
-            </div>
-          </LayoutProvider>
+          <SkipLink />
+          {children}
         </ClientProviders>
-
-        
         <Toaster 
-
           position="top-right"
           toastOptions={{
             style: {
@@ -113,6 +72,7 @@ export default function RootLayout({
           }}
         />
       </body>
+
     </html>
   );
 }
