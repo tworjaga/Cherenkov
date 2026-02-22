@@ -308,52 +308,82 @@ wss.on('connection', (ws) => {
           type: 'connection_ack',
           payload: {}
         }));
+      } else if (data.type === 'subscribe') {
+        const subscriptionId = data.id;
+        const query = data.payload?.query || '';
         
-        // Start sending real-time updates after connection acknowledged
-        interval = setInterval(() => {
-          const randomSensor = sensors[Math.floor(Math.random() * sensors.length)];
-          const variation = (Math.random() - 0.5) * 0.1;
-          const newReading = {
-            value: Math.max(0.01, randomSensor.lastReading.value + variation),
-            unit: randomSensor.lastReading.unit,
-            timestamp: new Date().toISOString()
-          };
-          
-          // Update the sensor's last reading
-          randomSensor.lastReading = newReading;
-          
-          // Send as GraphQL subscription data
-          ws.send(JSON.stringify({
-            type: 'data',
-            id: 'sensor-subscription',
-            payload: {
-              data: {
-                sensorUpdate: {
-                  sensorId: randomSensor.id,
-                  reading: newReading
+        console.log('Subscription started:', subscriptionId, query.substring(0, 50));
+        
+        // Send initial data for the subscription
+        if (query.includes('allSensorUpdates')) {
+          // Send initial sensor data
+          sensors.forEach(sensor => {
+            ws.send(JSON.stringify({
+              type: 'data',
+              id: subscriptionId,
+              payload: {
+                data: {
+                  allSensorUpdates: {
+                    sensorId: sensor.id,
+                    timestamp: new Date().toISOString(),
+                    doseRate: sensor.lastReading.value,
+                    latitude: sensor.latitude,
+                    longitude: sensor.longitude
+                  }
                 }
               }
-            }
+            }));
+          });
+          
+          // Start sending real-time updates
+          interval = setInterval(() => {
+            const randomSensor = sensors[Math.floor(Math.random() * sensors.length)];
+            const variation = (Math.random() - 0.5) * 0.1;
+            const newDoseRate = Math.max(0.01, randomSensor.lastReading.value + variation);
+            
+            // Update the sensor's last reading
+            randomSensor.lastReading.value = newDoseRate;
+            randomSensor.lastReading.timestamp = new Date().toISOString();
+            
+            // Send as GraphQL subscription data matching allSensorUpdates schema
+            ws.send(JSON.stringify({
+              type: 'data',
+              id: subscriptionId,
+              payload: {
+                data: {
+                  allSensorUpdates: {
+                    sensorId: randomSensor.id,
+                    timestamp: new Date().toISOString(),
+                    doseRate: newDoseRate,
+                    latitude: randomSensor.latitude,
+                    longitude: randomSensor.longitude
+                  }
+                }
+              }
+            }));
+          }, 3000);
+        } else {
+          // Generic subscription acknowledgment
+          ws.send(JSON.stringify({
+            type: 'data',
+            id: subscriptionId,
+            payload: { data: {} }
           }));
-        }, 5000);
-      } else if (data.type === 'subscribe') {
-        // Acknowledge subscription
-        ws.send(JSON.stringify({
-          type: 'data',
-          id: data.id,
-          payload: {
-            data: {
-              sensors: sensors
-            }
-          }
-        }));
+        }
       } else if (data.type === 'ping') {
         ws.send(JSON.stringify({ type: 'pong' }));
+      } else if (data.type === 'complete') {
+        // Client requested to stop subscription
+        if (interval) {
+          clearInterval(interval);
+          interval = null;
+        }
       }
     } catch (e) {
       console.error('Invalid message format:', e);
     }
   });
+
 });
 
 
