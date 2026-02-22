@@ -96,11 +96,14 @@ const anomalies = [
 ];
 
 const globalStatus = {
-  defconLevel: 3,
-  status: 'monitoring',
-  activeAnomalies: 2,
-  lastUpdated: new Date().toISOString()
+  level: 3,
+  defcon: 3,
+  status: 'MONITORING',
+  activeAlerts: 2,
+  activeSensors: 5,
+  lastUpdate: Date.now()
 };
+
 
 
 const alerts = [
