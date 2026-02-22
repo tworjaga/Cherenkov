@@ -7,10 +7,10 @@ import { useGlobeStore } from '@/stores/globe-store';
 import { 
   usePlumeSimulation, 
   usePlumeParticles, 
-  particlesToDeckGlFormat,
   useEvacuationZones,
   zonesToDeckGlFormat,
 } from '@/hooks';
+
 import { useToast } from '@/components/ui/toast';
 import { Spinner } from '@/components/ui/spinner';
 import { Alert } from '@/components/ui/alert';
