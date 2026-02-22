@@ -128,8 +128,9 @@ impl QueryRoot {
         let db = ctx.data::<Arc<RadiationDatabase>>()?;
         
         let _health = db.health_check().await;
-        // Anomaly count API not available - using placeholder
-        let anomaly_count = 0;
+        // Get anomaly count from last 24 hours
+        let anomaly_count = db.get_anomaly_count(24).await
+            .map_err(|e| async_graphql::Error::new(format!("Database error: {}", e)))?;
         
         let defcon = if anomaly_count > 10 {
             2
