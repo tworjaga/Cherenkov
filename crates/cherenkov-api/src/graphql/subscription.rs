@@ -4,7 +4,7 @@ use std::time::Duration;
 use std::sync::Arc;
 use tokio_stream::StreamExt;
 
-use super::plume_service::{PlumeService, ParticlePosition};
+use super::plume_service::PlumeService;
 
 /// GraphQL subscription root with plume service integration
 pub struct SubscriptionRoot {
