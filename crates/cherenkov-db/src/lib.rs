@@ -446,6 +446,24 @@ impl RadiationDatabase {
             cache: self.cache.health_check().await,
         }
     }
+
+    /// Get anomalies since a given timestamp
+    #[instrument(skip(self))]
+    pub async fn get_anomalies(
+        &self,
+        since: i64,
+        limit: usize,
+    ) -> Result<Vec<AnomalyRecord>, DatabaseError> {
+        self.warm.get_anomalies(since, limit).await
+            .map_err(|e| DatabaseError::Sqlite(e.to_string()))
+    }
+
+    /// Get count of anomalies in last N hours
+    #[instrument(skip(self))]
+    pub async fn get_anomaly_count(&self, hours: i64) -> Result<i64, DatabaseError> {
+        self.warm.get_anomaly_count(hours).await
+            .map_err(|e| DatabaseError::Sqlite(e.to_string()))
+    }
 }
 
 #[derive(Debug, Clone)]
