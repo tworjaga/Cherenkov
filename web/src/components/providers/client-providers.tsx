@@ -3,6 +3,7 @@
 import { ReactNode } from 'react';
 import { useKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts';
 import { useWebSocket } from '@/hooks/use-websocket';
+import { QueryProvider } from './query-provider';
 
 interface ClientProvidersProps {
   children: ReactNode;
@@ -11,5 +12,9 @@ interface ClientProvidersProps {
 export function ClientProviders({ children }: ClientProvidersProps) {
   useKeyboardShortcuts();
   useWebSocket();
-  return <>{children}</>;
+  return (
+    <QueryProvider>
+      {children}
+    </QueryProvider>
+  );
 }
