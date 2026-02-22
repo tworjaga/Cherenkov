@@ -1,16 +1,16 @@
 use async_graphql::{Object, ID, Context, Result, InputObject, SimpleObject, Enum};
 use chrono::{DateTime, Utc};
 use std::sync::Arc;
-use tracing::{info, warn};
+use tracing::info;
+
 
 use cherenkov_ml::{
     ModelRegistry, 
-    ModelVersionInfo, 
     PerformanceMetrics as MlPerformanceMetrics,
     OnnxModelMetadata,
-    RegistryError,
     ExportConfig,
 };
+
 
 
 /// Model status enumeration
