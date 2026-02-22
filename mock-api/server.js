@@ -350,7 +350,9 @@ wss.on('connection', (ws) => {
                     allSensorUpdates: {
                       sensorId: sensor.id,
                       timestamp: Date.now(),
-                      doseRate: sensor.lastReading.value,
+                      value: sensor.lastReading.value,
+                      unit: sensor.lastReading.unit,
+
                       latitude: sensor.latitude,
                       longitude: sensor.longitude
                     }
@@ -379,13 +381,15 @@ wss.on('connection', (ws) => {
                     allSensorUpdates: {
                       sensorId: randomSensor.id,
                       timestamp: Date.now(),
-                      doseRate: newDoseRate,
+                      value: newDoseRate,
+                      unit: randomSensor.lastReading.unit,
                       latitude: randomSensor.latitude,
                       longitude: randomSensor.longitude
                     }
                   }
                 }
               }));
+
 
             }, 3000);
 
