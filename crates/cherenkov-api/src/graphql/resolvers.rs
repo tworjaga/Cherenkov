@@ -92,12 +92,32 @@ impl QueryRoot {
         since: DateTime<Utc>,
         limit: Option<i32>,
     ) -> Result<Vec<Anomaly>> {
-        let _db = ctx.data::<Arc<RadiationDatabase>>()?;
-        let _ = (severity, since, limit);
+        let db = ctx.data::<Arc<RadiationDatabase>>()?;
         
-        // Anomaly API not available in current database implementation
-        // Return empty list for now
-        Ok(vec![])
+        let records = db.get_anomalies(
+            since.timestamp(),
+            limit.unwrap_or(100) as usize
+        ).await.map_err(|e| async_graphql::Error::new(format!("Database error: {}", e)))?;
+        
+        let anomalies: Vec<Anomaly> = records.into_iter()
+            .filter(|r| {
+                // Filter by severity if provided
+                match &severity {
+                    Some(sevs) => sevs.contains(&r.severity),
+                    None => true,
+                }
+            })
+            .map(|r| Anomaly {
+                id: ID::from(r.anomaly_id),
+                sensor_id: ID::from(r.sensor_id.to_string()),
+                severity: r.severity,
+                z_score: r.z_score,
+                detected_at: DateTime::from_timestamp(r.detected_at, 0)
+                    .unwrap_or_else(|| Utc::now()),
+            })
+            .collect();
+        
+        Ok(anomalies)
     }
     
     async fn facilities(&self, _ctx: &Context<'_>) -> Vec<Facility> {
