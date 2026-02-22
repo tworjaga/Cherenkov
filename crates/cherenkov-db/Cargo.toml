@@ -19,7 +19,7 @@ thiserror = { workspace = true }
 anyhow = { workspace = true }
 
 # Database tiers
-sqlx = { version = "0.7", features = ["runtime-tokio", "sqlite", "migrate", "chrono"] }
+sqlx = { version = "0.8", features = ["runtime-tokio", "sqlite", "migrate", "chrono"] }
 redis = { workspace = true }
 deadpool = { version = "0.10", features = ["managed", "rt_tokio_1"] }
 deadpool-redis = "0.14"
