@@ -31,11 +31,11 @@
 - [x] Commit: `feat: Integrate dispersion calculations with GraphQL subscriptions`
 
 ### Task 5: Testing and Validation
-- [ ] Test WebSocket connections
-- [ ] Verify particle rendering performance
-- [ ] Validate dose contour accuracy
-- [ ] End-to-end integration testing
-- [ ] Commit: `test: Add plume integration tests`
+- [x] Test WebSocket connections
+- [x] Verify particle rendering performance
+- [x] Validate dose contour accuracy
+- [x] End-to-end integration testing
+- [x] Commit: `test: Add plume integration tests`
 
 ## Progress
 - Started: Task 1

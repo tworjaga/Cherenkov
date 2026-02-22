@@ -5,7 +5,7 @@ pub mod sqlite;
 pub mod cache;
 pub mod storage;
 
-pub use sqlite::{SensorInfo, AnomalyRecord};
+pub use sqlite::{SensorInfo, AnomalyRecord, SensorRecord};
 
 
 use serde::{Deserialize, Serialize};
@@ -464,7 +464,15 @@ impl RadiationDatabase {
         self.warm.get_anomaly_count(hours).await
             .map_err(|e| DatabaseError::Sqlite(e.to_string()))
     }
+
+    /// List all sensors with their latest location and timestamp
+    #[instrument(skip(self))]
+    pub async fn list_sensors(&self) -> Result<Vec<SensorRecord>, DatabaseError> {
+        self.warm.list_sensors_with_location().await
+            .map_err(|e| DatabaseError::Sqlite(e.to_string()))
+    }
 }
+
 
 #[derive(Debug, Clone)]
 pub struct DatabaseHealth {

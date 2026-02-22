@@ -502,6 +502,48 @@ impl SqliteStorage {
 
         Ok(())
     }
+
+    /// List all sensors with their latest location and timestamp
+    pub async fn list_sensors_with_location(&self) -> anyhow::Result<Vec<SensorRecord>> {
+        let rows = sqlx::query(
+            r#"
+            SELECT 
+                r.sensor_id,
+                r.source,
+                r.latitude,
+                r.longitude,
+                r.timestamp
+            FROM radiation_readings_warm r
+            INNER JOIN (
+                SELECT sensor_id, MAX(timestamp) as max_ts
+                FROM radiation_readings_warm
+                GROUP BY sensor_id
+            ) latest ON r.sensor_id = latest.sensor_id AND r.timestamp = latest.max_ts
+            ORDER BY r.sensor_id
+            "#
+        )
+        .fetch_all(&self.pool)
+        .await?;
+
+        let sensors: Vec<SensorRecord> = rows
+            .into_iter()
+            .map(|row| {
+                let sensor_id_str: String = row.get(0);
+                let sensor_id = Uuid::parse_str(&sensor_id_str).unwrap_or_else(|_| Uuid::new_v4());
+                let timestamp_naive: NaiveDateTime = row.get(4);
+                
+                SensorRecord {
+                    sensor_id,
+                    source: row.get(1),
+                    latitude: row.get(2),
+                    longitude: row.get(3),
+                    timestamp: timestamp_naive.and_utc().timestamp(),
+                }
+            })
+            .collect();
+
+        Ok(sensors)
+    }
 }
 
 
@@ -520,6 +562,16 @@ pub struct AnomalyRecord {
     pub severity: String,
     pub z_score: f64,
     pub detected_at: i64,
+}
+
+/// Sensor record with location information for GraphQL resolvers
+#[derive(Debug, Clone)]
+pub struct SensorRecord {
+    pub sensor_id: Uuid,
+    pub source: String,
+    pub latitude: f64,
+    pub longitude: f64,
+    pub timestamp: i64,
 }
 
 
