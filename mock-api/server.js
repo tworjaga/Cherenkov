@@ -343,7 +343,7 @@ wss.on('connection', (ws) => {
             // Send initial sensor data
             sensors.forEach(sensor => {
               ws.send(JSON.stringify({
-                type: 'data',
+                type: 'next',
                 id: subscriptionId,
                 payload: {
                   data: {
@@ -358,6 +358,7 @@ wss.on('connection', (ws) => {
                 }
               }));
             });
+
             
             // Start sending real-time updates
             interval = setInterval(() => {
@@ -371,7 +372,7 @@ wss.on('connection', (ws) => {
               
               // Send as GraphQL subscription data matching allSensorUpdates schema
               ws.send(JSON.stringify({
-                type: 'data',
+                type: 'next',
                 id: subscriptionId,
                 payload: {
                   data: {
@@ -385,16 +386,18 @@ wss.on('connection', (ws) => {
                   }
                 }
               }));
+
             }, 3000);
 
         } else {
           // Generic subscription acknowledgment
           ws.send(JSON.stringify({
-            type: 'data',
+            type: 'next',
             id: subscriptionId,
             payload: { data: {} }
           }));
         }
+
       } else if (data.type === 'ping') {
         ws.send(JSON.stringify({ type: 'pong' }));
       } else if (data.type === 'complete') {
