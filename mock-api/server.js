@@ -291,23 +291,19 @@ wss.on('connection', (ws) => {
   console.log('WebSocket client connected');
   
   let interval = null;
-  let isAlive = true;
   
-  // Set up ping/pong to keep connection alive
+  // Simple keepalive - just track connection state without aggressive termination
+  ws.isAlive = true;
+  
   ws.on('pong', () => {
-    isAlive = true;
+    ws.isAlive = true;
   });
   
+  // Gentle ping every 30 seconds without termination
   const pingInterval = setInterval(() => {
-    if (!isAlive) {
-      console.log('WebSocket client unresponsive, terminating');
-      ws.terminate();
-      clearInterval(pingInterval);
-      if (interval) clearInterval(interval);
-      return;
+    if (ws.readyState === ws.OPEN) {
+      ws.ping();
     }
-    isAlive = false;
-    ws.ping();
   }, 30000);
   
   ws.on('close', () => {
@@ -315,6 +311,13 @@ wss.on('connection', (ws) => {
     clearInterval(pingInterval);
     if (interval) clearInterval(interval);
   });
+  
+  ws.on('error', (err) => {
+    console.error('WebSocket error:', err.message);
+    clearInterval(pingInterval);
+    if (interval) clearInterval(interval);
+  });
+
   
   ws.on('message', (message) => {
     try {
@@ -335,54 +338,55 @@ wss.on('connection', (ws) => {
         
         console.log('Subscription started:', subscriptionId, query.substring(0, 50));
         
-        // Send initial data for the subscription
-        if (query.includes('allSensorUpdates')) {
-          // Send initial sensor data
-          sensors.forEach(sensor => {
-            ws.send(JSON.stringify({
-              type: 'data',
-              id: subscriptionId,
-              payload: {
-                data: {
-                  allSensorUpdates: {
-                    sensorId: sensor.id,
-                    timestamp: new Date().toISOString(),
-                    doseRate: sensor.lastReading.value,
-                    latitude: sensor.latitude,
-                    longitude: sensor.longitude
+          // Send initial data for the subscription
+          if (query.includes('allSensorUpdates')) {
+            // Send initial sensor data
+            sensors.forEach(sensor => {
+              ws.send(JSON.stringify({
+                type: 'data',
+                id: subscriptionId,
+                payload: {
+                  data: {
+                    allSensorUpdates: {
+                      sensorId: sensor.id,
+                      timestamp: Date.now(),
+                      doseRate: sensor.lastReading.value,
+                      latitude: sensor.latitude,
+                      longitude: sensor.longitude
+                    }
                   }
                 }
-              }
-            }));
-          });
-          
-          // Start sending real-time updates
-          interval = setInterval(() => {
-            const randomSensor = sensors[Math.floor(Math.random() * sensors.length)];
-            const variation = (Math.random() - 0.5) * 0.1;
-            const newDoseRate = Math.max(0.01, randomSensor.lastReading.value + variation);
+              }));
+            });
             
-            // Update the sensor's last reading
-            randomSensor.lastReading.value = newDoseRate;
-            randomSensor.lastReading.timestamp = new Date().toISOString();
-            
-            // Send as GraphQL subscription data matching allSensorUpdates schema
-            ws.send(JSON.stringify({
-              type: 'data',
-              id: subscriptionId,
-              payload: {
-                data: {
-                  allSensorUpdates: {
-                    sensorId: randomSensor.id,
-                    timestamp: new Date().toISOString(),
-                    doseRate: newDoseRate,
-                    latitude: randomSensor.latitude,
-                    longitude: randomSensor.longitude
+            // Start sending real-time updates
+            interval = setInterval(() => {
+              const randomSensor = sensors[Math.floor(Math.random() * sensors.length)];
+              const variation = (Math.random() - 0.5) * 0.1;
+              const newDoseRate = Math.max(0.01, randomSensor.lastReading.value + variation);
+              
+              // Update the sensor's last reading
+              randomSensor.lastReading.value = newDoseRate;
+              randomSensor.lastReading.timestamp = new Date().toISOString();
+              
+              // Send as GraphQL subscription data matching allSensorUpdates schema
+              ws.send(JSON.stringify({
+                type: 'data',
+                id: subscriptionId,
+                payload: {
+                  data: {
+                    allSensorUpdates: {
+                      sensorId: randomSensor.id,
+                      timestamp: Date.now(),
+                      doseRate: newDoseRate,
+                      latitude: randomSensor.latitude,
+                      longitude: randomSensor.longitude
+                    }
                   }
                 }
-              }
-            }));
-          }, 3000);
+              }));
+            }, 3000);
+
         } else {
           // Generic subscription acknowledgment
           ws.send(JSON.stringify({
